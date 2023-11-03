@@ -8,10 +8,9 @@
 
   git = {
     # git stuff here
-  };
-
-  github = {
-    # github stuff here
+    username = "<username>";
+    email = "<email>";
+    github.username = "<username>";
   };
 
   region = {
