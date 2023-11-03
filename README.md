@@ -24,9 +24,9 @@ Current hosts:
 ## Todo list:
 
 - [x] make a working baseline
-- [] Replace variables file with SOPS
-- [] Finalize setting up host environment with GPG, SSH etc.
-- [] create more hosts (VPS, NAS, IoT)
+- [ ] Replace variables file with SOPS
+- [ ] Finalize setting up host environment with GPG, SSH etc.
+- [ ] create more hosts (VPS, NAS, IoT)
 
 ## Resources
 
