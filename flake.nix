@@ -8,7 +8,7 @@
   };
 
   outputs = { self, ... } @ inputs:
-  let variables = import (if builtins.pathExists ./variables.nix then ./variables.nix else ./examples.variables.nix);
+  let variables = import (if builtins.pathExists ./variables.nix then ./variables.nix else ./example.variables.nix);
   in {
     nixosConfigurations = import ./hosts
       { inherit self inputs variables; }
