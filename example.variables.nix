@@ -1,20 +1,20 @@
 {
   system = {
-    architecture = "<architecture>"; # e.g. "x86_64-linux"
-    username = "<username>";
-    hostname = "<hostname>";
-    stateVersion = "<stateVersion>"; # e.g. "23.11"
+    architecture = "x86_64-linux"; # e.g. "x86_64-linux"
+    username = "storm";
+    hostname = "nixos";
+    stateVersion = "23.05"; # e.g. "23.11"
   };
 
   git = {
-    # git stuff here
-    username = "<username>";
-    email = "<email>";
-    github.username = "<username>";
+    # git stuff here, important to be precise if signing commits
+    username = "Storm";
+    github.username = "washedupdeveloper"; # github username
+    email = "123456789+${github.username}@users.noreply.github.com";
   };
 
   region = {
-    timeZone = "<timeZone>"; # e.g. "UTC"
-    locale = "<locale>"; # e.g. "en_US.UTF-8"
+    timeZone = "UTC"; # e.g. "UTC"
+    locale = "C.UTF-8"; # e.g. "C.UTF-8"
   };
 }
