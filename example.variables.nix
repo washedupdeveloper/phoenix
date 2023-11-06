@@ -10,7 +10,7 @@
     # git stuff here, important to be precise if signing commits
     username = "Storm";
     github.username = "washedupdeveloper"; # github username
-    email = "123456789+${github.username}@users.noreply.github.com";
+    email = "123456789+${git.github.username}@users.noreply.github.com";
   };
 
   region = {
