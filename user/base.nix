@@ -34,7 +34,7 @@
 
       extraConfig = {
         init.defaultBranch = "main";
-        github.user = variables.github.username;
+        github.user = variables.git.github.username;
         # tag.gpgSign = true;
         safe.directory = "*";
       };

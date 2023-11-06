@@ -52,7 +52,7 @@
     registry = {
       nixpkgs.flake = inputs.nixpkgs;
       flakes.to = {
-        owner = variables.github.username;
+        owner = variables.git.github.username;
         repo = "flakes";
         type = "github";
       };
