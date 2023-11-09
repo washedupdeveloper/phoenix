@@ -9,8 +9,8 @@
   git = {
     # git stuff here, important to be precise if signing commits
     username = "Storm";
-    github.username = "washedupdeveloper"; # github username
     email = "123456789+washedupdeveloper@users.noreply.github.com";
+    github.username = "washedupdeveloper"; # github username
   };
 
   region = {
