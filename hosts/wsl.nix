@@ -1,9 +1,5 @@
-{ self, variables, modulesPath, ... }:
+{ self, variables, ... }:
 {
-  imports = [
-    "${modulesPath}/profiles/minimal.nix"
-  ];
-
   networking.hostName = variables.system.hostname or "nixos-wsl";
   system.stateVersion = variables.system.stateVersion or "23.05";
 
