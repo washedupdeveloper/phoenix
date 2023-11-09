@@ -16,6 +16,7 @@
     unzip
     vim
     neovim
+    vscode-extensions.bbenoist.nix
   ];
 
   programs = {
@@ -25,15 +26,12 @@
       enable = true;
       userName = variables.git.username;
       userEmail = variables.git.email;
-
       ignores = [ ".direnv/" ];
-
       # TODO: Figure out SSH vs GPG
       # signing = {
       #   signByDefault = true;
       #   key = variables.git.signingKey;
       # };
-
       extraConfig = {
         init.defaultBranch = "main";
         github.user = variables.git.github.username;
@@ -49,17 +47,17 @@
     #   };
     # };
 
-    ssh = {
-      enable = true;
-      extraConfig = ''
-        AddKeysToAgent yes
-      '';
-    };
+    # ssh = {
+    #   enable = true;
+    #   extraConfig = ''
+    #     AddKeysToAgent yes
+    #   '';
+    # };
   };
 
-  services.gpg-agent = {
-    enable = true;
-    enableSshSupport = true;
-    pinentryFlavor = "tty";
-  };
+  # services.gpg-agent = {
+  #   enable = true;
+  #   enableSshSupport = true;
+  #   pinentryFlavor = "tty";
+  # };
 }
