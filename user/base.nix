@@ -10,6 +10,8 @@
   home.homeDirectory = "/home/${variables.system.username}";
   home.stateVersion = variables.system.stateVersion;
   home.packages = with pkgs; [
+    curl
+    wget
     zip
     unzip
     vim
