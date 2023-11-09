@@ -18,9 +18,9 @@
     nativeSystemd = true;
   };
 
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    autoPrune.enable = true;
-  };
+  # virtualisation.docker = {
+  #   enable = true;
+  #   enableOnBoot = true;
+  #   autoPrune.enable = true;
+  # };
 }
