@@ -14,6 +14,13 @@
     nativeSystemd = true;
   };
 
+  fileSystems."/home/${variables.system.username}/.ssh" = {
+    device = "C:\\Users\\storm\\.ssh";
+    fsType = "drvfs";
+    options = [ "rw" "noatime" "uid=1000" "gid=100" "case=off" "umask=0077" "fmask=0177" ];
+  };
+
+
   # virtualisation.docker = {
   #   enable = true;
   #   enableOnBoot = true;
