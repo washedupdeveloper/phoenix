@@ -3,9 +3,9 @@ keys:
 creation_rules:
   - path_regex: hosts/([^/]*/)?secrets.(yaml|yml)$
     key_groups:
-      age:
+    - age:
         - *wsl
   - path_regex: system/([^/]*/)?secrets.(yaml|yml)$
     key_groups:
-      age:
+    - age:
         - *wsl
