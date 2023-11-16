@@ -13,18 +13,16 @@ Current hosts:
 
 ## Usage
 
-1. Create & populate variables.nix file
-   `cp example.variables.nix variables.nix` and fill in the blanks
+1. Modify variables.nix file
 
 2. Rebuild your NixOS with the repositorys flake.
-
    - **Requires `flakes` & `nix-command` experimental features enabled**:
-     `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+  `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
 
-## Todo list:
+## Todo list
 
 - [x] make a working baseline
-- [ ] Replace variables file with SOPS
+- [ ] implement SOPS for secret management
 - [ ] Finalize setting up host environment with GPG, SSH etc.
 - [ ] create more hosts (VPS, NAS, IoT)
 
