@@ -3,7 +3,8 @@
     architecture = "x86_64-linux"; # e.g. "x86_64-linux"
     username = "storm";
     hostname = "nixos";
-    stateVersion = "23.05"; # e.g. "23.11"
+    stateVersion = "23.11"; # e.g. "23.11"
+    homeStateVersion = "23.05"; # e.g. "23.05"
   };
 
   git = {
