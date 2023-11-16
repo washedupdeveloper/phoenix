@@ -1,6 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs2305.url = "github:nixos/nixpkgs/nixos-23.05";
     nixos-wsl.url = "github:nix-community/NixOS-WSL";
     nil.url = "github:oxalica/nil";
     vscode-server.url = "github:nix-community/nixos-vscode-server";
