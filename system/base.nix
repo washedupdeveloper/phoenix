@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   inputs,
   variables,
   ...
@@ -30,7 +31,14 @@
     })
   ];
 
+  environment.variables.EDITOR = "nvim";
   environment.systemPackages = [ pkgs.sops ];
+  sops = {
+    secrets.user_password = {
+      sopsFile = ./secrets.yml;
+      neededForUsers = true;
+    };
+  };
 
   users.users.${variables.system.username} = {
     isNormalUser = true;
@@ -39,6 +47,7 @@
       # "docker"
     ];
     shell = pkgs.fish;
+    passwordFile = config.sops.secrets.user_password.path;
   };
 
   nixpkgs.config.allowUnfree = true;
