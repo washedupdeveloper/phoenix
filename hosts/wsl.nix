@@ -15,7 +15,7 @@
   };
 
   fileSystems."/home/${variables.system.username}/.ssh" = {
-    device = "C:\\Users\\storm\\.ssh";
+    device = "C:\\Users\\${variables.system.username}\\.ssh";
     fsType = "drvfs";
     options = [ "rw" "noatime" "uid=1000" "gid=100" "case=off" "umask=0077" "fmask=0177" ];
   };
