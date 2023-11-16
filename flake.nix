@@ -6,6 +6,7 @@
     nil.url = "github:oxalica/nil";
     vscode-server.url = "github:nix-community/nixos-vscode-server";
     home-manager.url = "github:nix-community/home-manager/release-23.05";
+    sops-nix.url = "github:Mic92/sops-nix";
   };
 
   outputs = { self, ... } @ inputs:

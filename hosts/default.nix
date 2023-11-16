@@ -3,6 +3,7 @@ let
   commonModules = [
     ../system/base.nix
     inputs.home-manager.nixosModules.default
+    inputs.sops-nix.nixosModules.sops
     {
       home-manager = {
         useGlobalPkgs = true;

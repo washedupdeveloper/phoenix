@@ -30,6 +30,8 @@
     })
   ];
 
+  environment.systemPackages = [ pkgs.sops ];
+
   users.users.${variables.system.username} = {
     isNormalUser = true;
     extraGroups = [
