@@ -4,6 +4,7 @@
     ./modules/shell.nix
     ./modules/jsts.nix
     ./modules/elixir.nix
+    ./modules/vscode
   ];
 
   home.username = variables.system.username;
@@ -16,7 +17,6 @@
     unzip
     vim
     neovim
-    vscode-extensions.bbenoist.nix
   ];
 
   programs = {
