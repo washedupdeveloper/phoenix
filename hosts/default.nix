@@ -26,7 +26,7 @@ in {
     specialArgs = commonSpecialArgs; # // { }
     system = variables.system.architecture or "x86_64-linux";
     modules = commonModules ++ [
-      ./wsl.nix
+      ./wsl
       inputs.nixos-wsl.nixosModules.wsl
       inputs.vscode-server.nixosModules.default
     ];

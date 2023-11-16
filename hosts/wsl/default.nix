@@ -5,6 +5,7 @@
 
   programs.fish.enable = true;
   services.vscode-server.enable = true;
+  sops.defaultSopsFile = ./secrets.yaml;
 
   wsl = {
     enable = true;
@@ -19,7 +20,6 @@
     fsType = "drvfs";
     options = [ "rw" "noatime" "uid=1000" "gid=100" "case=off" "umask=0077" "fmask=0177" ];
   };
-
 
   # virtualisation.docker = {
   #   enable = true;
