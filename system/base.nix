@@ -21,7 +21,7 @@
     # };
   };
 
-  fonts.fonts = with pkgs; [
+  fonts.packages = with pkgs; [
     (nerdfonts.override {
       fonts = [
         "Meslo"
@@ -32,7 +32,7 @@
   ];
 
   environment.variables.EDITOR = "nvim";
-  environment.systemPackages = [ pkgs.sops ];
+  environment.systemPackages = [pkgs.sops];
   sops = {
     secrets.user_password = {
       sopsFile = ./secrets.yml;
@@ -40,6 +40,7 @@
     };
   };
 
+  users.mutableUsers = true;
   users.users.${variables.system.username} = {
     isNormalUser = true;
     extraGroups = [
@@ -47,7 +48,7 @@
       # "docker"
     ];
     shell = pkgs.fish;
-    passwordFile = config.sops.secrets.user_password.path;
+    hashedPasswordFile = config.sops.secrets.user_password.path;
   };
 
   nixpkgs.config.allowUnfree = true;

@@ -1,5 +1,8 @@
-{ pkgs, variables, ...}:
 {
+  pkgs,
+  variables,
+  ...
+}: {
   imports = [
     ./modules/shell.nix
     ./modules/jsts.nix
@@ -9,7 +12,7 @@
 
   home.username = variables.system.username;
   home.homeDirectory = "/home/${variables.system.username}";
-  home.stateVersion = variables.system.stateVersion;
+  home.stateVersion = variables.system.homeStateVersion or "23.05";
   home.packages = with pkgs; [
     git
     curl
@@ -27,7 +30,7 @@
       enable = true;
       userName = variables.git.username;
       userEmail = variables.git.email;
-      ignores = [ ".direnv/" ];
+      ignores = [".direnv/"];
       # TODO: Figure out SSH vs GPG
       # signing = {
       #   signByDefault = true;
