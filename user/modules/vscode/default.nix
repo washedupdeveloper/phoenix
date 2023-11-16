@@ -1,11 +1,10 @@
-{ pkgs, ...}:
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
-    vscode-extension-bbenoist-Nix
+    vscode-extensions.bbenoist.nix
     vscode-extensions.kamadorueda.alejandra
-    vscode-extension-mikestead-dotenv
-    vscode-extension-EditorConfig-EditorConfig
-    vscode-extension-DavidAnson-vscode-markdownlint
+    vscode-extensions.mikestead.dotenv
+    vscode-extensions.editorconfig.editorconfig
+    vscode-extensions.davidanson.vscode-markdownlint
     vscode-extensions.redhat.vscode-yaml
   ];
 }
