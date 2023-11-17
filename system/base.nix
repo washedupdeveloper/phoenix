@@ -32,7 +32,8 @@
   ];
 
   environment.variables.EDITOR = "nvim";
-  environment.systemPackages = [pkgs.sops];
+  environment.systemPackages = [pkgs.sops pkgs.alejandra];
+
   sops = {
     secrets.user_password = {
       sopsFile = ./secrets.yml;

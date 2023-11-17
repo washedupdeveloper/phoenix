@@ -33,9 +33,6 @@ in {
       commonModules
       ++ [
         ./wsl
-        {
-          environment.systemPackages = [inputs.alejandra.defaultPackage.${variables.system.architecture}];
-        }
         inputs.nixos-wsl.nixosModules.wsl
         inputs.vscode-server.nixosModules.default
       ];
