@@ -5,7 +5,3 @@ creation_rules:
     key_groups:
       - age:
           - *wsl
-  - path_regex: secrets.(yaml|yml)$
-    key_groups:
-      - age:
-          - *wsl
