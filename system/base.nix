@@ -35,10 +35,10 @@
   environment.systemPackages = [pkgs.sops pkgs.alejandra];
 
   sops = {
-    defaultSopsFile = ./secrets.yml;
+    defaultSopsFile = ./secrets.yaml;
     age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
     secrets.user_password = {
-      sopsFile = ./secrets.yml;
+      sopsFile = ./secrets.yaml;
       neededForUsers = true;
     };
   };
