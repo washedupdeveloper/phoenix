@@ -7,6 +7,7 @@
     ./modules/shell.nix
     ./modules/jsts.nix
     ./modules/elixir.nix
+    ./modules/go.nix
     ./modules/vscode
   ];
 
