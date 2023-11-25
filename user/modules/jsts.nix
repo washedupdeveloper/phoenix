@@ -9,6 +9,7 @@
       nodePackages.tailwindcss
       nodePackages.postcss
       nodePackages.svelte-language-server
+      nodePackages.pnpm
     ]
     ++ (import ./vscode/jsts.nix {inherit pkgs;});
 }
