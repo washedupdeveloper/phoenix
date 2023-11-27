@@ -10,29 +10,21 @@
 
   services.openssh = {
     enable = true;
-    #   settings = {
-    #     PasswordAuthentication = false;
-    #   };
-
-    #   hostKeys = [{
-    #     # path = ;
-    #     type = "ed25519";
-    #   }];
-    # };
+    settings = {
+      PasswordAuthentication = false;
+    };
   };
 
   fonts.packages = with pkgs; [
     (nerdfonts.override {
       fonts = [
         "Meslo"
-        # "CascadiaCode"
-        # "JetbrainsMono"
       ];
     })
   ];
 
   environment.variables.EDITOR = "nvim";
-  environment.systemPackages = [pkgs.sops pkgs.alejandra];
+  environment.systemPackages = with pkgs; [sops alejandra];
 
   sops = {
     defaultSopsFile = ./secrets.yaml;
@@ -48,10 +40,10 @@
     isNormalUser = true;
     extraGroups = [
       "wheel"
-      # "docker"
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
+    openssh.authorizedKeys.keys = [variables.git.ssh_pub];
   };
 
   nixpkgs.config.allowUnfree = true;
