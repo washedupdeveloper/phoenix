@@ -15,13 +15,14 @@
         extraSpecialArgs = {inherit inputs variables;};
         users.${variables.system.username}.imports = [
           ../user/base.nix
+          inputs.sops-nix.homeManagerModules.sops
         ];
       };
     }
   ];
 
   commonSpecialArgs = {
-    inherit self variables;
+    inherit variables;
     inherit (self) inputs;
   };
 in {
