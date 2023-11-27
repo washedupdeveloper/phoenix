@@ -1,14 +1,9 @@
-{
-  self,
-  variables,
-  ...
-}: {
+{variables, ...}: {
   networking.hostName = variables.system.hostname or "nixos-wsl";
   system.stateVersion = variables.system.stateVersion or "23.05";
 
   programs.fish.enable = true;
   services.vscode-server.enable = true;
-  sops.defaultSopsFile = ./secrets.yaml;
 
   wsl = {
     enable = true;
