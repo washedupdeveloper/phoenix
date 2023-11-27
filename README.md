@@ -17,14 +17,11 @@ Current hosts:
 
 2. Rebuild your NixOS with the repositorys flake.
    - **Requires `flakes` & `nix-command` experimental features enabled**:
-  `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+     `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
 
 ## Todo list
 
-- [x] make a working baseline
-- [ ] implement SOPS for secret management
-- [ ] Finalize setting up host environment with GPG, SSH etc.
-- [ ] create more hosts (VPS, NAS, IoT)
+- create more hosts (VPS, NAS, IoT)
 
 ## Resources
 

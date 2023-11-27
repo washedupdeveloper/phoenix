@@ -1,5 +1,7 @@
 {
   pkgs,
+  config,
+  inputs,
   variables,
   ...
 }: {
@@ -32,37 +34,12 @@
       userName = variables.git.username;
       userEmail = variables.git.email;
       ignores = [".direnv/"];
-      # TODO: Figure out SSH vs GPG
-      # signing = {
-      #   signByDefault = true;
-      #   key = variables.git.signingKey;
-      # };
       extraConfig = {
-        init.defaultBranch = "main";
-        github.user = variables.git.github.username;
-        # tag.gpgSign = true;
-        safe.directory = "*";
+        commit.gpgsign = true;
+        gpg.format = "ssh";
+        gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+        user.signingkey = "~/.ssh/id_ed25519.pub";
       };
     };
-
-    # gpg = {
-    #   enable = true;
-    #   settings = {
-    #     keyid-format = "long";
-    #   };
-    # };
-
-    # ssh = {
-    #   enable = true;
-    #   extraConfig = ''
-    #     AddKeysToAgent yes
-    #   '';
-    # };
   };
-
-  # services.gpg-agent = {
-  #   enable = true;
-  #   enableSshSupport = true;
-  #   pinentryFlavor = "tty";
-  # };
 }

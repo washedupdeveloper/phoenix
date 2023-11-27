@@ -11,6 +11,7 @@
     username = "Storm";
     email = "31986015+washedupdeveloper@users.noreply.github.com";
     github.username = "washedupdeveloper";
+    ssh_pub = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
   };
 
   region = {
