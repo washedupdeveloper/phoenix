@@ -21,6 +21,7 @@
       interactiveShellInit = ''
         set fish_greeting
         bind -k nul -M insert 'accept-autosuggestion'
+        ssh-add ~/.ssh/id_ed25519
       '';
       shellAliases = {
         cat = "bat -p";
