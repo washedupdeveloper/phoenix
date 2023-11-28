@@ -11,5 +11,5 @@
       nodePackages.svelte-language-server
       nodePackages.pnpm
     ]
-    ++ (import ./vscode/jsts.nix {inherit pkgs;});
+    ++ (import ./vscode-extensions.nix {inherit pkgs;});
 }

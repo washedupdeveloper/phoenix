@@ -6,12 +6,18 @@
   ...
 }: {
   imports = [
-    ./modules/shell.nix
-    ./modules/jsts.nix
-    ./modules/elixir.nix
-    ./modules/go.nix
-    ./modules/vscode
+    ./modules/code/vscode-extensions.nix
+    ./modules/code/elixir
+    ./modules/code/go
+    ./modules/code/javascript
+    ./modules/shell
   ];
+
+  sops = {
+    defaultSopsFile = ../secrets/system.yaml;
+    age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
+    secrets.ssh_password = {};
+  };
 
   home.username = variables.system.username;
   home.homeDirectory = "/home/${variables.system.username}";
@@ -22,8 +28,6 @@
     wget
     zip
     unzip
-    vim
-    neovim
   ];
 
   programs = {

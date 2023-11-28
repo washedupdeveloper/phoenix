@@ -7,5 +7,5 @@
       # impl
       # staticcheck
     ]
-    ++ (import ./vscode/go.nix {inherit pkgs;});
+    ++ (import ./vscode-extensions.nix {inherit pkgs;});
 }

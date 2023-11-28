@@ -6,5 +6,6 @@
     vscode-extensions.editorconfig.editorconfig
     vscode-extensions.davidanson.vscode-markdownlint
     vscode-extensions.redhat.vscode-yaml
+    vscode-extensions.bradlc.vscode-tailwindcss
   ];
 }

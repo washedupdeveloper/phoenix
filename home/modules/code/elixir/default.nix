@@ -4,5 +4,5 @@
       elixir
       elixir_ls
     ]
-    ++ (import ./vscode/elixir.nix {inherit pkgs;});
+    ++ (import ./vscode-extensions.nix {inherit pkgs;});
 }
