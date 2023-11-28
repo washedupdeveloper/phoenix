@@ -23,14 +23,13 @@
     })
   ];
 
-  environment.variables.EDITOR = "nvim";
+  environment.variables.EDITOR = "nano";
   environment.systemPackages = with pkgs; [sops alejandra];
 
   sops = {
-    defaultSopsFile = ./secrets.yaml;
+    defaultSopsFile = ../../secrets/system.yaml;
     age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
     secrets.user_password = {
-      sopsFile = ./secrets.yaml;
       neededForUsers = true;
     };
   };
