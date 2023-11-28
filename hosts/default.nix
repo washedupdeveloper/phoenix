@@ -5,17 +5,17 @@
   ...
 }: let
   commonModules = [
-    ../system/base.nix
     inputs.home-manager.nixosModules.default
     inputs.sops-nix.nixosModules.sops
+    ../modules/system
     {
       home-manager = {
         useGlobalPkgs = true;
         useUserPackages = true;
         extraSpecialArgs = {inherit inputs variables;};
         users.${variables.system.username}.imports = [
-          ../user/base.nix
           inputs.sops-nix.homeManagerModules.sops
+          ../home
         ];
       };
     }
