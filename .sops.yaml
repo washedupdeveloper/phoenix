@@ -1,7 +1,7 @@
 keys:
   - &wsl age1wh035tyrjjtp7gqjgks80rzyttsdu7h5y4ktc0lstupp2pg905qs57ucfc
 creation_rules:
-  - path_regex: (system|user|hosts)/([^/]*/)?secrets.(yaml|yml)$
+  - path_regex: (home|hosts|modules|secrets)/([^/]*/)?[a-zA-Z0-9]+[a-zA-Z0-9._-]*[a-zA-Z0-9]+.(yaml|yml)$
     key_groups:
       - age:
           - *wsl
