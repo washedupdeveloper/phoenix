@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   inputs,
   variables,
   ...
@@ -9,34 +10,40 @@
 
   services.openssh = {
     enable = true;
-    #   settings = {
-    #     PasswordAuthentication = false;
-    #   };
-
-    #   hostKeys = [{
-    #     # path = ;
-    #     type = "ed25519";
-    #   }];
-    # };
+    settings = {
+      PasswordAuthentication = false;
+    };
   };
 
-  fonts.fonts = with pkgs; [
+  fonts.packages = with pkgs; [
     (nerdfonts.override {
       fonts = [
         "Meslo"
-        # "CascadiaCode"
-        # "JetbrainsMono"
       ];
     })
   ];
 
+  environment.variables.EDITOR = "nano";
+  environment.systemPackages = with pkgs; [sops alejandra];
+
+  sops = {
+    defaultSopsFile = ../secrets/system.yaml;
+    age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
+    secrets.user_password = {
+      neededForUsers = true;
+    };
+    secrets.ssh_key_pub = {};
+  };
+
+  users.mutableUsers = true;
   users.users.${variables.system.username} = {
     isNormalUser = true;
     extraGroups = [
       "wheel"
-      # "docker"
     ];
     shell = pkgs.fish;
+    hashedPasswordFile = config.sops.secrets.user_password.path;
+    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
   };
 
   nixpkgs.config.allowUnfree = true;
@@ -52,7 +59,7 @@
     registry = {
       nixpkgs.flake = inputs.nixpkgs;
       flakes.to = {
-        owner = variables.github.username;
+        owner = variables.git.github.username;
         repo = "flakes";
         type = "github";
       };
