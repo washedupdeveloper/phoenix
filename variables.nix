@@ -9,7 +9,7 @@
 
   git = {
     username = "Storm";
-    # email in sops secret
+    email = "31986015+washedupdeveloper@users.noreply.github.com";
     github.username = "washedupdeveloper";
     # ssh public key in sops secret
   };
