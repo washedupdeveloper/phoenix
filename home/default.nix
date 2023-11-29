@@ -1,16 +1,17 @@
 {
   pkgs,
+  config,
   variables,
   ...
 }: {
   imports = [
-    ./modules/code/vscode-extensions.nix
+    ./modules/sops.nix
     ./modules/code/elixir
     ./modules/code/go
     ./modules/code/javascript
+    ./modules/code/vscode-extensions.nix
     ./modules/shell
     ./modules/git.nix
-    ./modules/sops.nix
   ];
 
   home.username = variables.system.username;
