@@ -12,7 +12,6 @@
     interactiveShellInit = ''
       set fish_greeting
       bind -k nul -M insert 'accept-autosuggestion'
-      unset SSH_ASKPASS
       sops -d ${config.sops.secrets.ssh_password.path} | ssh-add ~/.ssh/id_ed25519
     '';
     shellAliases = {

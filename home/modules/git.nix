@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   variables,
   ...
 }: {
@@ -11,7 +10,7 @@
   programs.git = {
     enable = true;
     userName = variables.git.username;
-    userEmail = config.sops.secrets.git_email.path;
+    userEmail = variables.git.email;
     ignores = [".direnv/"];
     extraConfig = {
       commit.gpgsign = true;
