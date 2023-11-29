@@ -7,7 +7,7 @@
   commonModules = [
     inputs.home-manager.nixosModules.default
     inputs.sops-nix.nixosModules.sops
-    ../modules/system
+    ../modules/system.nix
     {
       home-manager = {
         useGlobalPkgs = true;
@@ -33,7 +33,7 @@ in {
     modules =
       commonModules
       ++ [
-        ./wsl
+        ./wsl.nix
         inputs.nixos-wsl.nixosModules.wsl
         inputs.vscode-server.nixosModules.default
       ];

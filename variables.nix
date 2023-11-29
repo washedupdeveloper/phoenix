@@ -9,9 +9,9 @@
 
   git = {
     username = "Storm";
-    email = "31986015+washedupdeveloper@users.noreply.github.com";
+    # email in sops secret
     github.username = "washedupdeveloper";
-    ssh_pub = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
+    # ssh public key in sops secret
   };
 
   region = {

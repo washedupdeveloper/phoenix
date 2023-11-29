@@ -27,11 +27,12 @@
   environment.systemPackages = with pkgs; [sops alejandra];
 
   sops = {
-    defaultSopsFile = ../../secrets/system.yaml;
+    defaultSopsFile = ../secrets/system.yaml;
     age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
     secrets.user_password = {
       neededForUsers = true;
     };
+    secrets.ssh_key_pub = {};
   };
 
   users.mutableUsers = true;
@@ -42,7 +43,7 @@
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [variables.git.ssh_pub];
+    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
   };
 
   nixpkgs.config.allowUnfree = true;
