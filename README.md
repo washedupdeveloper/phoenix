@@ -3,9 +3,9 @@
 Simple starter-template for my Nix/NixOS configurations
 
 - `flake.nix` - entry point
+- `home/` - home-manager config, programs etc.
 - `hosts/` - host specific config
-- `system/` - shared system config
-- `user/` - home-manager config, programs etc.
+- `modules/` - shared modules e.g default system config.
 
 Current hosts:
 
@@ -15,7 +15,9 @@ Current hosts:
 
 1. Modify variables.nix file
 
-2. Rebuild your NixOS with the repositorys flake.
+2. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
+
+3. Rebuild your NixOS with the repositorys flake.
    - **Requires `flakes` & `nix-command` experimental features enabled**:
      `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
 
