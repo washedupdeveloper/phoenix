@@ -33,4 +33,6 @@ NixOS Searching Packages, Options & Flakes: [Search NixOS](https://search.nixos.
 
 Home Manager lookup: [Search Home Manager Options](https://mipmip.github.io/home-manager-option-search)
 
-NixOS Logo: [Github Repository](https://github.com/NixOS/nixos-artwork/blob/master/logo/white.png)
+NixOS Logo: [NixOS Repository](https://github.com/NixOS/nixos-artwork/blob/master/logo/white.png)
+
+SOPS: [Sops-Nix Repository](https://github.com/Mic92/sops-nix)
