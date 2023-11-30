@@ -5,6 +5,7 @@
 }: {
   home.packages = with pkgs; [
     git
+    lazygit
   ];
 
   programs.git = {
