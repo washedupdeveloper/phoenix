@@ -4,7 +4,7 @@
     username = "storm";
     hostname = "nixos";
     stateVersion = "23.11"; # e.g. "23.11"
-    homeStateVersion = "23.05"; # e.g. "23.05"
+    homeStateVersion = "23.11"; # e.g. "23.05"
   };
 
   git = {
