@@ -14,6 +14,7 @@
     userEmail = variables.git.email;
     ignores = [".direnv/"];
     extraConfig = {
+      pull.rebase = true;
       commit.gpgsign = true;
       gpg.format = "ssh";
       gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
