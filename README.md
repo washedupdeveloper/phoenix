@@ -3,23 +3,28 @@
 Simple starter-template for my Nix/NixOS configurations
 
 - `flake.nix` - entry point
-- `home/` - home-manager config, programs etc.
 - `hosts/` - host specific config
-- `modules/` - shared modules e.g default system config.
+- `modules/` - modules e.g default system config, home-manager modules etc.
+- `secrets/` - secrets provided through SOPS
 
 Current hosts:
 
 - WSL _(no UI)_
+- RPI (Raspberry Pi 4) _(no UI)_
 
 ## Usage
 
-1. Modify variables.nix file
+1. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
 
-2. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
+2. Rebuild your NixOS with the repositorys flake.
 
-3. Rebuild your NixOS with the repositorys flake.
-   - **Requires `flakes` & `nix-command` experimental features enabled**:
-     `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+- **Requires `flakes` & `nix-command` experimental features enabled**:
+  `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+
+### IoT
+
+Build the Raspberry Pi (4) custom image for flashing an SD card
+`sudo nix build .#nixosConfigurations.rpi.config.system.build.sdImage`
 
 ## Todo list
 

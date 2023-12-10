@@ -2,12 +2,16 @@
   pkgs,
   config,
   inputs,
-  variables,
+  username,
   ...
 }: {
-  time.timeZone = variables.region.timeZone or "UTC";
-  i18n.defaultLocale = variables.region.locale or "C.UTF-8";
+  networking.hostName = "nixos";
+  system.stateVersion = "23.11";
+  time.timeZone = "Europe/Copenhagen"; # e.g. "UTC"
+  i18n.defaultLocale = "en_DK.UTF-8"; # e.g. "en_US.UTF-8"
 
+  programs.fish.enable = true;
+  services.vscode-server.enable = true;
   services.openssh = {
     enable = true;
     settings = {
@@ -15,26 +19,8 @@
     };
   };
 
-  fonts.packages = with pkgs; [
-    (nerdfonts.override {
-      fonts = [
-        "Meslo"
-      ];
-    })
-  ];
-
-  environment.variables.EDITOR = "nano";
-  environment.systemPackages = with pkgs; [sops alejandra];
-
-  sops = {
-    defaultSopsFile = ../secrets/system.yaml;
-    age.keyFile = "/home/${variables.system.username}/.config/sops/age/keys.txt";
-    secrets.user_password.neededForUsers = true;
-    secrets.ssh_key_pub = {};
-  };
-
-  users.mutableUsers = true;
-  users.users.${variables.system.username} = {
+  users.mutableUsers = false;
+  users.users.${username} = {
     isNormalUser = true;
     extraGroups = [
       "wheel"
@@ -43,6 +29,25 @@
     hashedPasswordFile = config.sops.secrets.user_password.path;
     openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
   };
+  security.sudo.wheelNeedsPassword = false;
+
+  sops = {
+    defaultSopsFile = ../secrets/default.yaml;
+    age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+    secrets.user_password.neededForUsers = true;
+    secrets.ssh_key_pub = {};
+  };
+
+  # fonts.packages = with pkgs; [
+  #   (nerdfonts.override {
+  #     fonts = [
+  #       "Meslo"
+  #     ];
+  #   })
+  # ];
+
+  environment.variables.EDITOR = "nano";
+  environment.systemPackages = with pkgs; [sops alejandra];
 
   nixpkgs.config.allowUnfree = true;
   nix = {
@@ -57,7 +62,7 @@
     registry = {
       nixpkgs.flake = inputs.nixpkgs;
       flakes.to = {
-        owner = variables.git.github.username;
+        owner = "washedupdeveloper";
         repo = "flakes";
         type = "github";
       };
@@ -71,9 +76,9 @@
   };
 
   documentation = {
-    enable = true;
-    nixos.enable = true;
-    man.enable = true;
-    dev.enable = true;
+    enable = false;
+    nixos.enable = false;
+    man.enable = false;
+    dev.enable = false;
   };
 }

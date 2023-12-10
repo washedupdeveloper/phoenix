@@ -1,8 +1,4 @@
-{
-  pkgs,
-  variables,
-  ...
-}: {
+{pkgs, ...}: {
   home.packages = with pkgs; [
     git
     lazygit
@@ -10,8 +6,8 @@
 
   programs.git = {
     enable = true;
-    userName = variables.git.username;
-    userEmail = variables.git.email;
+    userName = "Storm";
+    userEmail = "31986015+washedupdeveloper@users.noreply.github.com";
     ignores = [".direnv/"];
     extraConfig = {
       pull.rebase = true;

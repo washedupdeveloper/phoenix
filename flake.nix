@@ -14,10 +14,10 @@
   };
 
   outputs = {self, ...} @ inputs: let
-    variables = import ./variables.nix;
+    username = "storm";
   in {
     nixosConfigurations =
       import ./hosts
-      {inherit self inputs variables;};
+      {inherit self inputs username;};
   };
 }
