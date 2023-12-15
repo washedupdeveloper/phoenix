@@ -27,15 +27,18 @@
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
+    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_pub_key.path];
   };
   security.sudo.wheelNeedsPassword = false;
 
   sops = {
     defaultSopsFile = ../secrets/default.yaml;
     age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
-    secrets.user_password.neededForUsers = true;
-    secrets.ssh_key_pub = {};
+    secrets = {
+      user_password.neededForUsers = true;
+      ssh_pub_key = {};
+      ssh_password = {};
+    };
   };
 
   # fonts.packages = with pkgs; [

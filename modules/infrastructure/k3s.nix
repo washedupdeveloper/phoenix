@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   environment.systemPackages = with pkgs; [k3s];
 
   services.k3s = {
@@ -17,13 +21,10 @@
     };
   };
 
-  #TODO: setup the default k3s config yaml file.
-  #   environment.etc = {
-  #     rancher.k3s.config.yaml = ''
-
-  #     '';
-
-  #     # The UNIX file mode bits
-  #     mode = "0440";
-  #   };
+  # environment.etc."rancher/k3s/config.yaml".text = lib.generators.toYAML {} {
+  #   "write-kubeconfig-mode" = "0644";
+  #   "tls-san" = ["foo.local"];
+  #   "node-label" = ["foo=bar" "something=amazing"];
+  #   "cluster-init" = true;
+  # };
 }
