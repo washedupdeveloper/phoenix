@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  self,
   ...
 }: {
   environment.systemPackages = with pkgs; [k3s];
@@ -27,4 +28,15 @@
   #   "node-label" = ["foo=bar" "something=amazing"];
   #   "cluster-init" = true;
   # };
+
+  # mode 0400 = readonly
+  # systemd.tmpfiles.rules = [
+  #   "C /var/lib/rancher/k3s/server/manifests 0700 k8 k8 - ${pkgs.writeTextFile "traefik.yaml" {}}/manifests/*"
+  # ];
+
+  systemd.tmpfiles.rules = let
+    traefik = import ./manifests/traefik.nix {inherit pkgs lib;};
+  in [
+    "C /var/lib/rancher/k3s/server/manifests/${traefik.name} 0700 k8 k8 - ${traefik}"
+  ];
 }
