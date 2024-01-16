@@ -59,6 +59,7 @@ in {
     modules =
       commonModules
       ++ [
+        ./racknerd.nix
         ../modules/infrastructure/k3s.nix
       ];
   };

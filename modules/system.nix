@@ -37,7 +37,6 @@
     secrets = {
       user_password.neededForUsers = true;
       ssh_pub_key = {};
-      ssh_password = {};
     };
   };
 
