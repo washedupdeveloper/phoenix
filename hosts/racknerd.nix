@@ -27,7 +27,7 @@
 
   boot = {
     cleanTmpDir = true;
-    loader.grub.device = "/dev/vda";
+    loader.grub.devices = ["/dev/vda"];
     initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
     initrd.kernelModules = ["nvme"];
   };
