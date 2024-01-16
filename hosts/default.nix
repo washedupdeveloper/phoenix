@@ -37,7 +37,7 @@ in {
         inputs.nixos-wsl.nixosModules.wsl
         ./wsl.nix
         ../modules/infrastructure/k3s.nix
-        ../modules/infrastructure/podman.nix
+        ../modules/infrastructure/virtualisation.nix
       ];
   };
   #IoT
