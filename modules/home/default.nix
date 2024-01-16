@@ -16,6 +16,5 @@
   sops = {
     defaultSopsFile = ../../secrets/default.yaml;
     age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
-    secrets.ssh_password = {};
   };
 }
