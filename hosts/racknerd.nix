@@ -26,8 +26,9 @@
   users.users.root.openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
 
   boot = {
+    enable = true;
     cleanTmpDir = true;
-    loader.grub.devices = ["/dev/vda1"];
+    loader.grub.devices = ["/dev/vda"];
     initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
     initrd.kernelModules = ["nvme"];
   };
