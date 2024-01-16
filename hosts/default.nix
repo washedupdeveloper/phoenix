@@ -40,4 +40,17 @@ in {
         ../modules/infrastructure/podman.nix
       ];
   };
+  #IoT
+  rpi = inputs.nixpkgs.lib.nixosSystem {
+    specialArgs = commonSpecialArgs;
+    system = "aarch64-linux";
+    modules =
+      commonModules
+      ++ [
+        "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+        ./rpi.nix
+        ../modules/infrastructure/k3s.nix
+      ];
+  };
+  #TODO: Add VPS nixos configuration
 }
