@@ -52,5 +52,14 @@ in {
         ../modules/infrastructure/k3s.nix
       ];
   };
-  #TODO: Add VPS nixos configuration
+  #VPS
+  racknerd = inputs.nixpkgs.lib.nixosSystem {
+    specialArgs = commonSpecialArgs;
+    system = "x86_64-linux";
+    modules =
+      commonModules
+      ++ [
+        ../modules/infrastructure/k3s.nix
+      ];
+  };
 }
