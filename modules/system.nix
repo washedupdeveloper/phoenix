@@ -27,7 +27,7 @@
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_pub_key.path];
+    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
   };
   security.sudo.wheelNeedsPassword = false;
 
@@ -36,7 +36,7 @@
     age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
     secrets = {
       user_password.neededForUsers = true;
-      ssh_pub_key = {};
+      ssh_key_pub = {};
     };
   };
 
@@ -61,14 +61,14 @@
       options = "--delete-older-than 7d";
     };
 
-    registry = {
-      nixpkgs.flake = inputs.nixpkgs;
-      flakes.to = {
-        owner = "washedupdeveloper";
-        repo = "flakes";
-        type = "github";
-      };
-    };
+    # registry = {
+    #   nixpkgs.flake = inputs.nixpkgs;
+    #   flakes.to = {
+    #     owner = "washedupdeveloper";
+    #     repo = "flakes";
+    #     type = "github";
+    #   };
+    # };
 
     settings = {
       experimental-features = ["nix-command" "flakes"];

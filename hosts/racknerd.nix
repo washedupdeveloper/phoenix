@@ -18,10 +18,10 @@
 
   users.users.${username} = {
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_pub_key.path];
+    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [config.sops.secrets.ssh_pub_key.path];
+  users.users.root.openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
 
   imports = [(modulesPath + "/profiles/qemu-guest.nix")];
 
