@@ -11,6 +11,7 @@
     vscode-server.url = "github:nix-community/nixos-vscode-server";
     nil.url = "github:oxalica/nil";
     alejandra.url = "github:kamadorueda/alejandra/3.0.0";
+    deploy-rs.url = "github:serokell/deploy-rs";
   };
 
   outputs = {self, ...} @ inputs: let
