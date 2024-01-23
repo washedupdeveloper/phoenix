@@ -35,9 +35,9 @@ in {
       commonModules
       ++ [
         inputs.nixos-wsl.nixosModules.wsl
+        # ../modules/k3s
+        ../modules/virtualisation
         ./wsl.nix
-        ../modules/infrastructure/k3s.nix
-        ../modules/infrastructure/virtualisation.nix
       ];
   };
   #IoT
@@ -48,8 +48,8 @@ in {
       commonModules
       ++ [
         "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+        # ../modules/k3s
         ./rpi.nix
-        ../modules/infrastructure/k3s.nix
       ];
   };
   #VPS
@@ -59,8 +59,8 @@ in {
     modules =
       commonModules
       ++ [
+        # ../modules/k3s
         ./racknerd.nix
-        ../modules/infrastructure/k3s.nix
       ];
   };
 }
