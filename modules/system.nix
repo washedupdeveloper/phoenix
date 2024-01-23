@@ -27,7 +27,7 @@
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [config.sops.secrets.ssh_key_pub.path];
+    openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
   };
   security.sudo.wheelNeedsPassword = false;
 
@@ -37,6 +37,11 @@
     secrets = {
       user_password.neededForUsers = true;
       ssh_key_pub = {};
+      cache_key_priv = {
+        owner = config.users.users.${username}.name;
+        group = config.users.users.${username}.group;
+        mode = "0440";
+      };
     };
   };
 
@@ -74,6 +79,8 @@
       experimental-features = ["nix-command" "flakes"];
       auto-optimise-store = true;
       accept-flake-config = true;
+      trusted-users = ["root" "@wheel"];
+      trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
     };
   };
 

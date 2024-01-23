@@ -1,9 +1,10 @@
 {
-  pkgs,
-  config,
+  inputs,
   username,
   ...
 }: {
+  environment.systemPackages = [inputs.deploy-rs.packages."x86_64-linux".default];
+
   home-manager.users.${username}.imports = [
     ../modules/home/code/elixir
     ../modules/home/code/go
@@ -19,6 +20,7 @@
     defaultUser = username;
     startMenuLaunchers = true;
     nativeSystemd = true;
+    interop.register = true;
   };
 
   fileSystems."/home/${username}/.ssh" = {
@@ -29,5 +31,4 @@
 
   # for building raspberry pi builds
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
-  wsl.interop.register = true;
 }
