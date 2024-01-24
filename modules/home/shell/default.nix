@@ -6,12 +6,8 @@
 
   home.packages = with pkgs; [
     fd
-    lsd
     file
-    fzf
-    bat
     ripgrep
-    direnv
   ];
 
   programs = {
