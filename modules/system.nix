@@ -1,7 +1,6 @@
 {
   pkgs,
   config,
-  inputs,
   username,
   ...
 }: {
@@ -16,7 +15,14 @@
     enable = true;
     settings = {
       PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
     };
+    hostKeys = [
+      {
+        path = "/etc/ssh/ssh_host_ed25519_key";
+        type = "ed25519";
+      }
+    ];
   };
 
   users.mutableUsers = false;
@@ -36,11 +42,10 @@
     age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
     secrets = {
       user_password.neededForUsers = true;
-      ssh_key_pub = {};
       cache_key_priv = {
         owner = config.users.users.${username}.name;
         group = config.users.users.${username}.group;
-        mode = "0440";
+        mode = "0770";
       };
     };
   };
@@ -65,15 +70,6 @@
       dates = "weekly";
       options = "--delete-older-than 7d";
     };
-
-    # registry = {
-    #   nixpkgs.flake = inputs.nixpkgs;
-    #   flakes.to = {
-    #     owner = "washedupdeveloper";
-    #     repo = "flakes";
-    #     type = "github";
-    #   };
-    # };
 
     settings = {
       experimental-features = ["nix-command" "flakes"];
