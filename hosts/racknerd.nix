@@ -5,7 +5,7 @@
   username,
   ...
 }: {
-  # overwrites, set by default in modules/system.nix
+  # overwrites, set by default in modules/flake/system.nix
   networking.hostName = lib.mkForce "nixos-racknerd";
   time.timeZone = lib.mkForce "UTC";
   i18n.defaultLocale = lib.mkForce "C.UTF-8";
