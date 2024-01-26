@@ -12,72 +12,22 @@
     nil.url = "github:oxalica/nil";
     alejandra.url = "github:kamadorueda/alejandra/3.0.0";
     deploy-rs.url = "github:serokell/deploy-rs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = {self, ...} @ inputs: let
-    username = "storm";
-    systemConfig = sys: modules:
-      inputs.nixpkgs.lib.nixosSystem {
-        # Shared special args
-        specialArgs = {
-          inherit username;
-          inherit (self) inputs;
-        };
-        system = sys;
-        # Shared modules.
-        modules =
-          [
-            inputs.home-manager.nixosModules.default
-            inputs.sops-nix.nixosModules.sops
-            inputs.vscode-server.nixosModules.default
-            ./modules/system.nix
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = {inherit inputs username;};
-                users.${username}.imports = [
-                  inputs.sops-nix.homeManagerModules.sops
-                  ./modules/home
-                ];
-              };
-            }
-          ]
-          ++ modules;
+  outputs = {self, ...} @ inputs:
+    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [
+        ./modules/flake/nixosConfigurations.nix
+        ./modules/flake/deploy.nix
+      ];
+      flake = {
+        username = "storm";
       };
-    deployConfig = name: host: system: profileOverrides: {
-      hostname = host;
-      profiles.system =
-        {
-          user = "root";
-          sshUser = username;
-          path = inputs.deploy-rs.lib.${system}.activate.nixos self.nixosConfigurations.${name};
-        }
-        // profileOverrides;
+      systems = ["x86_64-linux" "aarch64-linux"];
+      perSystem = {system, ...}: {
+        packages.rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+        formatter = inputs.alejandra.defaultPackage.${system};
+      };
     };
-  in {
-    nixosConfigurations = {
-      nixos = systemConfig "x86_64-linux" [
-        inputs.nixos-wsl.nixosModules.wsl
-        ./modules/virtualisation
-        ./hosts/wsl.nix
-      ];
-      rpi = systemConfig "aarch64-linux" [
-        "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-        ./hosts/rpi.nix
-      ];
-      racknerd = systemConfig "x86_64-linux" [
-        ./hosts/racknerd.nix
-      ];
-    };
-
-    packages."x86_64-linux".rpi-sdcard = self.outputs.nixosConfigurations.rpi.config.system.build.sdImage;
-
-    deploy.nodes = {
-      racknerd = deployConfig "racknerd" "vps" "x86_64-linux" {};
-      rpi = deployConfig "rpi" "192.168.0.183" "aarch64-linux" {};
-    };
-
-    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) inputs.deploy-rs.lib;
-  };
 }

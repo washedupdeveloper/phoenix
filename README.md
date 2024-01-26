@@ -4,7 +4,7 @@ My continuously evolving Nix/NixOS configuration repository
 
 - `flake.nix` - entry point
 - `hosts/` - host specific config
-- `modules/` - modules e.g default system config, home-manager modules provided throuh `home/` etc.
+- `modules/` - modules e.g flake modules through `flake/`, nixos modules through `nixos/`, default system config through `system.nix` & home-manager modules throuh `home/`
 - `secrets/` - secrets provided through SOPS
 
 Current hosts:
@@ -22,7 +22,7 @@ Current hosts:
 
 3. Rebuild your NixOS with the repositorys flake.
    **Requires `flakes` & `nix-command` experimental features enabled**:
-   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts)_
 
 ### IoT
 
@@ -32,6 +32,9 @@ Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `
 ## Todo list
 
 - create more hosts (NAS, mobile, etc.)
+- learn & implement custom modules for infrastructure -> migrate from containers to nix modules
+- completely remove global "project specific" installs such as language servers, tooling etc.
+- continue the nix journey and explore tooling
 
 ## Resources
 

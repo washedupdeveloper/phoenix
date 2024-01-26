@@ -1,6 +1,6 @@
 {
+  self,
   pkgs,
-  username,
   ...
 }: {
   environment.systemPackages = with pkgs; [k3s];
@@ -30,7 +30,7 @@
   #   ];
 
   systemd.tmpfiles.rules = let
-    permissionUserGroup = "0700 ${username} users";
+    permissionUserGroup = "0700 ${self.username} users";
   in
     map (
       file: "C /var/lib/rancher/k3s/server/manifests/${file}.yaml ${permissionUserGroup} - ./manifests/${file}.yaml"
