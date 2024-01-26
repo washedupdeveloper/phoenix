@@ -32,8 +32,9 @@ Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `
 ## Todo list
 
 - create more hosts (NAS, mobile, etc.)
-- continue the nix journey and explore tooling
 - learn & implement custom modules for infrastructure -> migrate from containers to nix modules
+- completely remove global "project specific" installs such as language servers, tooling etc.
+- continue the nix journey and explore tooling
 
 ## Resources
 
