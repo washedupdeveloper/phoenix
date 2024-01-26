@@ -34,7 +34,7 @@
     ];
     shell = pkgs.fish;
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+    openssh.authorizedKeys.keys = [self.sshPubKey];
   };
   security.sudo.wheelNeedsPassword = false;
 

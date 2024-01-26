@@ -23,6 +23,7 @@
       ];
       flake = {
         username = "storm";
+        sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
       };
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
