@@ -1,11 +1,11 @@
 {
+  self,
   pkgs,
-  username,
   ...
 }: {
   home = {
-    username = username;
-    homeDirectory = "/home/${username}";
+    username = self.username;
+    homeDirectory = "/home/${self.username}";
     stateVersion = "23.11";
     packages = with pkgs; [curl wget zip unzip];
   };
@@ -15,6 +15,6 @@
 
   sops = {
     defaultSopsFile = ../../secrets/default.yaml;
-    age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+    age.keyFile = "/home/${self.username}/.config/sops/age/keys.txt";
   };
 }

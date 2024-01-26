@@ -1,4 +1,4 @@
-{username, ...}: {
+{self, ...}: {
   virtualisation = {
     podman = {
       enable = true;
@@ -8,5 +8,5 @@
     };
   };
 
-  users.extraGroups.podman.members = [username];
+  users.extraGroups.podman.members = [self.username];
 }

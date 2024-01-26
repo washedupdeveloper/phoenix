@@ -1,21 +1,23 @@
 {
+  self,
   lib,
   config,
   modulesPath,
-  username,
   ...
-}: {
+}: let
+  sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
+in {
   # overwrites, set by default in modules/flake/system.nix
   networking.hostName = lib.mkForce "nixos-racknerd";
   time.timeZone = lib.mkForce "UTC";
   i18n.defaultLocale = lib.mkForce "C.UTF-8";
 
-  users.users.${username} = {
+  users.users.${self.username} = {
     hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+    openssh.authorizedKeys.keys = [sshPubKey];
   };
 
-  users.users.root.openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+  users.users.root.openssh.authorizedKeys.keys = [sshPubKey];
 
   imports = [(modulesPath + "/profiles/qemu-guest.nix")];
 

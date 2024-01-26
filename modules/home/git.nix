@@ -1,11 +1,18 @@
-{pkgs, ...}: {
+{
+  self,
+  pkgs,
+  lib,
+  ...
+}: {
   home.packages = with pkgs; [
     lazygit
   ];
 
-  programs.git = {
+  programs.git = let
+    capitalize = s: with lib.strings; toUpper (substring 0 1 s) + substring 1 (-1) s;
+  in {
     enable = true;
-    userName = "Storm";
+    userName = capitalize self.username;
     userEmail = "31986015+washedupdeveloper@users.noreply.github.com";
     ignores = [".direnv/"];
     extraConfig = {
