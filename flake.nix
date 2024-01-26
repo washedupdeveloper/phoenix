@@ -18,15 +18,16 @@
   outputs = {self, ...} @ inputs:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
-        ./modules/deploy.nix
-        ./modules/nixosConfigurations.nix
+        ./modules/flake/nixosConfigurations.nix
+        ./modules/flake/deploy.nix
       ];
       flake = {
         username = "storm";
       };
       systems = ["x86_64-linux" "aarch64-linux"];
-      perSystem = {self', ...}: {
-        packages.rpi-sdcard = self'.nixosConfigurations.rpi.config.system.build.sdImage;
+      perSystem = {system, ...}: {
+        packages.rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+        formatter = inputs.alejandra.defaultPackage.${system};
       };
     };
 }
