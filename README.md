@@ -22,7 +22,7 @@ Current hosts:
 
 3. Rebuild your NixOS with the repositorys flake.
    **Requires `flakes` & `nix-command` experimental features enabled**:
-   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts)_
 
 ### IoT
 
