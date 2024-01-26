@@ -1,9 +1,10 @@
 {
   self,
   inputs,
+  pkgs,
   ...
 }: {
-  environment.systemPackages = [inputs.deploy-rs.defaultPackage.default];
+  environment.systemPackages = [inputs.deploy-rs.packages.${pkgs.system}.default];
 
   home-manager.users.${self.username}.imports = [
     ../modules/home/code/elixir
