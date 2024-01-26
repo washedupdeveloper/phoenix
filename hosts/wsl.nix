@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  environment.systemPackages = [inputs.deploy-rs.packages."x86_64-linux".default];
+  environment.systemPackages = [inputs.deploy-rs.defaultPackage.default];
 
   home-manager.users.${self.username}.imports = [
     ../modules/home/code/elixir
