@@ -1,4 +1,10 @@
-{self, ...}: {
+{
+  self,
+  pkgs,
+  ...
+}: {
+  environment.systemPackages = with pkgs; [kompose];
+
   virtualisation = {
     podman = {
       enable = true;

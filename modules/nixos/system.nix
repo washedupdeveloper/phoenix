@@ -36,6 +36,7 @@
     openssh.authorizedKeys.keys = [self.sshPubKey];
   };
   security.sudo.wheelNeedsPassword = false;
+  security.sudo.execWheelOnly = true;
 
   sops = {
     defaultSopsFile = ../../secrets/default.yaml;

@@ -5,11 +5,14 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
-    dashboard:
-      enabled: true
-    ports:
-      traefik:
-        expose: true
-    logs:
-      access:
-        enabled: true
+  global:
+    checkNewVersion: true
+    sendAnonymousUsage: false
+  log:
+    level: DEBUG
+    format: common
+  accessLog:
+    format: common
+  api:
+    debug: true
+    dashboard: true

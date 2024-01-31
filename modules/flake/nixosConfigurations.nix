@@ -30,7 +30,7 @@ in {
   flake.nixosConfigurations = {
     nixos = systemConfig "x86_64-linux" [
       inputs.nixos-wsl.nixosModules.wsl
-      ../nixos/podman.nix
+      ../nixos/k3s
       ../../hosts/wsl.nix
     ];
     rpi = systemConfig "aarch64-linux" [

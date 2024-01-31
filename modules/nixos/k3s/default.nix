@@ -3,8 +3,14 @@
   pkgs,
   ...
 }: {
-  environment.systemPackages = with pkgs; [k3s];
-
+  environment.systemPackages = with pkgs; [
+    k3s
+    (wrapHelm kubernetes-helm {
+      plugins = with kubernetes-helmPlugins; [
+        helm-secrets
+      ];
+    })
+  ];
   services.k3s = {
     enable = true;
     role = "server";
@@ -19,22 +25,23 @@
     allowedUDPPorts = [];
   };
 
-  # systemd.tmpfiles.rules = let
-  #   permissionUserGroup = "0700 ${username} users";
-  # in
-  #   map (
-  #     file: "C /var/lib/rancher/k3s/server/manifests/${file}.yaml ${permissionUserGroup} - ${
-  #       (pkgs.formats.yaml {}).generate "" (import ./manifests/${file}.nix {})
-  #     }"
-  #   ) [
-  #   ];
-
   systemd.tmpfiles.rules = let
-    permissionUserGroup = "0700 ${self.username} users";
+    helperFunctions = import ../helperFunctions.nix;
   in
     map (
-      file: "C /var/lib/rancher/k3s/server/manifests/${file}.yaml ${permissionUserGroup} - ./manifests/${file}.yaml"
+      file: let
+        nixFile = ./manifests/${file}.nix;
+        yamlFile = "${self}/modules/nixos/k3s/manifests/${file}.yaml";
+      in "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${self.username} users - ${
+        if builtins.pathExists nixFile
+        then (pkgs.formats.yaml {}).generate "" (import nixFile {})
+        else yamlFile
+      }"
     ) [
       "traefik-dashboard"
+      # "traefik-config"
+    ]
+    ++ [
+      "f /etc/rancher/k3s/k3s.yaml 0644 ${self.username} users - -"
     ];
 }
