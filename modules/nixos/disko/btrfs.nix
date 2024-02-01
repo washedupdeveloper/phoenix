@@ -1,13 +1,9 @@
 {
-  device ? "/dev/sda1",
-  swapSizeInGb ? "8",
-  ...
-}: {
   disko.devices = {
     disk = {
-      vdb = {
+      main = {
         type = "disk";
-        inherit device;
+        device = "/dev/nvme0n1";
         content = {
           type = "gpt";
           partitions = {
@@ -32,27 +28,25 @@
                   "/rootfs" = {
                     mountpoint = "/";
                   };
-                  "/nix" = {
-                    mountOptions = ["compress-force=lz4" "noatime" "noxattr" "noacl"];
-                    mountpoint = "/nix";
-                  };
                   "/home" = {
-                    mountOptions = ["compress-force=lz4"];
+                    mountOptions = ["compress=zstd"];
                     mountpoint = "/home";
                   };
-                  "/var" = {
-                    mountOptions = ["compress-force=lz4"];
-                    mountpoint = "/var";
-                  };
-                  "/tmp" = {
-                    mountOptions = ["compress-force=lz4"];
-                    mountpoint = "/tmp";
+                  "/nix" = {
+                    mountOptions = ["compress=zstd" "noatime"];
+                    mountpoint = "/nix";
                   };
                   "/swap" = {
                     mountpoint = "/.swapvol";
                     swap = {
-                      swapfile.size = "${swapSize}G";
+                      swapfile.size = "12G";
                     };
+                  };
+                };
+                mountpoint = "/partition-root";
+                swap = {
+                  swapfile = {
+                    size = "12G";
                   };
                 };
               };
