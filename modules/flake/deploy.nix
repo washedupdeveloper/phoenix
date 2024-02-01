@@ -15,6 +15,7 @@ in {
   flake.deploy.nodes = {
     racknerd = deployConfig "racknerd" "vps" "x86_64-linux";
     rpi = deployConfig "rpi" "192.168.0.183" "aarch64-linux";
+    laptop = deployConfig "laptop" "192.168.0.114" "x86_64-linux";
   };
   flake.checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) inputs.deploy-rs.lib;
 }
