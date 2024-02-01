@@ -17,11 +17,11 @@
 
   services.openssh.settings.PasswordAuthentication = lib.mkForce true;
 
-  # boot = {
-  #   loader.grub.enable = true;
-  #   tmp.cleanOnBoot = true;
-  #   loader.grub.devices = ["/dev/nvme0n1"];
-  #   initrd.kernelModules = ["nvme"];
-  #   initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
-  # };
+  boot = {
+    loader.grub.enable = true;
+    tmp.cleanOnBoot = true;
+    loader.grub.devices = ["/dev/nvme0n1"];
+    initrd.kernelModules = ["nvme"];
+    # initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
+  };
 }
