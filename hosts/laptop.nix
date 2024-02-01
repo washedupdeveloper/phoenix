@@ -6,6 +6,11 @@
 }: {
   # overwrites, set by default in modules/flake/system.nix
   networking.hostName = lib.mkForce "nixos-laptop";
+  networking.useDHCP = lib.mkDefault true;
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  services.openssh.settings.PasswordAuthentication = lib.mkForce true;
+  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+
   environment.etc."mdadm.conf".text = ''
     MAILADDR root
   '';
@@ -15,15 +20,24 @@
     openssh.authorizedKeys.keys = [self.sshPubKey];
   };
 
-  services.openssh.settings.PasswordAuthentication = lib.mkForce true;
-
   boot = {
-    loader.grub.enable = true;
+    loader = {
+      grub.enable = true;
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+      grub.devices = ["/dev/nvme0n1"];
+    };
     tmp.cleanOnBoot = true;
-    loader.grub.devices = ["/dev/nvme0n1"];
+    kernelModules = ["kvm-intel"];
     initrd.kernelModules = ["nvme"];
-    # initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
+    initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
   };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/2D0D-AF74";
+    fsType = "vfat";
+  };
+
   fileSystems."/" = {
     device = "/dev/nvme0n1";
     fsType = "ext4";
