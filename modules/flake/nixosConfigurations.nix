@@ -35,7 +35,6 @@ in {
     ];
     laptop = systemConfig "x86_64-linux" [
       inputs.disko.nixosModules.disko
-      ../nixos/k3s
       ../../hosts/laptop.nix
     ];
     rpi = systemConfig "aarch64-linux" [
