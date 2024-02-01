@@ -46,18 +46,13 @@ in {
       ../../hosts/racknerd.nix
     ];
     liveISO = systemConfig "x86_64-linux" [
+      "${inputs.nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
       {
         services.openssh.settings.PasswordAuthentication = inputs.nixpkgs.lib.mkForce true;
         users.users.root = {
           initialHashedPassword = inputs.nixpkgs.lib.mkForce "$y$j9T$f4LE30RF2QMBy6jiR5j3M1$/X6daMyAm0fJ9iohebi0LZjiCHrmK092WpBpdTW6Z7A";
           openssh.authorizedKeys.keys = [self.sshPubKey];
           # TODO: add AGE secret for SOPS
-        };
-
-        systemd.services.cp-disko = {
-          script = "${inputs.nixpkgs.coreutils}/bin/cp ${self}/modules/nixos/disko.nix /tmp/disko.nix";
-          wantedBy = ["multi-user.target"];
-          after = ["network.target"];
         };
       }
     ];
