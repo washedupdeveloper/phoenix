@@ -28,15 +28,27 @@
     };
 in {
   flake.nixosConfigurations = {
-    nixos = systemConfig "x86_64-linux" [
+    desktop = systemConfig "x86_64-linux" [
       inputs.nixos-wsl.nixosModules.wsl
       ../nixos/k3s
-      ../../hosts/wsl.nix
+      ../../hosts/desktop.nix
+    ];
+    laptop = systemConfig "x86_64-linux" [
+      inputs.disko.nixosModules.disko
+      ../nixos/k3s
+      ../../hosts/laptop.nix
+      (import ../nixos/disko.nix {
+        device = "/dev/nvme0n1";
+        swapSizeInGb = "12";
+      })
     ];
     rpi = systemConfig "aarch64-linux" [
       "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
       ../../hosts/rpi.nix
     ];
     racknerd = systemConfig "x86_64-linux" [../../hosts/racknerd.nix];
+    liveISO = systemConfig "x86_64-linux" [
+      ../nixos/liveIso.nix
+    ];
   };
 }
