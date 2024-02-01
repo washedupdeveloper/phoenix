@@ -24,4 +24,8 @@
     initrd.kernelModules = ["nvme"];
     # initrd.availableKernelModules = ["ata_piix" "uhci_hcd" "xen_blkfront" "vmw_pvscsi"];
   };
+  fileSystems."/" = {
+    device = "/dev/nvme0n1";
+    fsType = "ext4";
+  };
 }
