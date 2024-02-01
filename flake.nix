@@ -31,8 +31,10 @@
       };
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
-        packages.rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
-        packages.x86_64 = self.nixosConfigurations.liveISO.config.system.build.isoImage;
+        packages = {
+          rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+          x86_64 = self.nixosConfigurations.liveISO.config.system.build.isoImage;
+        };
         formatter = inputs.alejandra.defaultPackage.${system};
       };
     };
