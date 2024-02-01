@@ -56,7 +56,7 @@ in {
         };
 
         systemd.services.cp-disko = {
-          script = "${pkgs.coreutils}/bin/cp ${self}/modules/nixos/disko.nix /tmp/disko.nix";
+          script = "${inputs.nixpkgs.coreutils}/bin/cp ${self}/modules/nixos/disko.nix /tmp/disko.nix";
           wantedBy = ["multi-user.target"];
           after = ["network.target"];
         };
