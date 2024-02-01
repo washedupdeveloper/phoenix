@@ -13,6 +13,10 @@
     alejandra.url = "github:kamadorueda/alejandra/3.0.0";
     deploy-rs.url = "github:serokell/deploy-rs";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    disko = {
+      url = "github:nix-community/disko/refs/tags/v1.3.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {self, ...} @ inputs:
@@ -28,6 +32,7 @@
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
         packages.rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+        packages.x86_64 = self.nixosConfigurations.liveISO.config.system.build.isoImage;
         formatter = inputs.alejandra.defaultPackage.${system};
       };
     };
