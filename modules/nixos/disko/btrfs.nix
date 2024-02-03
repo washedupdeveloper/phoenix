@@ -1,9 +1,13 @@
 {
+  device,
+  swapSizeInGb,
+  ...
+}: {
   disko.devices = {
     disk = {
       main = {
         type = "disk";
-        device = "/dev/nvme0n1";
+        inherit device;
         content = {
           type = "gpt";
           partitions = {
@@ -39,14 +43,8 @@
                   "/swap" = {
                     mountpoint = "/.swapvol";
                     swap = {
-                      swapfile.size = "12G";
+                      swapfile.size = "${swapSizeInGb}G";
                     };
-                  };
-                };
-                mountpoint = "/partition-root";
-                swap = {
-                  swapfile = {
-                    size = "12G";
                   };
                 };
               };
