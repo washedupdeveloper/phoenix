@@ -1,11 +1,9 @@
-{
-  self,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: let
+  username = "storm";
+in {
   home = {
-    username = self.username;
-    homeDirectory = "/home/${self.username}";
+    username = username;
+    homeDirectory = "/home/${username}";
     stateVersion = "23.11";
     packages = with pkgs; [curl wget zip unzip];
   };
@@ -15,6 +13,6 @@
 
   sops = {
     defaultSopsFile = ../../secrets/default.yaml;
-    age.keyFile = "/home/${self.username}/.config/sops/age/keys.txt";
+    age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
   };
 }

@@ -2,7 +2,9 @@
   self,
   pkgs,
   ...
-}: {
+}: let
+  username = "storm";
+in {
   environment.systemPackages = with pkgs; [
     k3s
     (wrapHelm kubernetes-helm {
@@ -32,7 +34,7 @@
       file: let
         nixFile = ./manifests/${file}.nix;
         yamlFile = "${self}/modules/nixos/k3s/manifests/${file}.yaml";
-      in "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${self.username} users - ${
+      in "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${username} users - ${
         if builtins.pathExists nixFile
         then (pkgs.formats.yaml {}).generate "" (import nixFile {})
         else yamlFile
@@ -42,6 +44,6 @@
       # "traefik-config"
     ]
     ++ [
-      "f /etc/rancher/k3s/k3s.yaml 0644 ${self.username} users - -"
+      "f /etc/rancher/k3s/k3s.yaml 0644 ${username} users - -"
     ];
 }

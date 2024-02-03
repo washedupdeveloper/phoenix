@@ -14,5 +14,5 @@
     };
   };
 
-  users.extraGroups.podman.members = [self.username];
+  users.extraGroups.podman.members = ["storm"];
 }
