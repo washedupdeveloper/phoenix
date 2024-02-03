@@ -1,8 +1,4 @@
-{
-  self,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   environment.systemPackages = with pkgs; [kompose];
 
   virtualisation = {
