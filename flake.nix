@@ -17,25 +17,29 @@
       url = "github:nix-community/disko/refs/tags/v1.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixos-anywhere = {
+      url = "github:nix-community/nixos-anywhere";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = {self, ...} @ inputs:
+  outputs = {self, ...} @ inputs: let
+    system = "x86_64-linux";
+  in
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         ./modules/flake/nixosConfigurations.nix
         ./modules/flake/deploy.nix
       ];
       flake = {
-        username = "storm";
-        sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
       };
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
-        packages = {
-          rpi-sdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
-          x86_64 = self.nixosConfigurations.liveISO.config.system.build.isoImage;
-        };
         formatter = inputs.alejandra.defaultPackage.${system};
+        packages = {
+          # rpi-sdcard = self.nixosConfigurations.rpi.config.${system}.build.sdImage;
+          # nixos-anywhere = inputs.nixos-anywhere.packages.${system}.nixos-anywhere;
+        };
       };
     };
 }
