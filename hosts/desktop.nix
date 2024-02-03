@@ -1,12 +1,9 @@
-{
-  self,
-  inputs,
-  pkgs,
-  ...
-}: {
-  environment.systemPackages = [inputs.deploy-rs.packages.${pkgs.system}.default];
+{pkgs, ...}: let
+  username = "storm";
+in {
+  environment.systemPackages = with pkgs; [deploy-rs];
 
-  home-manager.users.${self.username}.imports = [
+  home-manager.users.${username}.imports = [
     ../modules/home/code/elixir
     ../modules/home/code/golang
     ../modules/home/code/javascript
@@ -18,14 +15,14 @@
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";
-    defaultUser = self.username;
+    defaultUser = username;
     startMenuLaunchers = true;
     nativeSystemd = true;
     interop.register = true;
   };
 
-  fileSystems."/home/${self.username}/.ssh" = {
-    device = "C:\\Users\\${self.username}\\.ssh";
+  fileSystems."/home/${username}/.ssh" = {
+    device = "C:\\Users\\${username}\\.ssh";
     fsType = "drvfs";
     options = ["rw" "noatime" "uid=1000" "gid=100" "case=off" "umask=0077" "fmask=0177"];
   };
