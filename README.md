@@ -4,7 +4,7 @@ My continuously evolving Nix/NixOS configuration repository
 
 - `flake.nix` - entry point
 - `hosts/` - host specific config
-- `modules/` - modules e.g flake modules through `flake/`, nixos modules through `nixos/`, default system config through `system.nix` & home-manager modules throuh `home/`
+- `modules/` - modules e.g flake modules through `flake/`, nixos modules through `nixos/` & home-manager modules throuh `home/`
 - `secrets/` - secrets provided through SOPS
 
 Current hosts:
