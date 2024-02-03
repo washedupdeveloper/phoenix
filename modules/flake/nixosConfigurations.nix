@@ -14,7 +14,7 @@
         useGlobalPkgs = true;
         useUserPackages = true;
         extraSpecialArgs = {};
-        users."storm".imports = [
+        users.${username}.imports = [
           inputs.sops-nix.homeManagerModules.sops
           ../home
         ];
