@@ -28,7 +28,7 @@
                 format = "ext4";
                 swap = {
                   swapfile = {
-                    size = "12G";
+                    size = "${swapSizeInGb}G";
                   };
                 };
               };

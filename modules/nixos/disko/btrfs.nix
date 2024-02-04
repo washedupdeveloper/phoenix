@@ -13,10 +13,8 @@
           partitions = {
             ESP = {
               priority = 1;
-              name = "ESP";
-              start = "1M";
-              end = "128M";
               type = "EF00";
+              size = "500M";
               content = {
                 type = "filesystem";
                 format = "vfat";
