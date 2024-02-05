@@ -11,7 +11,7 @@
       home-manager = {
         useGlobalPkgs = true;
         useUserPackages = true;
-        extraSpecialArgs = {};
+        extraSpecialArgs = {inherit username;};
         users.${username}.imports = [
           inputs.sops-nix.homeManagerModules.sops
           ../home
@@ -23,26 +23,33 @@
   ];
   systemConfig = sys: modules:
     inputs.nixpkgs.lib.nixosSystem {
-      specialArgs = {inherit self inputs;};
+      specialArgs = {inherit self inputs username;};
       system = sys;
       modules = commonModules ++ modules;
     };
 in {
   flake.nixosConfigurations = {
-    desktop = systemConfig "x86_64-linux" [
+    wsl = systemConfig "x86_64-linux" [
       inputs.nixos-wsl.nixosModules.wsl
-      ../nixos/k3s
-      ../../hosts/desktop.nix
+      ../../hosts/wsl.nix
+      {
+        imports = [../nixos/k3s];
+        services.k3s-extras = {
+          enable = true;
+          includeHelm = true;
+        };
+      }
     ];
     laptop = systemConfig "x86_64-linux" [
-      ../../hosts/laptop
       inputs.disko.nixosModules.disko
+      ../../hosts/laptop
       {
-        local.disko = {
+        imports = [../nixos/disko];
+        services.disko = {
           enable = true;
-          device = ["/dev/nvme0n1"];
-          partitionScheme = ["ext4"];
-          swapSizeInGb = ["12"];
+          device = "/dev/nvme0n1";
+          fileSystem = "ext4";
+          swapSizeInGb = "12";
         };
       }
     ];
@@ -51,12 +58,19 @@ in {
       ../../hosts/rpi.nix
     ];
     racknerd = systemConfig "x86_64-linux" [
-      inputs.disko.nixosModules.disko
       ../../hosts/racknerd.nix
     ];
-    nixos-anywhere = systemConfig "x86_64-linux" [
+    nixosAnywhere = systemConfig "x86_64-linux" [
       inputs.disko.nixosModules.disko
-      ../nixos/disko/btrfs.nix
+      ../nixos/disko
+      {
+        services.disko = {
+          enable = true;
+          device = "/dev/nvme0n1";
+          fileSystem = "btrfs";
+          swapSizeInGb = "12";
+        };
+      }
       {
         users.users.root = {
           hashedPassword = inputs.nixpkgs.lib.mkForce "$y$j9T$f4LE30RF2QMBy6jiR5j3M1$/X6daMyAm0fJ9iohebi0LZjiCHrmK092WpBpdTW6Z7A";
@@ -77,18 +91,6 @@ in {
               type = "ed25519";
             }
           ];
-        };
-
-        boot = {
-          loader = {
-            systemd-boot.enable = true;
-            efi.canTouchEfiVariables = true;
-            grub.devices = ["/dev/nvme0n1"];
-          };
-          tmp.cleanOnBoot = true;
-          kernelModules = ["kvm-intel"];
-          initrd.kernelModules = ["nvme"];
-          initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
         };
       }
     ];
