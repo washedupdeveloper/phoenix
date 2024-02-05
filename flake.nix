@@ -31,14 +31,12 @@
         ./modules/flake/nixosConfigurations.nix
         ./modules/flake/deploy.nix
       ];
-      flake = {
-      };
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
         formatter = inputs.alejandra.defaultPackage.${system};
         packages = {
-          # rpi-sdcard = self.nixosConfigurations.rpi.config.${system}.build.sdImage;
-          # nixos-anywhere = inputs.nixos-anywhere.packages.${system}.nixos-anywhere;
+          rpiSdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+          nixosAnywhere = inputs.nixos-anywhere.packages.${system}.nixos-anywhere;
         };
       };
     };
