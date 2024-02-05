@@ -1,6 +1,10 @@
-{pkgs, ...}: let
-  username = "storm";
-in {
+{
+  pkgs,
+  inputs,
+  username,
+  ...
+}: {
+  imports = [inputs.sops-nix.homeManagerModules.sops];
   home = {
     username = username;
     homeDirectory = "/home/${username}";

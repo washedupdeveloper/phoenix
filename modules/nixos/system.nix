@@ -2,22 +2,13 @@
   lib,
   pkgs,
   config,
+  inputs,
+  username,
   ...
-}: let
-  username = "storm";
-in {
-  sops = {
-    defaultSopsFile = ../../secrets/default.yaml;
-    age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
-    secrets = {
-      user_password.neededForUsers = true;
-      cache_key_priv = {
-        owner = config.users.users.${username}.name;
-        group = config.users.users.${username}.group;
-        mode = "0770";
-      };
-    };
-  };
+}: {
+  imports = [
+    inputs.vscode-server.nixosModules.default
+  ];
 
   networking.hostName = lib.mkDefault "nixos";
   system.stateVersion = lib.mkDefault "23.11";

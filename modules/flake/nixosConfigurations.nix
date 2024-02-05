@@ -4,33 +4,43 @@
   ...
 }: let
   username = "storm";
-  commonModules = [
-    inputs.sops-nix.nixosModules.sops
-    inputs.home-manager.nixosModules.default
-    {
-      home-manager = {
-        useGlobalPkgs = true;
-        useUserPackages = true;
-        extraSpecialArgs = {inherit username;};
-        users.${username}.imports = [
-          inputs.sops-nix.homeManagerModules.sops
-          ../home
-        ];
-      };
-    }
-    inputs.vscode-server.nixosModules.default
-    ../nixos/system.nix
-  ];
   systemConfig = sys: modules:
     inputs.nixpkgs.lib.nixosSystem {
       specialArgs = {inherit self inputs username;};
       system = sys;
-      modules = commonModules ++ modules;
+      modules =
+        [
+          ../nixos/system.nix
+          ({config, ...}: {
+            imports = [inputs.sops-nix.nixosModules.sops];
+            sops = {
+              defaultSopsFile = ../../secrets/default.yaml;
+              age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+              secrets = {
+                user_password.neededForUsers = true;
+                cache_key_priv = {
+                  owner = config.users.users.${username}.name;
+                  group = config.users.users.${username}.group;
+                  mode = "0770";
+                };
+              };
+            };
+          })
+          {
+            imports = [inputs.home-manager.nixosModules.default];
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = {inherit inputs username;};
+              users.${username}.imports = [../home];
+            };
+          }
+        ]
+        ++ modules;
     };
 in {
   flake.nixosConfigurations = {
     wsl = systemConfig "x86_64-linux" [
-      inputs.nixos-wsl.nixosModules.wsl
       ../../hosts/wsl.nix
       {
         imports = [../nixos/k3s];
@@ -41,7 +51,6 @@ in {
       }
     ];
     laptop = systemConfig "x86_64-linux" [
-      inputs.disko.nixosModules.disko
       ../../hosts/laptop
       {
         imports = [../nixos/disko];
@@ -61,9 +70,8 @@ in {
       ../../hosts/racknerd.nix
     ];
     nixosAnywhere = systemConfig "x86_64-linux" [
-      inputs.disko.nixosModules.disko
-      ../nixos/disko
       {
+        imports = [../nixos/disko];
         services.disko = {
           enable = true;
           device = "/dev/nvme0n1";

@@ -1,6 +1,12 @@
-{pkgs, ...}: let
-  username = "storm";
-in {
+{
+  pkgs,
+  inputs,
+  username,
+  ...
+}: {
+  imports = [
+    inputs.nixos-wsl.nixosModules.wsl
+  ];
   environment.systemPackages = with pkgs; [deploy-rs];
 
   home-manager.users.${username}.imports = [

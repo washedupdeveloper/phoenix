@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  username,
+  ...
+}: {
   environment.systemPackages = with pkgs; [kompose];
 
   virtualisation = {
@@ -10,5 +14,5 @@
     };
   };
 
-  users.extraGroups.podman.members = ["storm"];
+  users.extraGroups.podman.members = [username];
 }
