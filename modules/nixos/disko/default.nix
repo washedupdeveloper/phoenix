@@ -1,50 +1,38 @@
 {
-  lib,
   config,
+  lib,
   ...
 }: let
-  cfg = config.local.disko;
-
-  importDisk = name:
-    lib.mkIf cfg.enable
-    && (cfg.partitionScheme == name) {
-      disko =
-        import ./.
-        + "${name}.nix" {
-          device = cfg.device;
-          swapSizeInGb = cfg.swapSizeInGb;
-        };
-    };
+  cfg = config.services.disko;
+  fileSystems = {
+    ext4 = import ./ext4.nix;
+    btrfs = import ./btrfs.nix;
+  };
 in {
-  options.local.disko = {
-    enable = lib.mkEnableOption "disko partitioning";
-    device = lib.mkOption {
-      types = with lib.types; nullOr str;
-      default = null;
-    };
-    partitionScheme = lib.mkOption {
-      types = with lib.types; nullOr str;
-      default = null;
-    };
+  options.services.disko = {
+    enable = lib.mkEnableOption "disko service";
+    device = lib.mkOption {type = lib.types.str;};
     swapSizeInGb = lib.mkOption {
-      types = with lib.types; nullOr str;
+      type = lib.types.nullOr lib.types.str;
       default = null;
+    };
+    fileSystem = lib.mkOption {
+      type = lib.types.enum (lib.attrNames fileSystems);
+      default = "ext4";
     };
   };
-  config = lib.mkMerge [
-    (lib.mkIf cfg.enable {
-      assertions = [
-        {
-          assertion = cfg.device == null;
-          message = "device must be set";
-        }
-        {
-          assertion = cfg.partitionScheme == null;
-          message = "partitionScheme must be set";
-        }
-      ];
-    })
-    # (importDisk "btrfs")
-    (importDisk "ext4")
-  ];
+
+  config = {
+    assertions = [
+      {
+        assertion = cfg.device != null;
+        message = "The 'device' option in 'services.disko' must be set.";
+      }
+      {
+        assertion = lib.hasAttr cfg.fileSystem fileSystems;
+        message = "The 'fileSystem' option in 'services.disko' must be a valid filesystem.";
+      }
+    ];
+    disko = lib.optionalAttrs cfg.enable (fileSystems.${cfg.fileSystem} {inherit lib device swapSizeInGb;});
+  };
 }

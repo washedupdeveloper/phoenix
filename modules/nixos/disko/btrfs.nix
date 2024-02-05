@@ -1,9 +1,10 @@
 {
+  lib,
   device,
   swapSizeInGb,
   ...
 }: {
-  disko.devices = {
+  devices = {
     disk = {
       main = {
         type = "disk";
@@ -38,7 +39,11 @@
                     mountOptions = ["compress=zstd" "noatime"];
                     mountpoint = "/nix";
                   };
-                  "/swap" = {
+                  "/var" = {
+                    mountOptions = ["compress=zstd"];
+                    mountpoint = "/var";
+                  };
+                  "/swap" = lib.optionalAttrs (swapSizeInGb != null) {
                     mountpoint = "/.swapvol";
                     swap = {
                       swapfile.size = "${swapSizeInGb}G";

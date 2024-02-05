@@ -1,4 +1,5 @@
 {
+  lib,
   device,
   swapSizeInGb,
   ...
@@ -26,7 +27,7 @@
               content = {
                 type = "filesystem";
                 format = "ext4";
-                swap = {
+                swap = lib.optionalAttrs (swapSizeInGb != null) {
                   swapfile = {
                     size = "${swapSizeInGb}G";
                   };
