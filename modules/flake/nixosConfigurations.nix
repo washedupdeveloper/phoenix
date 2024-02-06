@@ -10,7 +10,54 @@
       system = sys;
       modules =
         [
-          ../nixos/system.nix
+          # Generic system config (Default template values)
+          ({
+            lib,
+            pkgs,
+            config,
+            ...
+          }: {
+            imports = [
+              inputs.vscode-server.nixosModules.default
+            ];
+            networking.hostName = lib.mkDefault "nixos";
+            system.stateVersion = lib.mkDefault "23.11";
+            time.timeZone = lib.mkDefault "Europe/Copenhagen";
+            i18n.defaultLocale = lib.mkDefault "en_DK.UTF-8";
+
+            security.sudo.wheelNeedsPassword = lib.mkDefault false;
+            security.sudo.execWheelOnly = lib.mkDefault true;
+
+            environment.variables.EDITOR = lib.mkDefault "nano";
+            environment.systemPackages = with pkgs; [sops alejandra];
+
+            nixpkgs.config.allowUnfree = lib.mkDefault true;
+            nix = {
+              package = pkgs.nixFlakes;
+
+              gc = lib.mkDefault {
+                automatic = true;
+                dates = "weekly";
+                options = "--delete-older-than 7d";
+              };
+
+              settings = {
+                experimental-features = ["nix-command" "flakes"];
+                auto-optimise-store = true;
+                accept-flake-config = true;
+                trusted-users = ["root" "@wheel"];
+                trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
+              };
+            };
+
+            documentation = {
+              enable = false;
+              nixos.enable = false;
+              man.enable = false;
+              dev.enable = false;
+            };
+          })
+          # SOPS
           ({config, ...}: {
             imports = [inputs.sops-nix.nixosModules.sops];
             sops = {
@@ -26,6 +73,7 @@
               };
             };
           })
+          # Home-manager
           {
             imports = [inputs.home-manager.nixosModules.default];
             home-manager = {

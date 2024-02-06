@@ -12,6 +12,7 @@ Current hosts:
 - WSL _(no UI)_
 - RPI (Raspberry Pi 4) _(no UI)_
 - Racknerd (VPS) _(no UI)_
+- Laptop
 
 ## Usage
 
@@ -34,6 +35,7 @@ Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `
 - create more hosts (NAS, mobile, etc.)
 - learn & implement custom modules for infrastructure -> migrate from containers to nix modules
 - completely remove global "project specific" installs such as language servers, tooling etc.
+- Fully setup and integrate K3s kubernetes with Helm, Helmfile, Helm-secrets, SOPS & ArgoCD
 - continue the nix journey and explore tooling
 
 ## Resources

@@ -22,7 +22,7 @@ in {
     environment.systemPackages = with pkgs;
       [k3s]
       ++ lib.optional cfg.includeHelm (wrapHelm kubernetes-helm {
-        plugins = with kubernetes-helmPlugins; [helm-secrets];
+        plugins = with kubernetes-helmPlugins; [helmfile helm-secrets];
       });
 
     services.k3s = {

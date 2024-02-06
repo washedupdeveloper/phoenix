@@ -23,9 +23,7 @@
     };
   };
 
-  outputs = {self, ...} @ inputs: let
-    system = "x86_64-linux";
-  in
+  outputs = {self, ...} @ inputs:
     inputs.flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
         ./modules/flake/nixosConfigurations.nix
