@@ -1,15 +1,5 @@
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [./hardware.nix];
-
-  # _module.args.pkgs = lib.mkForce (import inputs.nixpkgs rec {
-  #   inherit system;
-  #   config.allowUnfree = true;
-  # });
 
   networking.hostName = "nixos-laptop";
 
@@ -26,7 +16,7 @@
     tmp.cleanOnBoot = true;
   };
 
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable = true;
 
   i18n.extraLocaleSettings = {
@@ -38,18 +28,7 @@
     LC_NUMERIC = "da_DK.UTF-8";
     LC_PAPER = "da_DK.UTF-8";
     LC_TELEPHONE = "da_DK.UTF-8";
-    LC_TIME = "da_DK.UTF-8"; # hi @lunarix
-  };
-
-  services.xserver = {
-    enable = true;
-    layout = "dk";
-    xkbVariant = "";
-    libinput.enable = true;
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-    displayManager.autoLogin.enable = true;
-    displayManager.autoLogin.user = "storm";
+    LC_TIME = "da_DK.UTF-8";
   };
 
   fonts.packages = with pkgs; [
@@ -75,24 +54,30 @@
     jack.enable = true;
   };
 
-  environment.gnome.excludePackages =
-    (with pkgs; [
-      gnome-photos
-      gnome-tour
-    ])
-    ++ (with pkgs.gnome; [
-      # cheese # webcam tool
-      gnome-music
-      # gnome-terminal
-      # gedit # text editor
-      # epiphany # web browser
-      # geary # email reader
-      # evince # document viewer
-      # gnome-characters
-      totem # video player
-      tali # poker game
-      iagno # go game
-      hitori # sudoku game
-      atomix # puzzle game
-    ]);
+  programs.hyprland = {
+    enable = true;
+    enableNvidiaPatches = true;
+    xwayland.enable = true;
+  };
+  xdg.portal.enable = true;
+  xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-gtk];
+
+  environment = {
+    variables.WLR_NO_HARDWARE_CURSOR = "1";
+    sessionVariables = {
+      WLR_NO_HARDWARE_CURSOR = "1";
+      NIXOS_OZONE_WL = "1";
+    };
+    systemPackages = with pkgs; [
+      dunst
+      libnotify
+      swww
+      kitty
+      rofi-wayland
+      waybar
+      (
+        waybar.overrideAttrs (oldAttrs: {mesonFlags = oldAttrs.mesonFlags ++ ["-Dexperimental=true"];})
+      )
+    ];
+  };
 }

@@ -3,22 +3,48 @@
   config,
   ...
 }: {
-  boot.initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
-  boot.initrd.kernelModules = [];
-  boot.kernelModules = ["kvm-intel"];
-  boot.extraModulePackages = [];
+  services.xserver.videoDrivers = ["nvidia"];
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/a6985ab0-bcec-4f8f-8844-2ab240ae4763";
-    fsType = "ext4";
+  hardware = {
+    opengl = {
+      enable = true;
+      driSupport = true;
+      driSupport32Bit = true;
+    };
+
+    nvidia = {
+      modesetting.enable = true;
+      nvidiaSettings = true;
+      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+      powerManagement.enable = false;
+      # Fine-grained power management. Turns off GPU when not in use. Experimental and only works on modern Nvidia GPUs (Turing or newer).
+      powerManagement.finegrained = false;
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
+      prime = {
+        intelBusId = "PCI:0:2:0";
+        nvidiaBusId = "PCI:1:0:0";
+      };
+    };
   };
 
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/BD71-8998";
-    fsType = "vfat";
+  boot = {
+    initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
+    initrd.kernelModules = [];
+    kernelModules = ["kvm-intel"];
+    extraModulePackages = [];
   };
 
-  swapDevices = [
+  fileSystems = lib.mkDefault {
+    "/" = {
+      device = "/dev/disk/by-uuid/a6985ab0-bcec-4f8f-8844-2ab240ae4763";
+      fsType = "ext4";
+    };
+    "/boot" = {
+      device = "/dev/disk/by-uuid/BD71-8998";
+      fsType = "vfat";
+    };
+  };
+  swapDevices = lib.mkDefault [
     {
       device = "/dev/disk/by-uuid/3d79940c-9ac3-40a4-8d85-22761cebfb9b";
       # size = 16 * 1024
