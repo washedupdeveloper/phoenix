@@ -68,7 +68,7 @@
   services.udev.packages = with pkgs; [kitty gnome.gnome-settings-daemon];
   environment.systemPackages = with pkgs; [gnomeExtensions.appindicator];
   environment.gnome.excludePackages =
-    (with pkgs; [gnome-photos gnome-tour])
+    (with pkgs; [gnome-photos gnome-connections gnome-tour])
     ++ (with pkgs.gnome; [
       baobab # disk usage analyzer
       cheese # photo booth
@@ -82,8 +82,6 @@
       file-roller # archive manager
       geary # email client
       seahorse # password manager
-
-      # these should be self explanatory
       gnome-calculator
       gnome-calendar
       gnome-characters
@@ -97,6 +95,5 @@
       gnome-system-monitor
       gnome-weather
       gnome-disk-utility
-      pkgs.gnome-connections
     ]);
 }
