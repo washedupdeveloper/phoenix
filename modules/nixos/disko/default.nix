@@ -11,7 +11,10 @@
 in {
   options.services.disko = {
     enable = lib.mkEnableOption "disko service";
-    device = lib.mkOption {type = lib.types.str;};
+    device = lib.mkOption {
+      type = lib.types.str;
+      default = null;
+    };
     swapSizeInGb = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -22,7 +25,7 @@ in {
     };
   };
 
-  config = {
+  config = lib.mkIf cfg.enable {
     assertions = [
       {
         assertion = cfg.device != null;
@@ -33,6 +36,9 @@ in {
         message = "The 'fileSystem' option in 'services.disko' must be a valid filesystem.";
       }
     ];
-    disko = lib.optionalAttrs cfg.enable (fileSystems.${cfg.fileSystem} {inherit lib device swapSizeInGb;});
+    disko = fileSystems.${cfg.fileSystem} {
+      inherit lib;
+      inherit (cfg) device swapSizeInGb;
+    };
   };
 }

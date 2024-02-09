@@ -1,5 +1,6 @@
 {
   self,
+  pkgs,
   inputs,
   ...
 }: let
@@ -17,14 +18,39 @@
             config,
             ...
           }: {
-            imports = [
-              inputs.vscode-server.nixosModules.default
-            ];
+            imports = [inputs.vscode-server.nixosModules.default];
+
             networking.hostName = lib.mkDefault "nixos";
             system.stateVersion = lib.mkDefault "23.11";
             time.timeZone = lib.mkDefault "Europe/Copenhagen";
             i18n.defaultLocale = lib.mkDefault "en_DK.UTF-8";
 
+            programs.fish.enable = true;
+            services.vscode-server.enable = true;
+            services.openssh = lib.mkDefault {
+              enable = true;
+              settings = {
+                PasswordAuthentication = false;
+                KbdInteractiveAuthentication = false;
+              };
+              hostKeys = [
+                {
+                  path = "/etc/ssh/ssh_host_ed25519_key";
+                  type = "ed25519";
+                }
+              ];
+            };
+
+            users.mutableUsers = false;
+            users.users.${username} = {
+              isNormalUser = true;
+              extraGroups = [
+                "wheel"
+              ];
+              shell = pkgs.fish;
+              hashedPasswordFile = config.sops.secrets.user_password.path;
+              openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+            };
             security.sudo.wheelNeedsPassword = lib.mkDefault false;
             security.sudo.execWheelOnly = lib.mkDefault true;
 
@@ -74,15 +100,20 @@
             };
           })
           # Home-manager
-          {
+          ({
+            pkgs,
+            config,
+            ...
+          }: {
             imports = [inputs.home-manager.nixosModules.default];
+
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
               extraSpecialArgs = {inherit inputs username;};
               users.${username}.imports = [../home];
             };
-          }
+          })
         ]
         ++ modules;
     };
@@ -100,15 +131,6 @@ in {
     ];
     laptop = systemConfig "x86_64-linux" [
       ../../hosts/laptop
-      {
-        imports = [../nixos/disko];
-        services.disko = {
-          enable = true;
-          device = "/dev/nvme0n1";
-          fileSystem = "ext4";
-          swapSizeInGb = "12";
-        };
-      }
     ];
     rpi = systemConfig "aarch64-linux" [
       "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"

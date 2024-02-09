@@ -5,6 +5,7 @@
   ...
 }: {
   imports = [inputs.sops-nix.homeManagerModules.sops];
+
   home = {
     username = username;
     homeDirectory = "/home/${username}";

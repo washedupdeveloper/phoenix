@@ -4,9 +4,7 @@
   username,
   ...
 }: {
-  home.packages = with pkgs; [
-    lazygit
-  ];
+  home.packages = with pkgs; [lazygit];
 
   programs.git = let
     capitalize = s: with lib.strings; toUpper (substring 0 1 s) + substring 1 (-1) s;

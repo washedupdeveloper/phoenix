@@ -1,6 +1,7 @@
 {
   config,
   modulesPath,
+  username,
   ...
 }: let
   sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
@@ -9,7 +10,7 @@ in {
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
 
-  users.users.storm = {
+  users.users.${username} = {
     hashedPasswordFile = config.sops.secrets.user_password.path;
     openssh.authorizedKeys.keys = [sshPubKey];
   };
