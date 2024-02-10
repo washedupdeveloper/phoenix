@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  inputs,
   ...
 }: let
   cfg = config.services.disko;
@@ -9,6 +10,7 @@
     btrfs = import ./btrfs.nix;
   };
 in {
+  imports = [inputs.disko.nixosModules.default];
   options.services.disko = {
     enable = lib.mkEnableOption "disko service";
     device = lib.mkOption {

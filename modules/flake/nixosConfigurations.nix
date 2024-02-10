@@ -131,15 +131,6 @@ in {
     ];
     laptop = systemConfig "x86_64-linux" [
       ../../hosts/laptop
-    ];
-    rpi = systemConfig "aarch64-linux" [
-      "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-      ../../hosts/rpi.nix
-    ];
-    racknerd = systemConfig "x86_64-linux" [
-      ../../hosts/racknerd.nix
-    ];
-    nixosAnywhere = systemConfig "x86_64-linux" [
       {
         imports = [../nixos/disko];
         services.disko = {
@@ -149,6 +140,24 @@ in {
           swapSizeInGb = "12";
         };
       }
+    ];
+    rpi = systemConfig "aarch64-linux" [
+      "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+      ../../hosts/rpi.nix
+    ];
+    racknerd = systemConfig "x86_64-linux" [
+      ../../hosts/racknerd.nix
+    ];
+    nixosAnywhere = systemConfig "x86_64-linux" [
+      # {
+      #   imports = [../nixos/disko];
+      #   services.disko = {
+      #     enable = true;
+      #     device = "/dev/DEVICE_NAME";
+      #     fileSystem = "btrfs";
+      #     swapSizeInGb = "12";
+      #   };
+      # }
       {
         users.users.root = {
           hashedPassword = inputs.nixpkgs.lib.mkForce "$y$j9T$f4LE30RF2QMBy6jiR5j3M1$/X6daMyAm0fJ9iohebi0LZjiCHrmK092WpBpdTW6Z7A";
@@ -169,6 +178,21 @@ in {
               type = "ed25519";
             }
           ];
+        };
+        boot = {
+          tmp.cleanOnBoot = true;
+          loader = {
+            systemd-boot.enable = true;
+            efi = {
+              canTouchEfiVariables = true;
+              efiSysMountPoint = "/boot";
+            };
+            grub = {
+              efiSupport = true;
+              #efiInstallAsRemovable = true; # in case canTouchEfiVariables doesn't work for your system
+              device = "nodev";
+            };
+          };
         };
       }
     ];

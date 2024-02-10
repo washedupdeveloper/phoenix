@@ -8,6 +8,7 @@
     fd
     file
     ripgrep
+    kitty
   ];
 
   programs = {

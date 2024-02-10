@@ -4,6 +4,15 @@
   ...
 }: {
   imports = [./hardware.nix];
+  home-manager.users.${username}.imports = [
+    ../../modules/home/code/elixir
+    ../../modules/home/code/golang
+    ../../modules/home/code/javascript
+    ../../modules/home/code/vscode-extensions.nix
+    ../../modules/home/terminal/shell
+    ../../modules/home/git.nix
+    ../../modules/home/terminal/kitty.nix
+  ];
 
   networking.hostName = "nixos-laptop";
 
@@ -65,23 +74,23 @@
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
 
-  services.udev.packages = with pkgs; [kitty gnome.gnome-settings-daemon];
+  services.udev.packages = with pkgs; [gnome.gnome-settings-daemon];
   environment.systemPackages = with pkgs; [gnomeExtensions.appindicator];
   environment.gnome.excludePackages =
     (with pkgs; [gnome-photos gnome-connections gnome-tour])
     ++ (with pkgs.gnome; [
-      baobab # disk usage analyzer
+      # baobab # disk usage analyzer
       cheese # photo booth
       eog # image viewer
-      epiphany # web browser
+      # epiphany # web browser
       gedit # text editor
       simple-scan # document scanner
       totem # video player
       yelp # help viewer
-      evince # document viewer
+      # evince # document viewer
       file-roller # archive manager
-      geary # email client
-      seahorse # password manager
+      # geary # email client
+      # seahorse # password manager
       gnome-calculator
       gnome-calendar
       gnome-characters

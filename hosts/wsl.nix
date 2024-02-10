@@ -13,7 +13,7 @@
     ../modules/home/code/golang
     ../modules/home/code/javascript
     ../modules/home/code/vscode-extensions.nix
-    ../modules/home/shell
+    ../modules/home/terminal/shell
     ../modules/home/git.nix
   ];
 
