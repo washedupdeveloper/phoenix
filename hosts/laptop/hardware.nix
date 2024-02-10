@@ -39,29 +39,30 @@
     };
   };
 
-  # boot = {
-  #   initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
-  #   initrd.kernelModules = [];
-  #   kernelModules = ["kvm-intel"];
-  #   extraModulePackages = [];
-  # };
+  boot = {
+    initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
+    initrd.kernelModules = [];
+    kernelModules = ["kvm-intel"];
+    extraModulePackages = [];
+  };
 
-  # fileSystems = lib.mkDefault {
-  #   "/" = {
-  #     device = "/dev/disk/by-uuid/a6985ab0-bcec-4f8f-8844-2ab240ae4763";
-  #     fsType = "ext4";
-  #   };
-  #   "/boot" = {
-  #     device = "/dev/disk/by-uuid/BD71-8998";
-  #     fsType = "vfat";
-  #   };
-  # };
-  # swapDevices = lib.mkDefault [
-  #   {
-  #     device = "/dev/disk/by-uuid/3d79940c-9ac3-40a4-8d85-22761cebfb9b";
-  #     # size = 16 * 1024
-  #   }
-  # ];
+  fileSystems = lib.mkDefault {
+    "/" = {
+      device = "/dev/disk/by-uuid/597cc741-6395-442b-9fea-8ac8485bfe2d";
+      fsType = "btrfs";
+      options = ["subvol=@"];
+    };
+    "/boot" = {
+      device = "/dev/disk/by-uuid/EBA8-C8BC";
+      fsType = "vfat";
+    };
+  };
+  swapDevices = lib.mkDefault [
+    {
+      device = "/dev/disk/by-uuid/e806ecc7-8d21-4cc8-87c8-4040b5779102";
+      # size = 16 * 1024
+    }
+  ];
 
   networking.useDHCP = lib.mkDefault true;
   # networking.interfaces.eno1.useDHCP = lib.mkDefault true;

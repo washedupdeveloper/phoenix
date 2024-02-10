@@ -10,16 +10,19 @@
     displayManager.autoLogin.user = username;
     desktopManager.gnome.enable = true;
   };
+  # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
+  systemd.services."getty@tty1".enable = false;
+  systemd.services."autovt@tty1".enable = false;
 
   services.udev.packages = with pkgs; [gnome.gnome-settings-daemon];
-  environment.systemPackages = with pkgs; [microsoft-edge-stable gnomeExtensions.appindicator];
+  environment.systemPackages = with pkgs; [gnomeExtensions.appindicator];
   environment.gnome.excludePackages =
     (with pkgs; [gnome-photos gnome-connections gnome-tour])
     ++ (with pkgs.gnome; [
       # baobab # disk usage analyzer
       cheese # photo booth
       eog # image viewer
-      epiphany # web browser
+      # epiphany # web browser
       gedit # text editor
       # simple-scan # document scanner
       totem # video player
