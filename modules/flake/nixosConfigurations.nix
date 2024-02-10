@@ -1,13 +1,17 @@
 {
   self,
   pkgs,
+  config,
   inputs,
   ...
 }: let
-  username = "storm";
   systemConfig = sys: modules:
     inputs.nixpkgs.lib.nixosSystem {
-      specialArgs = {inherit self inputs username;};
+      specialArgs = {
+        inherit self inputs;
+        username = self.username;
+        sshPubKey = self.sshPubKey;
+      };
       system = sys;
       modules =
         [
@@ -42,14 +46,14 @@
             };
 
             users.mutableUsers = false;
-            users.users.${username} = {
+            users.users.${self.username} = {
               isNormalUser = true;
               extraGroups = [
                 "wheel"
               ];
               shell = pkgs.fish;
               hashedPasswordFile = config.sops.secrets.user_password.path;
-              openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+              openssh.authorizedKeys.keys = [self.sshPubKey];
             };
             security.sudo.wheelNeedsPassword = lib.mkDefault false;
             security.sudo.execWheelOnly = lib.mkDefault true;
@@ -88,12 +92,12 @@
             imports = [inputs.sops-nix.nixosModules.sops];
             sops = {
               defaultSopsFile = ../../secrets/default.yaml;
-              age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+              age.keyFile = "/home/${self.username}/.config/sops/age/keys.txt";
               secrets = {
                 user_password.neededForUsers = true;
                 cache_key_priv = {
-                  owner = config.users.users.${username}.name;
-                  group = config.users.users.${username}.group;
+                  owner = config.users.users.${self.username}.name;
+                  group = config.users.users.${self.username}.group;
                   mode = "0770";
                 };
               };
@@ -110,8 +114,12 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
-              extraSpecialArgs = {inherit inputs username;};
-              users.${username}.imports = [../home];
+              extraSpecialArgs = {
+                inherit inputs;
+                username = self.username;
+                sshPubKey = self.sshPubKey;
+              };
+              users.${self.username}.imports = [../home];
             };
           })
         ]
@@ -149,19 +157,19 @@ in {
       ../../hosts/racknerd.nix
     ];
     nixosAnywhere = systemConfig "x86_64-linux" [
-      # {
-      #   imports = [../nixos/disko];
-      #   services.disko = {
-      #     enable = true;
-      #     device = "/dev/DEVICE_NAME";
-      #     fileSystem = "btrfs";
-      #     swapSizeInGb = "12";
-      #   };
-      # }
+      {
+        imports = [../nixos/disko];
+        services.disko = {
+          enable = true;
+          device = "/dev/DEVICE_NAME";
+          fileSystem = "btrfs";
+          swapSizeInGb = "12";
+        };
+      }
       {
         users.users.root = {
           hashedPassword = inputs.nixpkgs.lib.mkForce "$y$j9T$f4LE30RF2QMBy6jiR5j3M1$/X6daMyAm0fJ9iohebi0LZjiCHrmK092WpBpdTW6Z7A";
-          openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+          openssh.authorizedKeys.keys = [self.sshPubKey];
           # TODO: add AGE secret for SOPS
         };
 

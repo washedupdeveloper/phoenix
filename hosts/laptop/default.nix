@@ -1,6 +1,7 @@
 {
   pkgs,
   username,
+  sshPubKey,
   ...
 }: {
   imports = [./hardware.nix ./gnome.nix];
@@ -22,7 +23,7 @@
 
   users.users.root = {
     hashedPassword = "$y$j9T$lMC7hcwcJYLWzYc.dmo6P.$pKG/CXDe5UfI.zyDvoj1GefBUkYB3Et6xwxfCwlFlV8";
-    openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com"];
+    openssh.authorizedKeys.keys = [sshPubKey];
   };
 
   boot = {

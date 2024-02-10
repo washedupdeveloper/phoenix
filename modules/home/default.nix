@@ -7,7 +7,7 @@
   imports = [inputs.sops-nix.homeManagerModules.sops];
 
   home = {
-    username = username;
+    inherit username;
     homeDirectory = "/home/${username}";
     stateVersion = "23.11";
     packages = with pkgs; [curl wget zip unzip];
