@@ -7,8 +7,13 @@
   imports = [(modulesPath + "/installer/scan/not-detected.nix")];
 
   services.xserver.videoDrivers = ["nvidia"];
-
   services.printing.enable = true;
+
+  networking.hostName = lib.mkForce "nixos-laptop";
+  networking.useDHCP = lib.mkDefault true;
+  networking.networkmanager.enable = true;
+  networking.networkmanager.wifi.backend = "iwd";
+  networking.wireless.iwd.enable = true;
 
   sound.enable = true;
   hardware.pulseaudio.enable = false;
@@ -31,46 +36,29 @@
     nvidia = {
       modesetting.enable = true;
       nvidiaSettings = true;
-      # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
       powerManagement.enable = false;
-      # Fine-grained power management. Turns off GPU when not in use. Experimental and only works on modern Nvidia GPUs (Turing or newer).
       powerManagement.finegrained = false;
+      open = false;
       package = config.boot.kernelPackages.nvidiaPackages.stable;
       prime = {
-        # reverseSync.enable = true;
         intelBusId = "PCI:0:2:0";
         nvidiaBusId = "PCI:1:0:0";
       };
     };
   };
 
-  # Enable OpenGL
-  hardware.opengl = {
-    enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
-  };
-
-  # Load nvidia driver for Xorg and Wayland
-  services.xserver.videoDrivers = ["nvidia"];
-
-  hardware.nvidia = {
-    # Modesetting is required.
-    modesetting.enable = true;
-    # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
-    powerManagement.enable = false;
-    # Fine-grained power management. Turns off GPU when not in use. Experimental and only works on modern Nvidia GPUs (Turing or newer).
-    powerManagement.finegrained = false;
-    open = false;
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-  };
-
   boot = {
+    plymouth.enable = true;
     initrd.availableKernelModules = ["xhci_pci" "ahci" "nvme" "usb_storage" "sd_mod" "alcor"];
     initrd.kernelModules = [];
     kernelModules = ["kvm-intel"];
     extraModulePackages = [];
+
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+    tmp.cleanOnBoot = true;
   };
 
   fileSystems = {
@@ -88,18 +76,8 @@
   swapDevices = [
     {
       device = "/dev/disk/by-uuid/d5ebeff6-6f98-4817-bac5-fface82d19cb";
-      # size = 16 * 1024;
     }
   ];
-
-  networking.useDHCP = true;
-  networking.hostName = lib.mkForce "nixos-laptop";
-  networking.networkmanager.enable = true;
-  networking.networkmanager.wifi.backend = "iwd";
-  networking.wireless.iwd.enable = true;
-  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant. Conflicts with networkmanager
-  # networking.interfaces.eno1.useDHCP = lib.mkDefault true;
-  # networking.interfaces.wlo1.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
