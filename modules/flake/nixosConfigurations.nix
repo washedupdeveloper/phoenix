@@ -155,6 +155,13 @@ in {
     ];
     racknerd = systemConfig "x86_64-linux" [
       ../../hosts/racknerd.nix
+      {
+        imports = [../nixos/k3s];
+        services.k3s-extras = {
+          enable = true;
+          includeHelm = true;
+        };
+      }
     ];
     nixosAnywhere = systemConfig "x86_64-linux" [
       {
