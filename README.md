@@ -1,29 +1,42 @@
 # My NixOS Configurations
 
-Simple starter-template for my Nix/NixOS configurations
+My continuously evolving Nix/NixOS configuration repository
 
 - `flake.nix` - entry point
-- `home/` - home-manager config, programs etc.
 - `hosts/` - host specific config
-- `modules/` - shared modules e.g default system config.
+- `modules/` - modules e.g flake modules through `flake/`, nixos modules through `nixos/` & home-manager modules throuh `home/`
+- `secrets/` - secrets provided through SOPS
 
 Current hosts:
 
 - WSL _(no UI)_
+- RPI (Raspberry Pi 4) _(no UI)_
+- Racknerd (VPS) _(no UI)_
+- Laptop
 
 ## Usage
 
-1. Modify variables.nix file
+1. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
 
-2. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
+2. generate binary cache key pair: [Instructions](https://nixos.wiki/wiki/Binary_Cache)
+   private key is supplied through sops.
 
 3. Rebuild your NixOS with the repositorys flake.
-   - **Requires `flakes` & `nix-command` experimental features enabled**:
-     `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts/default.nix)_
+   **Requires `flakes` & `nix-command` experimental features enabled**:
+   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts)_
+
+### IoT
+
+Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `package` in the flake.
+`nix build .#rpi-sdcard`
 
 ## Todo list
 
-- create more hosts (VPS, NAS, IoT)
+- create more hosts (NAS, mobile, etc.)
+- learn & implement custom modules for infrastructure -> migrate from containers to nix modules
+- completely remove global "project specific" installs such as language servers, tooling etc.
+- Fully setup and integrate K3s kubernetes with Helm, Helmfile, Helm-secrets, SOPS & ArgoCD
+- continue the nix journey and explore tooling
 
 ## Resources
 
@@ -31,8 +44,14 @@ Running NixOS on WSL: [NixOS WSL Repository](https://github.com/nix-community/Ni
 
 NixOS Searching Packages, Options & Flakes: [Search NixOS](https://search.nixos.org/packages)
 
+Nixos & Home-Manager lookup: [MyNixOS](https://mynixos.com/)
+
 Home Manager lookup: [Search Home Manager Options](https://mipmip.github.io/home-manager-option-search)
 
 NixOS Logo: [NixOS Repository](https://github.com/NixOS/nixos-artwork/blob/master/logo/white.png)
 
 SOPS: [Sops-Nix Repository](https://github.com/Mic92/sops-nix)
+
+Deploy: [Deploy-rs Repository](https://github.com/serokell/deploy-rs)
+
+Flake-parts: [Flake Parts Repository](https://flake.parts/)

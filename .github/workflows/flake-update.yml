@@ -1,4 +1,4 @@
-name: flake-update
+name: update-flake-lock
 on:
   workflow_dispatch:
   schedule:
@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v3
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v4
-      - name: update
-        uses: DeterminateSystems/update-flake-lock@v20
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Update flake.lock
+        uses: DeterminateSystems/update-flake-lock@main
         with:
           pr-title: "Update flake.lock"
-          pr-assignees: washedupdeveloper
+          token: ${{ secrets.EONIX_TOKEN }}

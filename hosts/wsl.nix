@@ -1,21 +1,37 @@
-{variables, ...}: {
-  networking.hostName = variables.system.hostname or "nixos-wsl";
-  system.stateVersion = variables.system.stateVersion or "23.05";
+{
+  pkgs,
+  inputs,
+  username,
+  ...
+}: {
+  imports = [inputs.nixos-wsl.nixosModules.wsl];
 
-  programs.fish.enable = true;
-  services.vscode-server.enable = true;
+  environment.systemPackages = with pkgs; [deploy-rs];
+
+  home-manager.users.${username}.imports = [
+    ../modules/home/code/elixir
+    ../modules/home/code/golang
+    ../modules/home/code/javascript
+    ../modules/home/code/vscode-extensions.nix
+    ../modules/home/terminal/shell
+    ../modules/home/git.nix
+  ];
 
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";
-    defaultUser = variables.system.username;
+    defaultUser = username;
     startMenuLaunchers = true;
     nativeSystemd = true;
+    interop.register = true;
   };
 
-  fileSystems."/home/${variables.system.username}/.ssh" = {
-    device = "C:\\Users\\${variables.system.username}\\.ssh";
+  fileSystems."/home/${username}/.ssh" = {
+    device = "C:\\Users\\${username}\\.ssh";
     fsType = "drvfs";
     options = ["rw" "noatime" "uid=1000" "gid=100" "case=off" "umask=0077" "fmask=0177"];
   };
+
+  # for building raspberry pi builds
+  boot.binfmt.emulatedSystems = ["aarch64-linux"];
 }
