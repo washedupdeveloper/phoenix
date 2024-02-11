@@ -11,7 +11,7 @@
 
   networking.hostName = lib.mkForce "nixos-laptop";
   networking.networkmanager.enable = true;
-  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
+  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant. Conflicts with networkmanager
 
   home-manager.users.${username}.imports = [
     ../../modules/home/code/elixir
@@ -24,10 +24,6 @@
   ];
 
   users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
-  # users.users.root = {
-  #   initialHashedPassword = "$y$j9T$lMC7hcwcJYLWzYc.dmo6P.$pKG/CXDe5UfI.zyDvoj1GefBUkYB3Et6xwxfCwlFlV8";
-  #   openssh.authorizedKeys.keys = [sshPubKey];
-  # };
 
   services.xserver = {
     enable = true;
