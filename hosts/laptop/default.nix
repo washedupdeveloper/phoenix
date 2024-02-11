@@ -9,10 +9,6 @@
 
   environment.systemPackages = with pkgs; [microsoft-edge deploy-rs];
 
-  networking.hostName = lib.mkForce "nixos-laptop";
-  networking.networkmanager.enable = true;
-  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant. Conflicts with networkmanager
-
   home-manager.users.${username}.imports = [
     ../../modules/home/code/elixir
     ../../modules/home/code/golang

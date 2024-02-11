@@ -29,10 +29,10 @@
       yelp # help viewer
       # evince # document viewer
       file-roller # archive manager
-      # geary # email client
+      geary # email client
       # seahorse # password manager
       gnome-calculator
-      gnome-calendar
+      # gnome-calendar
       gnome-characters
       # gnome-clocks
       gnome-contacts
