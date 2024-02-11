@@ -7,7 +7,7 @@
 }: {
   imports = [./hardware.nix ./gnome.nix];
 
-  environment.systemPackages = with pkgs; [microsoft-edge deploy-rs];
+  environment.systemPackages = with pkgs; [microsoft-edge];
 
   home-manager.users.${username}.imports = [
     ../../modules/home/code/elixir
