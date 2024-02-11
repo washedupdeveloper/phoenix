@@ -1,10 +1,18 @@
 {
   pkgs,
+  lib,
   username,
   sshPubKey,
   ...
 }: {
   imports = [./hardware.nix ./gnome.nix];
+
+  environment.systemPackages = with pkgs; [microsoft-edge deploy-rs];
+
+  networking.hostName = lib.mkForce "nixos-laptop";
+  networking.networkmanager.enable = true;
+  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
+
   home-manager.users.${username}.imports = [
     ../../modules/home/code/elixir
     ../../modules/home/code/golang
@@ -15,26 +23,21 @@
     ../../modules/home/terminal/kitty.nix
   ];
 
-  environment.systemPackages = with pkgs; [microsoft-edge];
+  users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
+  # users.users.root = {
+  #   initialHashedPassword = "$y$j9T$lMC7hcwcJYLWzYc.dmo6P.$pKG/CXDe5UfI.zyDvoj1GefBUkYB3Et6xwxfCwlFlV8";
+  #   openssh.authorizedKeys.keys = [sshPubKey];
+  # };
 
-  networking.hostName = "nixos-laptop";
-  # networking.wireless.enable = true; # Enables wireless support via wpa_supplicant.
-  networking.networkmanager.enable = true;
-
-  users.users.root = {
-    hashedPassword = "$y$j9T$lMC7hcwcJYLWzYc.dmo6P.$pKG/CXDe5UfI.zyDvoj1GefBUkYB3Et6xwxfCwlFlV8";
-    openssh.authorizedKeys.keys = [sshPubKey];
-  };
-
-  boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-    tmp.cleanOnBoot = true;
+  services.xserver = {
+    enable = true;
+    layout = "dk";
+    xkbVariant = "";
+    libinput.enable = true;
   };
 
   console.keyMap = "dk-latin1";
+  i18n.defaultLocale = "en_DK.UTF-8";
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "da_DK.UTF-8";
     LC_IDENTIFICATION = "da_DK.UTF-8";
@@ -54,4 +57,12 @@
       ];
     })
   ];
+
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+    tmp.cleanOnBoot = true;
+  };
 }

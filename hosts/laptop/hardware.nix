@@ -46,22 +46,20 @@
     extraModulePackages = [];
   };
 
-  fileSystems = lib.mkDefault {
+  fileSystems = {
     "/" = {
-      device = "/dev/disk/by-uuid/597cc741-6395-442b-9fea-8ac8485bfe2d";
+      device = "/dev/disk/by-uuid/109622a7-932d-47f9-a3d2-bea10dd7aff1";
       fsType = "btrfs";
       options = ["subvol=@"];
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/EBA8-C8BC";
+      device = "/dev/disk/by-uuid/656A-AC3A";
       fsType = "vfat";
     };
   };
-  swapDevices = lib.mkDefault [
-    {
-      device = "/dev/disk/by-uuid/e806ecc7-8d21-4cc8-87c8-4040b5779102";
-      # size = 16 * 1024
-    }
+
+  swapDevices = [
+    {device = "/dev/disk/by-uuid/d5ebeff6-6f98-4817-bac5-fface82d19cb";}
   ];
 
   networking.useDHCP = lib.mkDefault true;
