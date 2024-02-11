@@ -81,10 +81,10 @@
             };
 
             documentation = {
-              enable = false;
-              nixos.enable = false;
-              man.enable = false;
-              dev.enable = false;
+              enable = true;
+              nixos.enable = true;
+              man.enable = true;
+              dev.enable = true;
             };
           })
           # SOPS
@@ -142,7 +142,7 @@ in {
       {
         imports = [../nixos/disko];
         services.disko = {
-          enable = true;
+          # enable = true;
           device = "/dev/nvme0n1";
           fileSystem = "btrfs";
           swapSizeInGb = "12";
