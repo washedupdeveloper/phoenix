@@ -2,7 +2,7 @@ name: update-flake-lock
 on:
   workflow_dispatch:
   schedule:
-        - cron: "0 5 * * *" # 5 am UTC
+    - cron: "0 5 * * *" # 5 am UTC
 
 jobs:
   lockfile:
@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.EONIX_TOKEN }}
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Update flake.lock
