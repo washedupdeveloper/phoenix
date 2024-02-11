@@ -16,8 +16,8 @@
 in {
   flake.deploy.nodes = {
     racknerd = deployConfig "racknerd" "vps" "x86_64-linux" {};
-    rpi = deployConfig "rpi" "192.168.0.183" "aarch64-linux" {};
-    laptop = deployConfig "laptop" "192.168.0.114" "x86_64-linux" {
+    rpi = deployConfig "rpi" "rpi" "aarch64-linux" {};
+    laptop = deployConfig "laptop" "laptop" "x86_64-linux" {
       magicRollback = false;
       sshOpts = ["-t"];
     };
