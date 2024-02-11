@@ -9,11 +9,13 @@
   services.xserver.videoDrivers = ["nvidia"];
   services.printing.enable = true;
 
-  networking.hostName = lib.mkForce "nixos-laptop";
-  networking.useDHCP = lib.mkDefault true;
-  networking.networkmanager.enable = true;
-  networking.networkmanager.wifi.backend = "iwd";
-  networking.wireless.iwd.enable = true;
+  networking = {
+    hostName = "nixos-laptop";
+    useDHCP = lib.mkDefault true;
+    networkmanager.enable = true;
+    networkmanager.wifi.backend = "iwd";
+    wireless.iwd.enable = true;
+  };
 
   sound.enable = true;
   hardware.pulseaudio.enable = false;
