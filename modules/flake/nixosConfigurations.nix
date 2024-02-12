@@ -77,13 +77,6 @@
                 trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
               };
             };
-
-            documentation = {
-              enable = true;
-              nixos.enable = true;
-              man.enable = true;
-              dev.enable = true;
-            };
           })
           # SOPS
           ({config, ...}: {

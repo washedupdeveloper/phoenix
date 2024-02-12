@@ -39,4 +39,11 @@
 
   # for building raspberry pi builds
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
+
+  documentation = {
+    enable = true;
+    nixos.enable = true;
+    man.enable = true;
+    dev.enable = true;
+  };
 }
