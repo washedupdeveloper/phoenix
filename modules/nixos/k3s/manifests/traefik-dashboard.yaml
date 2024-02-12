@@ -5,6 +5,9 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
+  image:
+    name: traefik
+    tag: 2.10.7
   global:
     checkNewVersion: true
     sendAnonymousUsage: false
