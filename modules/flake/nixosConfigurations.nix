@@ -63,8 +63,6 @@
 
             nixpkgs.config.allowUnfree = lib.mkDefault true;
             nix = {
-              package = pkgs.nixFlakes;
-
               gc = lib.mkDefault {
                 automatic = true;
                 dates = "weekly";
@@ -129,25 +127,11 @@ in {
   flake.nixosConfigurations = {
     wsl = systemConfig "x86_64-linux" [
       ../../hosts/wsl.nix
-      {
-        imports = [../nixos/k3s];
-        services.k3s-extras = {
-          enable = true;
-          includeHelm = true;
-        };
-      }
+      ../nixos/k3s
     ];
     laptop = systemConfig "x86_64-linux" [
       ../../hosts/laptop
-      {
-        imports = [../nixos/disko];
-        services.disko = {
-          # enable = true;
-          device = "/dev/nvme0n1";
-          fileSystem = "btrfs";
-          swapSizeInGb = "12";
-        };
-      }
+      ../nixos/disko
     ];
     rpi = systemConfig "aarch64-linux" [
       "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
@@ -155,13 +139,8 @@ in {
     ];
     racknerd = systemConfig "x86_64-linux" [
       ../../hosts/racknerd.nix
-      {
-        imports = [../nixos/k3s];
-        services.k3s-extras = {
-          enable = true;
-          includeHelm = true;
-        };
-      }
+      ../nixos/k3s
+      ../nixos/podman
     ];
     nixosAnywhere = systemConfig "x86_64-linux" [
       {

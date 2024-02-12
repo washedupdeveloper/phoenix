@@ -17,6 +17,11 @@
     ../modules/home/git.nix
   ];
 
+  services.k3s-extras = {
+    enable = true;
+    includeHelm = true;
+  };
+
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";

@@ -21,6 +21,13 @@
 
   users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
 
+  services.disko = {
+    # enable = true;
+    device = "/dev/nvme0n1";
+    fileSystem = "btrfs";
+    swapSizeInGb = "12";
+  };
+
   services.xserver = {
     enable = true;
     layout = "dk";

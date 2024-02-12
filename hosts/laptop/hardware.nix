@@ -1,11 +1,8 @@
 {
   lib,
   config,
-  modulesPath,
   ...
 }: {
-  imports = [(modulesPath + "/installer/scan/not-detected.nix")];
-
   services.xserver.videoDrivers = ["nvidia"];
   services.printing.enable = true;
 
@@ -47,6 +44,8 @@
         nvidiaBusId = "PCI:1:0:0";
       };
     };
+
+    enableRedistributableFirmware = true;
   };
 
   boot = {
