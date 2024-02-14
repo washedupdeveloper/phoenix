@@ -14,7 +14,7 @@
 
   services.k3s-extras = {
     enable = true;
-    includeHelm = true;
+    helmCharts = ["traefik-dashboard"];
   };
 
   users.users.root.openssh.authorizedKeys.keys = [sshPubKey];

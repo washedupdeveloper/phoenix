@@ -7,30 +7,28 @@
   ...
 }: let
   cfg = config.services.k3s-extras;
+  includeHelm = cfg.helmCharts != [];
 in {
   options.services.k3s-extras = {
     enable = lib.mkEnableOption "k3s-extras service";
 
-    includeHelm = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Include Helm in the system packages.";
+    helmCharts = lib.mkOption {
+      type = with lib.types; listOf str;
+      default = [];
+      description = "List of Helm charts to include.";
     };
   };
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs;
       [k3s]
-      ++ lib.optional cfg.includeHelm (wrapHelm kubernetes-helm {
+      ++ lib.optional includeHelm (wrapHelm kubernetes-helm {
         plugins = with kubernetes-helmPlugins; [helmfile helm-secrets];
       });
 
     services.k3s = {
       enable = true;
       role = "server";
-      extraFlags = toString [
-        # "--kubelet-arg=v=4" # Optional args
-      ];
     };
 
     networking.firewall = {
@@ -39,17 +37,16 @@ in {
       allowedUDPPorts = [];
     };
 
-    systemd.tmpfiles.rules = lib.optionalAttrs cfg.includeHelm (
+    systemd.tmpfiles.rules = lib.optionalAttrs includeHelm (
       map (
         file: let
-          helmChart = "${self}/modules/nixos/k3s/manifests/${file}.yaml";
-        in "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${username} users - ${helmChart}"
-      ) [
-        "traefik-dashboard"
-      ]
-      ++ [
-        "f /etc/rancher/k3s/k3s.yaml 0644 ${username} users - -"
-      ]
+          helmChart = "${self}/modules/nixos/k3s/helmCharts/${file}.yaml";
+        in
+          if builtins.pathExists helmChart
+          then "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${username} users - ${helmChart}"
+          else throw "The file ${helmChart} does not exist"
+      )
+      cfg.helmCharts
     );
   };
 }

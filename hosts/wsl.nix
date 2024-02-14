@@ -19,7 +19,7 @@
 
   services.k3s-extras = {
     enable = true;
-    includeHelm = true;
+    helmCharts = ["traefik-dashboard"];
   };
 
   wsl = {
