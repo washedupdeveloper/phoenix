@@ -9,11 +9,11 @@
   programs.git = let
     capitalize = s: with lib.strings; toUpper (substring 0 1 s) + substring 1 (-1) s;
   in {
-    enable = true;
-    userName = capitalize username;
-    userEmail = "31986015+washedupdeveloper@users.noreply.github.com";
+    userName = lib.mkDefault capitalize username;
+    userEmail = lib.mkDefault "31986015+washedupdeveloper@users.noreply.github.com";
     ignores = [".direnv/"];
-    extraConfig = {
+    extraConfig = lib.mkDefault {
+      # Does not allow merging. If just one property is replaced, the entire `extraConfig` disappears.
       pull.rebase = true;
       commit.gpgsign = true;
       gpg.format = "ssh";
