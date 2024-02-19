@@ -9,7 +9,8 @@
   programs.git = let
     capitalize = s: with lib.strings; toUpper (substring 0 1 s) + substring 1 (-1) s;
   in {
-    userName = lib.mkDefault capitalize username;
+    enable = true;
+    userName = lib.mkDefault (capitalize username);
     userEmail = lib.mkDefault "31986015+washedupdeveloper@users.noreply.github.com";
     ignores = [".direnv/"];
     extraConfig = lib.mkDefault {

@@ -6,11 +6,11 @@
   username,
   ...
 }: let
-  cfg = config.services.k3s-extras;
+  cfg = config.services.k3s-self;
   includeHelm = cfg.helmCharts != [];
 in {
-  options.services.k3s-extras = {
-    enable = lib.mkEnableOption "k3s-extras service";
+  options.services.k3s-self = {
+    enable = lib.mkEnableOption "k3s service";
 
     helmCharts = lib.mkOption {
       type = with lib.types; listOf str;

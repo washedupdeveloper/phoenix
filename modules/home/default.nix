@@ -4,7 +4,11 @@
   username,
   ...
 }: {
-  imports = [inputs.sops-nix.homeManagerModules.sops];
+  imports = [inputs.sops-nix.homeManagerModules.sops ./shell.nix ./code.nix];
+
+  enableGlobalNodeJs = true;
+  enableGlobalGolang = true;
+  enableGlobalElixir = true;
 
   home = {
     inherit username;

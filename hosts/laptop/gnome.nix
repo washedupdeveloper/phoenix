@@ -1,48 +1,49 @@
 {
   pkgs,
-  inputs,
   username,
   ...
 }: {
-  services.xserver = {
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-    displayManager.autoLogin.enable = true;
-    displayManager.autoLogin.user = username;
-  };
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
-  services.udev.packages = with pkgs; [gnome.gnome-settings-daemon];
+  services = {
+    xserver = {
+      displayManager.gdm.enable = true;
+      desktopManager.gnome.enable = true;
+      displayManager.autoLogin.enable = true;
+      displayManager.autoLogin.user = username;
+    };
+    udev.packages = with pkgs; [gnome.gnome-settings-daemon];
+  };
   environment.systemPackages = with pkgs; [gnomeExtensions.appindicator];
   environment.gnome.excludePackages =
     (with pkgs; [gnome-photos gnome-connections gnome-tour])
     ++ (with pkgs.gnome; [
       # baobab # disk usage analyzer
+      # simple-scan # document scanner
+      # evince # document viewer
+      # seahorse # password manager
+      # gnome-calendar
+      # gnome-clocks
+      # gnome-font-viewer
+      # gnome-logs
+      # gnome-screenshot
+      # gnome-system-monitor
+      # gnome-disk-utility
       cheese # photo booth
       eog # image viewer
       epiphany # web browser
       gedit # text editor
-      # simple-scan # document scanner
       totem # video player
       yelp # help viewer
-      # evince # document viewer
       file-roller # archive manager
       geary # email client
-      # seahorse # password manager
       gnome-calculator
-      # gnome-calendar
       gnome-characters
-      # gnome-clocks
       gnome-contacts
-      # gnome-font-viewer
-      # gnome-logs
       gnome-maps
       gnome-music
-      # gnome-screenshot
-      # gnome-system-monitor
       gnome-weather
-      # gnome-disk-utility
     ]);
 }

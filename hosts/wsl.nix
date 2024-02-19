@@ -1,23 +1,25 @@
 {
   pkgs,
+  lib,
   inputs,
   username,
   ...
 }: {
   imports = [inputs.nixos-wsl.nixosModules.wsl];
+  home-manager.users.${username}.imports = [../modules/home/git.nix];
 
   environment.systemPackages = with pkgs; [deploy-rs];
 
-  home-manager.users.${username}.imports = [
-    ../modules/home/code/elixir
-    ../modules/home/code/golang
-    ../modules/home/code/javascript
-    ../modules/home/code/vscode-extensions.nix
-    ../modules/home/terminal/shell
-    ../modules/home/git.nix
-  ];
+  users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
 
-  services.k3s-extras = {
+  programs.fish.interactiveShellInit = ''
+    set fish_greeting
+    bind -k nul -M insert 'accept-autosuggestion'
+    set -Ux GIT_ASKPASS ""
+    ssh-add ~/.ssh/id_ed25519
+  '';
+
+  services.k3s-self = {
     enable = true;
     helmCharts = ["traefik-dashboard"];
   };
@@ -39,11 +41,4 @@
 
   # for building raspberry pi builds
   boot.binfmt.emulatedSystems = ["aarch64-linux"];
-
-  documentation = {
-    enable = true;
-    nixos.enable = true;
-    man.enable = true;
-    dev.enable = true;
-  };
 }

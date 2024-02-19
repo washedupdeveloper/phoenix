@@ -1,5 +1,4 @@
 {
-  self,
   config,
   modulesPath,
   username,
@@ -12,15 +11,17 @@
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
 
-  services.k3s-extras = {
+  services.k3s-self = {
     enable = true;
     helmCharts = ["traefik-dashboard"];
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [sshPubKey];
-  users.users.${username} = {
-    hashedPasswordFile = config.sops.secrets.user_password.path;
-    openssh.authorizedKeys.keys = [sshPubKey];
+  users = {
+    users.root.openssh.authorizedKeys.keys = [sshPubKey];
+    users.${username} = {
+      hashedPasswordFile = config.sops.secrets.user_password.path;
+      openssh.authorizedKeys.keys = [sshPubKey];
+    };
   };
 
   boot = {
