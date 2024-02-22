@@ -2,7 +2,7 @@
 
 My continuously evolving Nix/NixOS configurations.
 
-[Logo / Artwork](phoenix.png)
+![Logo / Artwork](phoenix.png)
 
 ## Repository Structure
 
