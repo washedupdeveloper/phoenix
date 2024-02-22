@@ -1,0 +1,12 @@
+{
+  "alejandra.program": "alejandra",
+  "[nix]": {
+    "editor.defaultFormatter": "jnoortheen.nix-ide",
+    "editor.formatOnPaste": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false
+  },
+  "nix.serverPath": "nil",
+  "nix.formatterPath": ["alejandra"],
+  "nix.enableLanguageServer": true
+}
