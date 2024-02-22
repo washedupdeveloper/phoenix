@@ -34,7 +34,7 @@
   console.keyMap = "dk-latin1";
   i18n = {
     defaultLocale = "en_DK.UTF-8";
-    i18n.extraLocaleSettings = {
+    extraLocaleSettings = {
       LC_ADDRESS = "da_DK.UTF-8";
       LC_IDENTIFICATION = "da_DK.UTF-8";
       LC_MEASUREMENT = "da_DK.UTF-8";

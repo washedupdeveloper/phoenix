@@ -6,7 +6,14 @@
   ...
 }: {
   imports = [inputs.nixos-wsl.nixosModules.wsl];
-  home-manager.users.${username}.imports = [../modules/home/git.nix];
+  home-manager.users.${username} = {
+    imports = [../modules/home/git.nix];
+
+    enableGlobalNodeJs = true;
+    enableGlobalNodeJsPkgs = true;
+    enableGlobalGolang = true;
+    enableGlobalElixir = true;
+  };
 
   environment.systemPackages = with pkgs; [deploy-rs];
 

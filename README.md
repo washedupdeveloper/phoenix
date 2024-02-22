@@ -1,42 +1,43 @@
 # My NixOS Configurations
 
-My continuously evolving Nix/NixOS configuration repository
+My continuously evolving Nix/NixOS configurations.
 
-- `flake.nix` - entry point
-- `hosts/` - host specific config
-- `modules/` - modules e.g flake modules through `flake/`, nixos modules through `nixos/` & home-manager modules throuh `home/`
-- `secrets/` - secrets provided through SOPS
+## Repository Structure
 
-Current hosts:
+- `flake.nix`: Entry point
+- `hosts/`: Host-specific configurations
+- `modules/`: Modules (Flake modules through `flake/`, NixOS modules through `nixos/`, Home-Manager modules through `home/`)
+- `secrets/`: Secrets provided through SOPS
 
-- WSL _(no UI)_
-- RPI (Raspberry Pi 4) _(no UI)_
-- Racknerd (VPS) _(no UI)_
-- Laptop
+## Hosts
 
-## Usage
+| Host      | UI  |
+|-----------|-----|
+| Laptop    | Yes |
+| WSL       | No  |
+| Racknerd  | No  |
+| RPI (4)   | No  |
 
-1. Generate age key from SSH/GPG/PGP key. [Instructions](https://github.com/Mic92/sops-nix#usage-example)
+## Usage Instructions
 
-2. generate binary cache key pair: [Instructions](https://nixos.wiki/wiki/Binary_Cache)
-   private key is supplied through sops.
+### General
 
-3. Rebuild your NixOS with the repositorys flake.
-   **Requires `flakes` & `nix-command` experimental features enabled**:
-   `sudo nixos-rebuild switch --flake .#nixos` _(a given host name from hosts)_
+- Generate age key from SSH/GPG/PGP key. Instructions
+- Generate binary cache key pair. Instructions. The private key is supplied through sops.
+- Rebuild your NixOS with the repository's flake. This requires `flakes` & `nix-command` experimental features enabled: `sudo nixos-rebuild switch --flake .#[HOST]` (replace `[HOST]` with a given host name from hosts)
 
-### IoT
+### Custom Images
 
-Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `package` in the flake.
-`nix build .#rpi-sdcard`
+- Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `package` in the flake: `nix build .#rpi`
+- Build the Nixos-Anywhere custom image for building a base image to use Disko and format the disks of a host. Utilizing the `package` in the flake: `nix build .#nixosAnywhere`
 
-## Todo list
+## Todo List
 
-- create more hosts (NAS, mobile, etc.)
-- learn & implement custom modules for infrastructure -> migrate from containers to nix modules
-- completely remove global "project specific" installs such as language servers, tooling etc.
-- Fully setup and integrate K3s kubernetes with Helm, Helmfile, Helm-secrets, SOPS & ArgoCD
-- continue the nix journey and explore tooling
+- Create more hosts (NAS, mobile, etc.)
+- Learn & implement custom modules for infrastructure -> migrate from containers to Nix modules
+- Completely remove global "project specific" installs such as language servers, tooling etc.
+- Fully setup and integrate K3s Kubernetes with Helm, Helmfile, Helm-secrets, SOPS & ArgoCD
+- Continue the Nix journey and explore tooling
 
 ## Resources
 
@@ -48,10 +49,12 @@ Nixos & Home-Manager lookup: [MyNixOS](https://mynixos.com/)
 
 Home Manager lookup: [Search Home Manager Options](https://mipmip.github.io/home-manager-option-search)
 
-NixOS Logo: [NixOS Repository](https://github.com/NixOS/nixos-artwork/blob/master/logo/white.png)
-
 SOPS: [Sops-Nix Repository](https://github.com/Mic92/sops-nix)
 
 Deploy: [Deploy-rs Repository](https://github.com/serokell/deploy-rs)
 
+Disko: [Disko Repository](https://github.com/nix-community/disko)
+
 Flake-parts: [Flake Parts Repository](https://flake.parts/)
+
+NixOS Logo: [NixOS Repository](https://github.com/NixOS/nixos-artwork/blob/master/logo/white.png)

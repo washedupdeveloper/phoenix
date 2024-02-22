@@ -3,9 +3,6 @@
   config,
   ...
 }: {
-  services.xserver.videoDrivers = ["nvidia"];
-  services.printing.enable = true;
-
   networking = {
     hostName = "nixos-laptop";
     useDHCP = lib.mkDefault true;
@@ -17,12 +14,16 @@
   sound.enable = true;
   hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
+  services = {
+    pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+      jack.enable = true;
+    };
+    xserver.videoDrivers = ["nvidia"];
+    printing.enable = true;
   };
 
   hardware = {

@@ -8,76 +8,78 @@
     pkgs,
     config,
     ...
-  }: {
-    imports = [inputs.vscode-server.nixosModules.default];
+  }:
+    with lib; {
+      imports = [inputs.vscode-server.nixosModules.default];
 
-    environment.variables.EDITOR = lib.mkDefault "nano";
-    environment.systemPackages = with pkgs; [sops alejandra nil];
+      environment.variables.EDITOR = mkDefault "nano";
+      environment.systemPackages = with pkgs; [sops alejandra nil];
 
-    networking.hostName = lib.mkDefault "nixos";
-    system.stateVersion = lib.mkDefault "23.11";
-    time.timeZone = lib.mkDefault "Europe/Copenhagen";
-    i18n.defaultLocale = lib.mkDefault "en_DK.UTF-8";
+      networking.hostName = mkDefault "nixos";
+      system.stateVersion = mkDefault "23.11";
+      time.timeZone = mkDefault "Europe/Copenhagen";
+      i18n.defaultLocale = mkDefault "en_DK.UTF-8";
 
-    programs.fish.enable = true;
-    programs.fish.interactiveShellInit = ''
-      set fish_greeting
-      bind -k nul -M insert 'accept-autosuggestion'
-    '';
-    services = {
-      vscode-server = {
-        enable = true;
-        enableFHS = true;
-        nodejsPackage = pkgs.nodejs;
-      };
-      openssh = lib.mkDefault {
-        enable = true;
-        settings = {
-          PasswordAuthentication = false;
-          KbdInteractiveAuthentication = false;
+      programs.fish.enable = true;
+      programs.fish.interactiveShellInit = ''
+        set fish_greeting
+        bind -k nul -M insert 'accept-autosuggestion'
+      '';
+      services = {
+        tailscale.enable = mkDefault true;
+        vscode-server = {
+          enable = true;
+          enableFHS = true;
+          nodejsPackage = pkgs.nodejs;
         };
-        hostKeys = [
-          {
-            path = "/etc/ssh/ssh_host_ed25519_key";
-            type = "ed25519";
-          }
-        ];
+        openssh = mkDefault {
+          enable = true;
+          settings = {
+            PasswordAuthentication = false;
+            KbdInteractiveAuthentication = false;
+          };
+          hostKeys = [
+            {
+              path = "/etc/ssh/ssh_host_ed25519_key";
+              type = "ed25519";
+            }
+          ];
+        };
+      };
+
+      users = {
+        mutableUsers = false;
+        users.${self.username} = {
+          isNormalUser = true;
+          extraGroups = [
+            "wheel"
+          ];
+          shell = pkgs.fish;
+          hashedPasswordFile = config.sops.secrets.user_password.path;
+          openssh.authorizedKeys.keys = [self.sshPubKey];
+        };
+      };
+
+      security.sudo.wheelNeedsPassword = mkDefault false;
+      security.sudo.execWheelOnly = mkDefault true;
+
+      nixpkgs.config.allowUnfree = mkDefault true;
+      nix = {
+        gc = mkDefault {
+          automatic = true;
+          dates = "weekly";
+          options = "--delete-older-than 7d";
+        };
+
+        settings = {
+          experimental-features = ["nix-command" "flakes"];
+          auto-optimise-store = true;
+          accept-flake-config = true;
+          trusted-users = ["root" "@wheel"];
+          trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
+        };
       };
     };
-
-    users = {
-      mutableUsers = false;
-      users.${self.username} = {
-        isNormalUser = true;
-        extraGroups = [
-          "wheel"
-        ];
-        shell = pkgs.fish;
-        hashedPasswordFile = config.sops.secrets.user_password.path;
-        openssh.authorizedKeys.keys = [self.sshPubKey];
-      };
-    };
-
-    security.sudo.wheelNeedsPassword = lib.mkDefault false;
-    security.sudo.execWheelOnly = lib.mkDefault true;
-
-    nixpkgs.config.allowUnfree = lib.mkDefault true;
-    nix = {
-      gc = lib.mkDefault {
-        automatic = true;
-        dates = "weekly";
-        options = "--delete-older-than 7d";
-      };
-
-      settings = {
-        experimental-features = ["nix-command" "flakes"];
-        auto-optimise-store = true;
-        accept-flake-config = true;
-        trusted-users = ["root" "@wheel"];
-        trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
-      };
-    };
-  };
   sopsModule = {config, ...}: {
     imports = [inputs.sops-nix.nixosModules.sops];
     sops = {
@@ -139,60 +141,12 @@ in {
     ];
     rpi = systemConfig "aarch64-linux" [
       "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-      ../../hosts/rpi.nix
+      ../../hosts/rpi
     ];
     racknerd = systemConfig "x86_64-linux" [
       ../../hosts/racknerd.nix
       ../nixos/k3s
       ../nixos/podman
-    ];
-    nixosAnywhere = systemConfig "x86_64-linux" [
-      {
-        imports = [../nixos/disko];
-        services.disko = {
-          enable = true;
-          device = "/dev/DEVICE_NAME";
-          fileSystem = "btrfs";
-          swapSizeInGb = "12";
-        };
-      }
-      {
-        users.users.root = {
-          hashedPassword = inputs.nixpkgs.lib.mkOverride "$y$j9T$f4LE30RF2QMBy6jiR5j3M1$/X6daMyAm0fJ9iohebi0LZjiCHrmK092WpBpdTW6Z7A";
-          openssh.authorizedKeys.keys = [self.sshPubKey];
-          # TODO: add AGE secret for SOPS
-        };
-
-        systemd.services.sshd.wantedBy = inputs.nixpkgs.lib.mkOverride ["multi-user.target"];
-        services.openssh = {
-          enable = true;
-          settings = {
-            PasswordAuthentication = inputs.nixpkgs.lib.mkOverride true;
-            PermitRootLogin = "yes";
-          };
-          hostKeys = [
-            {
-              path = "/etc/ssh/ssh_host_ed25519_key";
-              type = "ed25519";
-            }
-          ];
-        };
-        boot = {
-          tmp.cleanOnBoot = true;
-          loader = {
-            systemd-boot.enable = true;
-            efi = {
-              canTouchEfiVariables = true;
-              efiSysMountPoint = "/boot";
-            };
-            grub = {
-              efiSupport = true;
-              #efiInstallAsRemovable = true; # in case canTouchEfiVariables doesn't work for your system
-              device = "nodev";
-            };
-          };
-        };
-      }
     ];
   };
 }

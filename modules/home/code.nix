@@ -5,9 +5,26 @@
   ...
 }: {
   options = {
-    enableGlobalNodeJs = lib.mkEnableOption "global Node.js";
-    enableGlobalGolang = lib.mkEnableOption "global Golang";
-    enableGlobalElixir = lib.mkEnableOption "global Elixir";
+    enableGlobalNodeJs = lib.mkEnableOption {
+      type = with lib.types; bool;
+      default = false;
+      description = "Global Node JS and related dependencies";
+    };
+    enableGlobalNodeJsPkgs = lib.mkEnableOption {
+      type = with lib.types; bool;
+      default = false;
+      description = "Global Node JS packages for general purpose";
+    };
+    enableGlobalGolang = lib.mkEnableOption {
+      type = with lib.types; bool;
+      default = false;
+      description = "Global Golang and related dependencies";
+    };
+    enableGlobalElixir = lib.mkEnableOption {
+      type = with lib.types; bool;
+      default = false;
+      description = "Global Elxiir and related dependencies";
+    };
   };
 
   config = {
@@ -16,6 +33,8 @@
         nodejs
         nodePackages.typescript-language-server
         typescript
+      ])
+      ++ lib.optionals config.enableGlobalNodeJsPkgs (with pkgs; [
         nodePackages.prettier
         nodePackages.eslint
         nodePackages.tailwindcss

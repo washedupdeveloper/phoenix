@@ -21,6 +21,9 @@
       url = "github:nix-community/nixos-anywhere";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    devshell.url = "github:numtide/devshell";
+    kubeGenerators.url = "github:farcaller/nix-kube-generators";
+    kubeModules.url = "github:farcaller/nix-kube-modules";
   };
 
   outputs = {self, ...} @ inputs:
@@ -35,7 +38,7 @@
       perSystem = {system, ...}: {
         formatter = inputs.alejandra.defaultPackage.${system};
         packages = {
-          rpiSdcard = self.nixosConfigurations.rpi.config.system.build.sdImage;
+          rpi = self.nixosConfigurations.rpi.config.system.build.sdImage;
           nixosAnywhere = inputs.nixos-anywhere.packages.${system}.nixos-anywhere;
         };
       };
