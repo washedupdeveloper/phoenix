@@ -2,6 +2,8 @@
 
 My continuously evolving Nix/NixOS configurations.
 
+[Logo / Artwork](phoenix.png)
+
 ## Repository Structure
 
 - `flake.nix`: Entry point
