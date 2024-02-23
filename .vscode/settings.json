@@ -1,7 +1,7 @@
 {
   "alejandra.program": "alejandra",
   "[nix]": {
-    "editor.defaultFormatter": "jnoortheen.nix-ide",
+    "editor.defaultFormatter": "kamadorueda.alejandra",
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
     "editor.formatOnType": false
