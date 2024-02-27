@@ -5,7 +5,12 @@
   sshPubKey,
   ...
 }: {
-  imports = [(modulesPath + "/profiles/qemu-guest.nix") (modulesPath + "/installer/scan/not-detected.nix")];
+  imports = [
+    (modulesPath + "/profiles/qemu-guest.nix")
+    (modulesPath + "/installer/scan/not-detected.nix")
+    ../modules/nixos/k3s
+    ../modules/nixos/podman
+  ];
 
   networking.hostName = "nixos-racknerd";
   time.timeZone = "UTC";

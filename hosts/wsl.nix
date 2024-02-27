@@ -1,11 +1,16 @@
 {
   pkgs,
   lib,
+  config,
   inputs,
   username,
   ...
 }: {
-  imports = [inputs.nixos-wsl.nixosModules.wsl];
+  imports = [
+    inputs.nixos-wsl.nixosModules.wsl
+    ../modules/nixos/k3s
+    ../modules/nixos/podman
+  ];
   home-manager.users.${username} = {
     imports = [../modules/home/git.nix];
 
@@ -14,6 +19,8 @@
     enableGlobalGolang = true;
     enableGlobalElixir = true;
   };
+
+  networking.hostName = "nixos-wsl";
 
   environment.systemPackages = with pkgs; [deploy-rs];
 
@@ -29,6 +36,20 @@
   services.k3s-self = {
     enable = true;
     helmCharts = ["traefik-dashboard"];
+    extraFlags = [
+      "--node-name ${config.networking.hostName}"
+      "--flannel-backend host-gw"
+      #   # "--node-ip ${cfg.nodeIP}"
+      #   # "--disable servicelb"
+      #   # "--disable traefik"
+
+      #   # "--disable local-storage"
+      #   # "--disable metrics-server"
+      #   # "--disable-kube-proxy"
+      #   # "--service-cidr cidr_address_here"
+      #   # "--cluster-cidr cidr_address_here"
+      #   # "--cluster-dns cluster_dns_here";
+    ];
   };
 
   wsl = {

@@ -4,7 +4,7 @@
   username,
   ...
 }: {
-  imports = [./hardware.nix ./gnome.nix];
+  imports = [./hardware.nix ./gnome.nix ../../modules/nixos/disko ../../modules/nixos/podman];
   home-manager.users.${username}.imports = [../../modules/home/git.nix];
 
   environment.systemPackages = with pkgs; [microsoft-edge];
@@ -28,10 +28,13 @@
       layout = "dk";
       xkbVariant = "";
       libinput.enable = true;
+      displayManager.gdm.enable = true;
+      displayManager.autoLogin.enable = true;
+      displayManager.autoLogin.user = username;
     };
   };
 
-  console.keyMap = "dk-latin1";
+  console.keyMap = "en-latin1";
   i18n = {
     defaultLocale = "en_DK.UTF-8";
     extraLocaleSettings = {

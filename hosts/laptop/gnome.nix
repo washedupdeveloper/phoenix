@@ -1,21 +1,10 @@
-{
-  pkgs,
-  username,
-  ...
-}: {
+{pkgs, ...}: {
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
-  services = {
-    xserver = {
-      displayManager.gdm.enable = true;
-      desktopManager.gnome.enable = true;
-      displayManager.autoLogin.enable = true;
-      displayManager.autoLogin.user = username;
-    };
-    udev.packages = with pkgs; [gnome.gnome-settings-daemon];
-  };
+  services.xserver.desktopManager.gnome.enable = true;
+  services.udev.packages = with pkgs; [gnome.gnome-settings-daemon];
   environment.systemPackages = with pkgs; [gnomeExtensions.appindicator];
   environment.gnome.excludePackages =
     (with pkgs; [gnome-photos gnome-connections gnome-tour])

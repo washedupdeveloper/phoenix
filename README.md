@@ -8,7 +8,7 @@ My continuously evolving Nix/NixOS configurations.
 
 - `flake.nix`: Entry point
 - `hosts/`: Host-specific configurations
-- `modules/`: Modules (Flake modules through `flake/`, NixOS modules through `nixos/`, Home-Manager modules through `home/`)
+- `modules/`: Modules (NixOS modules through `nixos/`, Home-Manager modules through `home/`)
 - `secrets/`: Secrets provided through SOPS
 
 ## Hosts

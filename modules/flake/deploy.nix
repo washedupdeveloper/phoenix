@@ -1,13 +1,14 @@
 {
   self,
   inputs,
+  username,
   ...
 }: let
   deployConfig = name: host: system: cfg: {
     hostname = host;
     profiles.system = {
       user = "root";
-      sshUser = self.username;
+      sshUser = username;
       path = inputs.deploy-rs.lib.${system}.activate.nixos self.nixosConfigurations.${name};
       magicRollback = cfg.magicRollback or true;
       sshOpts = cfg.sshOpts or [];

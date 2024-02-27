@@ -2,22 +2,38 @@
   pkgs,
   inputs,
   username,
+  sshPubKey,
   ...
 }: {
-  imports = [inputs.sops-nix.homeManagerModules.sops ./shell.nix ./code.nix];
+  imports = [inputs.home-manager.nixosModules.default];
 
-  home = {
-    inherit username;
-    homeDirectory = "/home/${username}";
-    stateVersion = "23.11";
-    packages = with pkgs; [curl wget zip unzip];
-  };
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = {
+      inherit inputs;
+      inherit username;
+      inherit sshPubKey;
+    };
+    users.${username}.imports = [
+      {
+        imports = [inputs.sops-nix.homeManagerModules.sops ./shell.nix ./code.nix];
 
-  programs.home-manager.enable = true;
-  services.ssh-agent.enable = true;
+        home = {
+          inherit username;
+          homeDirectory = "/home/${username}";
+          stateVersion = "23.11";
+          packages = with pkgs; [curl wget zip unzip];
+        };
 
-  sops = {
-    defaultSopsFile = ../../secrets/default.yaml;
-    age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+        programs.home-manager.enable = true;
+        services.ssh-agent.enable = true;
+
+        sops = {
+          defaultSopsFile = ../../secrets/default.yaml;
+          age.keyFile = "/home/${username}/.config/sops/age/keys.txt";
+        };
+      }
+    ];
   };
 }
