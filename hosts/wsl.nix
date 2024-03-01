@@ -1,6 +1,5 @@
 {
   pkgs,
-  lib,
   config,
   inputs,
   username,
@@ -23,8 +22,6 @@
   networking.hostName = "nixos-wsl";
 
   environment.systemPackages = with pkgs; [deploy-rs];
-
-  users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
 
   programs.fish.interactiveShellInit = ''
     set fish_greeting
