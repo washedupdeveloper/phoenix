@@ -26,46 +26,19 @@
     # cake.url = "github:farcaller/cake";
   };
 
-  outputs = {self, ...} @ inputs: let
+  outputs = {
+    self,
+    flake-parts,
+    ...
+  } @ inputs: let
     username = "storm";
     sshPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBCMD78tzMBKjffq9l65ho/6SDUrZu2gXeA6EpU5U/l 31986015+washedupdeveloper@users.noreply.github.com";
   in
-    inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+    flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
-        ({inputs, ...}: {
-          flake.nixosModules.deploy =
-            inputs.flake-parts.lib.importApply ./modules/flake/deploy.nix
-            {inherit username;};
-        })
+        (import ./modules/flake/deploy.nix {inherit self inputs username;})
+        (import ./modules/flake/nixosConfigurations.nix {inherit inputs username sshPubKey;})
       ];
-      flake = {
-        nixosConfigurations = let
-          systemConfig = system: modules:
-            inputs.nixpkgs.lib.nixosSystem {
-              specialArgs = {
-                inherit self inputs;
-                username = username;
-                sshPubKey = sshPubKey;
-              };
-              inherit system;
-              modules =
-                [
-                  ./modules/nixos/system.nix
-                  ./modules/nixos/sops.nix
-                  ./modules/home
-                ]
-                ++ modules;
-            };
-        in {
-          wsl = systemConfig "x86_64-linux" [./hosts/wsl.nix];
-          laptop = systemConfig "x86_64-linux" [./hosts/laptop];
-          rpi = systemConfig "aarch64-linux" [
-            "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-            ./hosts/rpi
-          ];
-          racknerd = systemConfig "x86_64-linux" [./hosts/racknerd.nix];
-        };
-      };
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
         # formatter = inputs.alejandra.defaultPackage.${system};
