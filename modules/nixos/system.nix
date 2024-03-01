@@ -69,7 +69,14 @@ with lib; {
       auto-optimise-store = true;
       accept-flake-config = true;
       trusted-users = ["root" "@wheel"];
-      trusted-public-keys = ["storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="];
+      substituters = [
+        "https://nix-community.cachix.org"
+        "https://cache.nixos.org/"
+      ];
+      trusted-public-keys = [
+        "storm:4kby1i6kECwL05+f6r3/QhosRrr+V1g8D5cB7YsimUw="
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      ];
     };
   };
 }
