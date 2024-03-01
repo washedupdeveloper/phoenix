@@ -34,7 +34,7 @@
     };
   };
 
-  console.keyMap = "en-latin1";
+  console.keyMap = "dk-latin1";
   i18n = {
     defaultLocale = "en_DK.UTF-8";
     extraLocaleSettings = {
