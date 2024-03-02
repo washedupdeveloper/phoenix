@@ -12,13 +12,26 @@
     ../modules/nixos/podman
   ];
 
-  networking.hostName = "nixos-racknerd";
+  networking.hostName = "racknerd";
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
 
   services.k3s-self = {
     enable = true;
-    helmCharts = ["traefik-dashboard"];
+    enableHelm = true;
+    extraFlags = [
+      "--node-name ${config.networking.hostName}"
+      #   # "--node-ip ${cfg.nodeIP}"
+      #   # "--disable servicelb"
+      #   # "--disable traefik"
+
+      #   # "--disable local-storage"
+      #   # "--disable metrics-server"
+      #   # "--disable-kube-proxy"
+      #   # "--service-cidr cidr_address_here"
+      #   # "--cluster-cidr cidr_address_here"
+      #   # "--cluster-dns cluster_dns_here";
+    ];
   };
 
   users = {

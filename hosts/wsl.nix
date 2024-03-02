@@ -19,7 +19,7 @@
     enableGlobalElixir = true;
   };
 
-  networking.hostName = "nixos-wsl";
+  networking.hostName = "wsl";
 
   environment.systemPackages = with pkgs; [deploy-rs];
 
@@ -32,10 +32,9 @@
 
   services.k3s-self = {
     enable = true;
-    helmCharts = ["traefik-dashboard"];
+    enableHelm = true;
     extraFlags = [
       "--node-name ${config.networking.hostName}"
-      "--flannel-backend host-gw"
       #   # "--node-ip ${cfg.nodeIP}"
       #   # "--disable servicelb"
       #   # "--disable traefik"

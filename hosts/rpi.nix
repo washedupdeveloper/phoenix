@@ -9,7 +9,7 @@
     ../modules/nixos/podman
   ];
 
-  networking.hostName = "nixos-rpi";
+  networking.hostName = "rpi";
 
   services.k3s-self = {
     enable = true;

@@ -4,7 +4,7 @@
   ...
 }: {
   networking = {
-    hostName = "nixos-laptop";
+    hostName = "laptop";
     useDHCP = lib.mkDefault true;
     networkmanager.enable = true;
     networkmanager.wifi.backend = "iwd";
