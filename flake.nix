@@ -9,7 +9,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     vscode-server.url = "github:nix-community/nixos-vscode-server";
-    # alejandra.url = "github:kamadorueda/alejandra/3.0.0";
     deploy-rs.url = "github:serokell/deploy-rs";
     flake-parts.url = "github:hercules-ci/flake-parts";
     disko = {
@@ -41,14 +40,9 @@
       ];
       systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {system, ...}: {
-        # formatter = inputs.alejandra.defaultPackage.${system};
         packages = {
           rpi = self.nixosConfigurations.rpi.config.system.build.sdImage;
-          nixosAnywhere = inputs.nixos-anywhere.packages.${system}.nixos-anywhere;
         };
-        # devshells.default = {
-        #   packages = with pkgs; [];
-        # };
       };
     };
 }
