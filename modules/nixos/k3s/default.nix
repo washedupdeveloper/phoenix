@@ -15,13 +15,13 @@ in
       };
 
       serverAddr = mkOption {
-        type = types.uniq str;
+        type = with types; uniq str;
         default = "";
         description = "the server address 'ip:port'. Only intended for agents or appended multi-node servers";
       };
 
       extraFlags = mkOption {
-        type = types.listOf str;
+        type = with types; listOf str;
         default = [];
       };
 
@@ -31,7 +31,7 @@ in
       };
 
       helmCharts = mkOption {
-        type = types.listOf str;
+        type = with types; listOf str;
         default = [];
         description = "List of Helm charts to include";
       };
