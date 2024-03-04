@@ -46,10 +46,9 @@ in
 
       services.k3s = {
         enable = true;
-        # role = cfg.role;
-        # serverAddr = mkIf (cfg.serverAddr != null) cfg.serverAddr;
+        role = cfg.role;
+        serverAddr = mkIf (cfg.serverAddr != null) cfg.serverAddr;
         extraFlags = builtins.toString cfg.extraFlags;
-        # tokenFile = config.sops.secrets.k3s_token.path;
       };
 
       networking.firewall = {
