@@ -1,6 +1,7 @@
 {
-  config,
+  pkgs,
   lib,
+  config,
   ...
 }: let
   cfg = config.services.k3s-self;
