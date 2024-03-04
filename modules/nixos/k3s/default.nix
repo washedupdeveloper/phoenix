@@ -5,7 +5,7 @@
   ...
 }: let
   cfg = config.services.k3s-self;
-  includeHelm = cfg.helm.charts != [] || cfg.helm.enable;
+  includeHelm = cfg.helmCharts != [] || cfg.enableHelm;
 in
   with lib; {
     options.services.k3s-self = {
