@@ -8,17 +8,17 @@ My continuously evolving Nix/NixOS configurations.
 
 - `flake.nix`: Entry point
 - `hosts/`: Host-specific configurations
-- `modules/`: Modules (NixOS modules through `nixos/`, Home-Manager modules through `home/`)
+- `modules/`: Modules (Flake modules through `flake/`, NixOS modules through `nixos/`, Home-Manager modules through `home/`)
 - `secrets/`: Secrets provided through SOPS
 
 ## Hosts
 
-| Host      | UI  |
-|-----------|-----|
-| Laptop    | Yes |
-| WSL       | No  |
-| Racknerd  | No  |
-| RPI (4)   | No  |
+| Host     | GUI |
+|----------|-----|
+| Laptop   | Yes |
+| WSL      | No  |
+| Racknerd | No  |
+| RPI (4)  | No  |
 
 ## Usage Instructions
 
@@ -31,14 +31,13 @@ My continuously evolving Nix/NixOS configurations.
 ### Custom Images
 
 - Build the Raspberry Pi (4) custom image for flashing an SD card. Utilizing the `package` in the flake: `nix build .#rpi`
-- Build the Nixos-Anywhere custom image for building a base image to use Disko and format the disks of a host. Utilizing the `package` in the flake: `nix build .#nixosAnywhere`
 
 ## Todo List
 
 - Create more hosts (NAS, mobile, etc.)
 - Learn & implement custom modules for infrastructure -> migrate from containers to Nix modules
 - Completely remove global "project specific" installs such as language servers, tooling etc.
-- Fully setup and integrate K3s Kubernetes with Helm, Helmfile, Helm-secrets, SOPS & ArgoCD
+- Fully setup and integrate K3s Kubernetes with Helm, Helmfile, Helm-secrets, SOPS & CI/CD (Flux/Argo)
 - Continue the Nix journey and explore tooling
 
 ## Resources
