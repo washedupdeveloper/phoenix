@@ -14,6 +14,8 @@
   services.k3s-self = {
     enable = true;
     enableHelm = true;
+    role = "agent";
+    serverAddr = "https://wsl.local:6443";
     extraFlags = [
       "--node-name ${config.networking.hostName}"
       #   # "--node-ip ${cfg.nodeIP}"
