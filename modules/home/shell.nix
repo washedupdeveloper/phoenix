@@ -12,6 +12,12 @@
         cat = "bat -p";
         find = "fd";
         gc = "nix store gc";
+        nr = "nix run";
+        nb = "nix build";
+        nrbb = "nixos-rebuild build";
+        nrbt = "nixos-rebuild test";
+        nrbvm = "nixos-rebuild build-vm";
+        nrbs = "nixos-rebuild switch";
         # lsd aliases enabled as per lsd.enableAliases in shell/default.nix
       };
     };

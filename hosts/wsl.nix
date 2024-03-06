@@ -35,7 +35,6 @@
     enableHelm = true;
     extraFlags = [
       "--node-name ${config.networking.hostName}"
-      # "--node-ip ${cfg.nodeIP}"
       # "--disable servicelb"
       # "--disable traefik"
 

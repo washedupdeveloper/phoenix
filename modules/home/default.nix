@@ -15,7 +15,7 @@
       inherit username;
       inherit sshPubKey;
     };
-    users.${username}.imports = [
+    sharedModules = [
       {
         imports = [inputs.sops-nix.homeManagerModules.sops ./shell.nix ./code.nix];
 
