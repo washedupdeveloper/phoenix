@@ -18,13 +18,15 @@ with lib; {
   time.timeZone = mkDefault "Europe/Copenhagen";
   i18n.defaultLocale = mkDefault "en_DK.UTF-8";
 
-  programs.fish.enable = true;
-  programs.fish.interactiveShellInit = ''
-    bind -k nul -M insert 'accept-autosuggestion'
-  '';
+  programs.fish = {
+    enable = true;
+    interactiveShellInit = ''
+      bind -k nul -M insert 'accept-autosuggestion'
+    '';
+  };
   services = {
     tailscale.enable = mkDefault true;
-    vscode-server.enable = true;
+    vscode-server.enable = mkDefault true;
     openssh = mkDefault {
       enable = true;
       settings = {

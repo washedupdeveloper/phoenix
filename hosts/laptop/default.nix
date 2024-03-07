@@ -5,9 +5,10 @@
   ...
 }: {
   imports = [./hardware.nix ./gnome.nix ../../modules/nixos/disko ../../modules/nixos/podman];
-  home-manager.users.${username}.imports = [../../modules/home/git.nix];
-
-  environment.systemPackages = with pkgs; [microsoft-edge];
+  home-manager.users.${username} = {
+    imports = [../../modules/home/git.nix];
+    home.packages = with pkgs; [microsoft-edge vscode dunst discord];
+  };
 
   users.users.${username}.extraGroups = lib.mkAfter ["networkmanager"];
 
@@ -17,6 +18,7 @@
   '';
 
   services = {
+    vscode-server.enable = false;
     disko = {
       # enable = true;
       device = "/dev/nvme0n1";
@@ -52,9 +54,7 @@
 
   fonts.packages = with pkgs; [
     (nerdfonts.override {
-      fonts = [
-        "Meslo"
-      ];
+      fonts = ["Meslo"];
     })
   ];
 }
