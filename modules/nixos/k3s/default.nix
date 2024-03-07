@@ -64,9 +64,7 @@ in
       systemd.tmpfiles.rules = optionalAttrs includeHelm (
         map (
           file: let
-            helmChart = "${builtins
-              .toString
-              ./.}/helmCharts/${file}.yaml";
+            helmChart = "${builtins.toString ./.}/helmCharts/${file}.yaml";
           in
             if builtins.pathExists helmChart
             then "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${username} users - ${helmChart}"

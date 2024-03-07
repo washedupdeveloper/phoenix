@@ -21,16 +21,16 @@
     enableHelm = true;
     extraFlags = [
       "--node-name ${config.networking.hostName}"
-      #   # "--node-ip ${cfg.nodeIP}"
-      #   # "--disable servicelb"
-      #   # "--disable traefik"
+      # "--node-ip ${cfg.nodeIP}"
+      # "--disable servicelb"
+      # "--disable traefik"
 
-      #   # "--disable local-storage"
-      #   # "--disable metrics-server"
-      #   # "--disable-kube-proxy"
-      #   # "--service-cidr cidr_address_here"
-      #   # "--cluster-cidr cidr_address_here"
-      #   # "--cluster-dns cluster_dns_here";
+      # "--disable local-storage"
+      # "--disable metrics-server"
+      # "--disable-kube-proxy"
+      # "--service-cidr cidr_address_here"
+      # "--cluster-cidr cidr_address_here"
+      # "--cluster-dns cluster_dns_here";
     ];
   };
 

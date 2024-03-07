@@ -19,7 +19,6 @@
       url = "github:nix-community/nixos-anywhere";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # devshell.url = "github:numtide/devshell";
     # kubeGenerators.url = "github:farcaller/nix-kube-generators";
     # kubeModules.url = "github:farcaller/nix-kube-modules";
     # cake.url = "github:farcaller/cake";

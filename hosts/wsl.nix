@@ -24,7 +24,6 @@
   environment.systemPackages = with pkgs; [deploy-rs];
 
   programs.fish.interactiveShellInit = ''
-    set fish_greeting
     bind -k nul -M insert 'accept-autosuggestion'
     set -Ux GIT_ASKPASS ""
     ssh-add ~/.ssh/id_ed25519
