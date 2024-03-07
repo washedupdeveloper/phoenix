@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  username,
   ...
 }: let
   cfg = config.services.k3s-self;
@@ -61,16 +62,15 @@ in
         allowedUDPPorts = [8472];
       };
 
-      systemd.tmpfiles.rules = optionalAttrs includeHelm (
-        map (
-          file: let
-            helmChart = "${builtins.toString ./.}/helmCharts/${file}.yaml";
-          in
-            if builtins.pathExists helmChart
-            then "C /var/lib/rancher/k3s/server/manifests/${file}.yaml 0700 ${username} users - ${helmChart}"
-            else throw "The file ${helmChart} does not exist"
-        )
-        cfg.helmCharts
+      systemd.tmpfiles.rules = lib.optionalAttrs includeHelm (
+        lib.pipe cfg.helmCharts [
+          (map (file: "${toString ./.}/helmCharts/${file}.yaml"))
+          (map (file:
+            if pathExists file
+            then file
+            else throw "The file ${file} does not exist"))
+          (map (file: "C /var/lib/rancher/k3s/server/manifests/${baseNameOf file} 0700 ${username} users - ${file}"))
+        ]
       );
     };
   }
