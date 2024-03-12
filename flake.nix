@@ -19,6 +19,7 @@
       url = "github:nix-community/nixos-anywhere";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    devshell.url = "github:numtide/devshell";
     # kubeGenerators.url = "github:farcaller/nix-kube-generators";
     # kubeModules.url = "github:farcaller/nix-kube-modules";
     # cake.url = "github:farcaller/cake";
@@ -34,14 +35,24 @@
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
+        inputs.devshell.flakeModule
         (import ./modules/flake/deploy.nix {inherit self inputs username;})
         (import ./modules/flake/nixosConfigurations.nix {inherit inputs username sshPubKey;})
       ];
       systems = ["x86_64-linux" "aarch64-linux"];
-      perSystem = {system, ...}: {
+      perSystem = {
+        system,
+        pkgs,
+        ...
+      }: {
         packages = {
           rpi = self.nixosConfigurations.rpi.config.system.build.sdImage;
         };
+
+        devshells.default.packages = with pkgs; [
+          nil
+          alejandra
+        ];
       };
     };
 }
