@@ -4,29 +4,40 @@ My continuously evolving Nix/NixOS configurations.
 
 ![Logo / Artwork](phoenix.png)
 
-## Repository Structure
-
-- `flake.nix`: Entry point
-- `hosts/`: Host-specific configurations
-- `modules/`: Modules (Flake modules through `flake/`, NixOS modules through `nixos/`, Home-Manager modules through `home/`)
-- `secrets/`: Secrets provided through SOPS
-
 ## Hosts
 
-| Host     | GUI |
+| Host     | DE  |
 |----------|-----|
 | Laptop   | Yes |
 | WSL      | No  |
 | Racknerd | No  |
 | RPI (4)  | No  |
 
+## Repository Structure
+
+```yaml
+├── flake.nix     # Entry point.
+├── hosts         # All of my hosts, directories indicate multiple files e.g hardware cfg.
+│   ├── laptop
+│   ├── racknerd
+│   ├── rpi
+│   └── wsl
+├── modules       # All of my modules, separated by domain.
+│   ├── flake     # Flake modules separated out
+│   ├── home      # Home-manager modules
+│   └── nixos     # Generic nixos modules, will entail options
+└── secrets       # Secrets provided through SOPS.
+```
+
 ## Usage Instructions
 
 ### General
 
-- Generate age key from SSH/GPG/PGP key. Instructions
-- Generate binary cache key pair. Instructions. The private key is supplied through sops.
-- Rebuild your NixOS with the repository's flake. This requires `flakes` & `nix-command` experimental features enabled: `sudo nixos-rebuild switch --flake .#[HOST]` (replace `[HOST]` with a given host name from hosts)
+- Generate age key from SSH/GPG/PGP key.
+- Generate binary cache key pair. The private key is supplied through sops.
+- Rebuild your NixOS with the repository's flake. This requires `flakes` & `nix-command` experimental features enabled:
+`sudo NIX_CONFIG="experimental-features = nix-command flakes" nixos-rebuild switch --flake .#[HOST]` (replace `[HOST]` with a configuration, provided in `modules/flake/nixosConfigurations`)
+*For all future references once the system has been built and it includes the experimental features, omit the NIX_CONFIG environment variable.*
 
 ### Custom Images
 
