@@ -49,10 +49,7 @@
           rpi = self.nixosConfigurations.rpi.config.system.build.sdImage;
         };
 
-        devshells.default.packages = with pkgs; [
-          nil
-          alejandra
-        ];
+        devshells.default.packages = with pkgs; [nil alejandra];
       };
     };
 }
