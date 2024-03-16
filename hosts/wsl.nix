@@ -1,13 +1,11 @@
 {
   pkgs,
-  config,
   inputs,
   username,
   ...
 }: {
   imports = [
     inputs.nixos-wsl.nixosModules.wsl
-    ../modules/nixos/k3s
     ../modules/nixos/podman
   ];
   home-manager.users.${username} = {
@@ -19,32 +17,16 @@
     enableGlobalElixir = true;
   };
 
+  environment.systemPackages = with pkgs; [deploy-rs];
+
   networking.hostName = "wsl";
 
-  environment.systemPackages = with pkgs; [deploy-rs];
   programs.fish.interactiveShellInit = ''
     set fish_greeting
     bind -k nul -M insert 'accept-autosuggestion'
     set -Ux GIT_ASKPASS ""
     ssh-add ~/.ssh/id_ed25519
   '';
-
-  services.k3s-self = {
-    enable = true;
-    enableHelm = true;
-    extraFlags = [
-      "--node-name ${config.networking.hostName}"
-      # "--disable servicelb"
-      # "--disable traefik"
-
-      # "--disable local-storage"
-      # "--disable metrics-server"
-      # "--disable-kube-proxy"
-      # "--service-cidr cidr_address_here"
-      # "--cluster-cidr cidr_address_here"
-      # "--cluster-dns cluster_dns_here";
-    ];
-  };
 
   wsl = {
     enable = true;
