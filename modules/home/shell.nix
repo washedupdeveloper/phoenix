@@ -3,6 +3,7 @@
     fd
     file
     ripgrep
+    starship
   ];
 
   programs = {
