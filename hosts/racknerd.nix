@@ -12,6 +12,13 @@
     ../modules/nixos/podman
   ];
 
+  environment.variables = {
+    PATH = [
+      "${config.system.path}"
+      "/etc/profiles/per-user/${username}/bin"
+    ];
+  };
+
   networking.hostName = "racknerd";
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
