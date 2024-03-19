@@ -1,5 +1,4 @@
 {
-  pkgs,
   config,
   modulesPath,
   username,
@@ -10,6 +9,7 @@
     (modulesPath + "/profiles/qemu-guest.nix")
     (modulesPath + "/installer/scan/not-detected.nix")
     ../modules/nixos/podman
+    ../modules/nixos/k3s
   ];
 
   environment.variables = {
@@ -22,6 +22,12 @@
   networking.hostName = "racknerd";
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
+
+  services.k3s-self.enable = true;
+  services.k3s = {
+    role = "agent";
+    serverAddr = "https://100.70.39.20:6443";
+  };
 
   users = {
     users.root.openssh.authorizedKeys.keys = [sshPubKey];

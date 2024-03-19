@@ -7,6 +7,7 @@
   imports = [
     inputs.nixos-wsl.nixosModules.wsl
     ../modules/nixos/podman
+    ../modules/nixos/k3s
   ];
   home-manager.users.${username} = {
     imports = [../modules/home/git.nix];
@@ -27,6 +28,12 @@
     set -Ux GIT_ASKPASS ""
     ssh-add ~/.ssh/id_ed25519
   '';
+
+  services.k3s-self.enable = true;
+  services.k3s = {
+    role = "server";
+    extraFlags = toString [];
+  };
 
   wsl = {
     enable = true;
