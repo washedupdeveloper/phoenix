@@ -11,21 +11,6 @@ in
   with lib; {
     options.services.k3s-self = {
       enable = mkEnableOption "k3s service";
-      role = mkOption {
-        type = types.enum ["server" "agent"];
-        default = "server";
-      };
-
-      serverAddr = mkOption {
-        type = with types; nullOr str;
-        default = null;
-        description = "the server address 'ip:port'. Only intended for agents or appended multi-node servers";
-      };
-
-      extraFlags = mkOption {
-        type = with types; listOf str;
-        default = [];
-      };
 
       enableHelm = mkOption {
         type = types.bool;
@@ -47,18 +32,12 @@ in
 
       services.k3s = {
         enable = true;
-        role = cfg.role;
-        serverAddr = mkIf (cfg.serverAddr != null) cfg.serverAddr;
-        extraFlags = builtins.toString cfg.extraFlags;
+        tokenFile = config.sops.secrets.k3s_token.path;
       };
 
       networking.firewall = {
         enable = true;
-        allowedTCPPorts = [
-          6443
-          # 2379 # etcd clients: required for "High Availability Embedded etcd"
-          # 2380 # etcd peers: required for "High Availability Embedded etcd"
-        ];
+        allowedTCPPorts = [6443 2379 2380];
         allowedUDPPorts = [8472];
       };
 
