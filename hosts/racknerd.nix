@@ -12,21 +12,22 @@
     ../modules/nixos/k3s
   ];
 
-  environment.variables = {
-    PATH = [
-      "${config.system.path}"
-      "/etc/profiles/per-user/${username}/bin"
-    ];
-  };
-
-  networking.hostName = "racknerd";
   time.timeZone = "UTC";
   i18n.defaultLocale = "C.UTF-8";
+  networking.hostName = "racknerd";
 
-  services.k3s-self.enable = true;
+  modules = {
+    podman.enable = true;
+    k3s.enable = true;
+  };
+
   services.k3s = {
     role = "agent";
     serverAddr = "https://100.70.39.20:6443";
+    extraFlags = toString [
+      "--node-name ${config.networking.hostName}"
+      "--node-ip 100.69.14.67"
+    ];
   };
 
   users = {

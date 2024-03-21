@@ -1,5 +1,6 @@
 {
   pkgs,
+  config,
   inputs,
   username,
   ...
@@ -19,7 +20,6 @@
   };
 
   environment.systemPackages = with pkgs; [deploy-rs];
-
   networking.hostName = "wsl";
 
   programs.fish.interactiveShellInit = ''
@@ -29,19 +29,32 @@
     ssh-add ~/.ssh/id_ed25519
   '';
 
-  services.k3s-self.enable = true;
+  modules = {
+    podman.enable = true;
+    k3s.enable = true;
+  };
+
   services.k3s = {
     role = "server";
-    extraFlags = toString [];
+    extraFlags = toString [
+      "--node-name ${config.networking.hostName}"
+      # "--disable coredns"
+      # "--disable local-storage"
+      # "--disable metrics-server"
+      # "--disable servicelb"
+      # "--disable traefik"
+    ];
   };
 
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";
+    wslConf.user.default = username;
     defaultUser = username;
     startMenuLaunchers = true;
     nativeSystemd = true;
     interop.register = true;
+    useWindowsDriver = true;
   };
 
   fileSystems."/home/${username}/.ssh" = {

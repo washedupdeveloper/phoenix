@@ -5,12 +5,12 @@
   username,
   ...
 }: let
-  cfg = config.services.k3s-self;
+  cfg = config.modules.k3s;
   includeHelm = cfg.helmCharts != [] || cfg.enableHelm;
 in
   with lib; {
-    options.services.k3s-self = {
-      enable = mkEnableOption "k3s service";
+    options.modules.k3s = {
+      enable = mkEnableOption "k3s module";
 
       enableHelm = mkOption {
         type = types.bool;
@@ -39,6 +39,7 @@ in
         enable = true;
         allowedTCPPorts = [6443 2379 2380];
         allowedUDPPorts = [8472];
+        trustedInterfaces = ["flannel.1" "tailscale0"];
       };
 
       systemd.tmpfiles.rules = lib.optionalAttrs includeHelm (

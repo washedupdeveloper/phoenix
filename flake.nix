@@ -40,11 +40,7 @@
         (import ./modules/flake/nixosConfigurations.nix {inherit inputs username sshPubKey;})
       ];
       systems = ["x86_64-linux" "aarch64-linux"];
-      perSystem = {
-        system,
-        pkgs,
-        ...
-      }: {
+      perSystem = {pkgs, ...}: {
         packages = {
           rpi = self.nixosConfigurations.rpi.config.system.build.sdImage;
         };

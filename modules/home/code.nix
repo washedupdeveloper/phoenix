@@ -4,24 +4,24 @@
   config,
   ...
 }: {
-  options = {
-    enableGlobalNodeJs = lib.mkEnableOption {
-      type = with lib.types; bool;
+  options = with lib; {
+    enableGlobalNodeJs = mkOption {
+      type = types.bool;
       default = false;
       description = "Global Node JS and related dependencies";
     };
-    enableGlobalNodeJsPkgs = lib.mkEnableOption {
-      type = with lib.types; bool;
+    enableGlobalNodeJsPkgs = mkOption {
+      type = types.bool;
       default = false;
       description = "Global Node JS packages for general purpose";
     };
-    enableGlobalGolang = lib.mkEnableOption {
-      type = with lib.types; bool;
+    enableGlobalGolang = mkOption {
+      type = types.bool;
       default = false;
       description = "Global Golang and related dependencies";
     };
-    enableGlobalElixir = lib.mkEnableOption {
-      type = with lib.types; bool;
+    enableGlobalElixir = mkOption {
+      type = types.bool;
       default = false;
       description = "Global Elxiir and related dependencies";
     };
