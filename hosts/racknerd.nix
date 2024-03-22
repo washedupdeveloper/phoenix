@@ -18,11 +18,13 @@
 
   modules = {
     podman.enable = true;
-    k3s.enable = true;
+    # k3s.enable = true;
   };
 
   services.k3s = {
+    enable = true;
     role = "agent";
+    tokenFile = config.sops.secrets.k3s_token.path;
     serverAddr = "https://100.70.39.20:6443";
     extraFlags = toString [
       "--node-name ${config.networking.hostName}"

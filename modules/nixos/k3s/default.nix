@@ -39,7 +39,7 @@ in
         enable = true;
         allowedTCPPorts = [6443 2379 2380];
         allowedUDPPorts = [8472];
-        trustedInterfaces = ["flannel.1" "tailscale0"];
+        # trustedInterfaces = ["flannel.1" "tailscale0"];
       };
 
       systemd.tmpfiles.rules = lib.optionalAttrs includeHelm (

@@ -31,18 +31,17 @@
 
   modules = {
     podman.enable = true;
-    k3s.enable = true;
+    # k3s.enable = true;
   };
 
   services.k3s = {
+    enable = true;
     role = "server";
+    # disableAgent = true;
+    tokenFile = config.sops.secrets.k3s_token.path;
     extraFlags = toString [
       "--node-name ${config.networking.hostName}"
-      # "--disable coredns"
-      # "--disable local-storage"
-      # "--disable metrics-server"
-      # "--disable servicelb"
-      # "--disable traefik"
+      "--node-ip 100.70.39.20"
     ];
   };
 
