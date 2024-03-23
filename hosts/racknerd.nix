@@ -16,11 +16,7 @@
   i18n.defaultLocale = "C.UTF-8";
   networking.hostName = "racknerd";
 
-  modules = {
-    podman.enable = true;
-    # k3s.enable = true;
-  };
-
+  virtualisation.podman.enable = true;
   services.k3s = {
     enable = true;
     role = "agent";

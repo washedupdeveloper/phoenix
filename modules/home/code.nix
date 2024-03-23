@@ -13,28 +13,28 @@
     enableNodeJsPkgs = mkOption {
       type = types.bool;
       default = false;
-      description = "Global Node JS packages for general purpose";
+      description = "Node JS packages for general purpose";
     };
     enableGolang = mkOption {
       type = types.bool;
       default = false;
-      description = "Global Golang and related dependencies";
+      description = "Golang and related dependencies";
     };
     enableElixir = mkOption {
       type = types.bool;
       default = false;
-      description = "Global Elxiir and related dependencies";
+      description = "Elxiir and related dependencies";
     };
   };
 
   config = with lib; {
     home.packages =
-      optionals config.enableGlobalNodeJs (with pkgs; [
+      optionals config.enableNodeJs (with pkgs; [
         nodejs
         nodePackages.typescript-language-server
         typescript
       ])
-      ++ optionals config.enableGlobalNodeJsPkgs (with pkgs; [
+      ++ optionals config.enableNodeJsPkgs (with pkgs; [
         nodePackages.prettier
         nodePackages.eslint
         nodePackages.tailwindcss
@@ -42,13 +42,13 @@
         nodePackages.svelte-language-server
         nodePackages.pnpm
       ])
-      ++ optionals config.enableGlobalGolang (with pkgs; [
+      ++ optionals config.enableGolang (with pkgs; [
         go
         gopls
         delve
         # impl
         # staticcheck
       ])
-      ++ optionals config.enableGlobalElixir (with pkgs; [elixir elixir_ls]);
+      ++ optionals config.enableElixir (with pkgs; [elixir elixir_ls]);
   };
 }

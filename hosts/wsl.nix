@@ -29,14 +29,10 @@
     ssh-add ~/.ssh/id_ed25519
   '';
 
-  modules = {
-    podman.enable = true;
-    # k3s.enable = true;
-  };
+  virtualisation.podman.enable = true;
   services.k3s = {
     enable = true;
     role = "server";
-    # disableAgent = true;
     tokenFile = config.sops.secrets.k3s_token.path;
     extraFlags = toString [
       "--node-name ${config.networking.hostName}"
