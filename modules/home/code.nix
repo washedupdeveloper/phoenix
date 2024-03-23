@@ -5,36 +5,36 @@
   ...
 }: {
   options = with lib; {
-    enableGlobalNodeJs = mkOption {
+    enableNodeJs = mkOption {
       type = types.bool;
       default = false;
       description = "Global Node JS and related dependencies";
     };
-    enableGlobalNodeJsPkgs = mkOption {
+    enableNodeJsPkgs = mkOption {
       type = types.bool;
       default = false;
       description = "Global Node JS packages for general purpose";
     };
-    enableGlobalGolang = mkOption {
+    enableGolang = mkOption {
       type = types.bool;
       default = false;
       description = "Global Golang and related dependencies";
     };
-    enableGlobalElixir = mkOption {
+    enableElixir = mkOption {
       type = types.bool;
       default = false;
       description = "Global Elxiir and related dependencies";
     };
   };
 
-  config = {
+  config = with lib; {
     home.packages =
-      lib.optionals config.enableGlobalNodeJs (with pkgs; [
+      optionals config.enableGlobalNodeJs (with pkgs; [
         nodejs
         nodePackages.typescript-language-server
         typescript
       ])
-      ++ lib.optionals config.enableGlobalNodeJsPkgs (with pkgs; [
+      ++ optionals config.enableGlobalNodeJsPkgs (with pkgs; [
         nodePackages.prettier
         nodePackages.eslint
         nodePackages.tailwindcss
@@ -42,13 +42,13 @@
         nodePackages.svelte-language-server
         nodePackages.pnpm
       ])
-      ++ lib.optionals config.enableGlobalGolang (with pkgs; [
+      ++ optionals config.enableGlobalGolang (with pkgs; [
         go
         gopls
         delve
         # impl
         # staticcheck
       ])
-      ++ lib.optionals config.enableGlobalElixir (with pkgs; [elixir elixir_ls]);
+      ++ optionals config.enableGlobalElixir (with pkgs; [elixir elixir_ls]);
   };
 }

@@ -13,10 +13,10 @@
   home-manager.users.${username} = {
     imports = [../modules/home/git.nix];
 
-    enableGlobalNodeJs = true;
-    enableGlobalNodeJsPkgs = true;
-    enableGlobalGolang = true;
-    enableGlobalElixir = true;
+    enableNodeJs = true;
+    enableNodeJsPkgs = true;
+    enableGolang = true;
+    enableElixir = true;
   };
 
   environment.systemPackages = with pkgs; [deploy-rs];
@@ -33,6 +33,7 @@
     podman.enable = true;
     # k3s.enable = true;
   };
+  home-modules = {};
 
   services.k3s = {
     enable = true;
