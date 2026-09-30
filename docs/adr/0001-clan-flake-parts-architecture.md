@@ -1,0 +1,113 @@
+# ADR-0001: Clan + flake-parts architecture for the phoenix flake
+
+**Status:** Accepted
+**Date:** 2026-09-17
+**Deciders:** nixolotl
+
+## Context
+
+The existing `phoenix` flake already used Clan + flake-parts, but had drifted:
+a `git-hooks.nix` module was never actually wired into the flake (and had a
+bug even if it had been), a `nil` pre-commit hook pointed at the wrong
+package, a `modules/lib.nix` helper was imported but never used, and shared
+machine config (`baseSystem.nix`, `wsl.nix`) was plumbed in through Clan's
+generic `importer` service rather than typed, reusable `clanService` modules.
+Separately, `vars/` contained a `user-password-root` tree with no matching
+`inventory.instances` entry, and an older `root-password/` tree that predates
+the current `users` service naming.
+
+The rebuild's goals: current Clan (26.05) and flake-parts idioms, structured
+for eventual multi-architecture machines (a Raspberry Pi on `aarch64-linux`,
+a ThinkPad on bare-metal `x86_64-linux`), while only the NixOS-WSL
+`workstation` machine is actually implemented today.
+
+## Decision
+
+1. **Deployment model:** `workstation` is both the Clan CLI host and a
+   managed machine (self-managed). It has no `deploy.targetHost` — it is
+   updated in place with `nixos-rebuild switch --flake .#workstation`.
+   Future machines (Pi, ThinkPad) get `deploy.targetHost = "root@<ip>"` and
+   are managed *from* workstation over SSH.
+2. **User/SSH-key management:** stays on Clan's inventory services — `sshd`
+   for host keys, certs, and root's `authorizedKeys`; `users` for account +
+   password management (vars-backed). No hardcoded
+   `users.users.<name>.openssh.authorizedKeys.keys` in machine configs.
+3. **Module authoring:** `base-system` and `wsl` are authored as real
+   `clan.service` modules with typed `interface.options`
+   (`timeZone`/`locale`/`keyMap`/`editor`, `windowsUsername`), registered
+   locally via `clan.modules` and referenced by name/tag like official
+   clan-core services. `home-manager` wiring stays on the generic `importer`
+   service — it's bespoke to this flake, not reused elsewhere, and a full
+   `clan.service` wrapper would add ceremony with no payoff.
+
+## Options Considered
+
+### Option A: `importer` + plain NixOS modules
+
+| Dimension | Assessment |
+| --- | --- |
+| Complexity | Low |
+| Reusability for future machines | Low — settings hardcoded per module |
+| Consistency with clan-core's services | Low |
+
+**Pros:** least code, fastest to write.
+
+**Cons:** the moment the Pi wants a different timezone or the ThinkPad has
+no WSL bind-mount, you're back to editing the shared module instead of
+setting an option.
+
+### Option B: real `clan.service` modules (chosen for base-system/wsl)
+
+| Dimension | Assessment |
+| --- | --- |
+| Complexity | Medium — manifest + interface + perInstance boilerplate |
+| Reusability for future machines | High — typed settings per instance |
+| Consistency with clan-core's services | High — same shape as official services |
+
+**Pros:** matches the "the clan way" mandate; settings are discoverable and
+type-checked; scales cleanly to more machines.
+
+**Cons:** more boilerplate than `importer` for config that's genuinely
+one-off.
+
+## Trade-off Analysis
+
+Applying Option B everywhere (including home-manager wiring) would be
+overkill: it's not reused, not shared with other machines, and the typed
+`interface.options` mechanism only pays for itself when a *second* consumer
+with *different* settings shows up. Applying Option A everywhere would mean
+redoing this exercise again the moment the Pi/ThinkPad land. Splitting per
+service — B for genuinely shared/cross-machine baseline and hardware
+concerns, A for single-machine glue — gets the reusability where it matters
+without the ceremony where it doesn't.
+
+## Consequences
+
+- Adding a machine on a new architecture: add the system to `flake.nix`'s
+  `systems`, add `machines/<name>/configuration.nix`
+  (+ `hardware-configuration.nix`), tag it `all` (and `wsl` only if
+  applicable), and give it `deploy.targetHost`.
+- Overriding base-system settings per machine is now a one-line
+  `roles.default.settings.<option>` in `clan.nix`, not a module edit.
+- `git-hooks.nix` pre-commit checks are now actually active — expect the
+  first `git commit` to reformat/relint the tree.
+- `root-password/` in `vars/` is very likely stale (predates the `users`
+  service's `user-password-root/` naming) — verify with
+  `clan vars list workstation` and remove if genuinely unused. Not deleted
+  automatically here since it wasn't safe to assume without confirming
+  nothing still reads it.
+- `mycelium` vars exist under `vars/per-machine/workstation/mycelium/` with
+  no matching enabled instance (it's commented out in `clan.nix`) — same
+  caveat, worth a manual look rather than an automatic cleanup.
+
+## Action Items
+
+1. [ ] Run `nix flake check` and `direnv reload` in the new tree.
+2. [ ] `clan vars generate workstation` — should be a no-op except for
+   confirming `user-root` picks up the existing `user-password-root` vars.
+3. [ ] `sudo nixos-rebuild switch --flake .#workstation` (or via `nom` for
+   nicer output) to apply.
+4. [ ] `clan vars list workstation` — audit `root-password/` and
+   `mycelium/` for staleness.
+5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`,
+   scaffold `machines/<name>/`, decide `deploy.targetHost`.
