@@ -42,11 +42,11 @@
       nix-direnv.enable = true;
       enableFishIntegration = true;
     };
-    fzf = {
-      enable = true;
-      enableFishIntegration = true;
-      fileWidgetOptions = [ "--preview 'bat --color=always {}'" ];
-    };
+    # fzf = {
+    #   enable = true;
+    #   enableFishIntegration = true;
+    #   fileWidget.options = [ "--preview 'bat --color=always {}'" ];
+    # };
     atuin = {
       enable = true;
       enableFishIntegration = true;

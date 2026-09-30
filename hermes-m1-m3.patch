@@ -1,0 +1,63 @@
+diff -ruN a/clan.nix b/clan.nix
+--- a/clan.nix	2026-09-30 16:21:08.000000000 +0000
++++ b/clan.nix	2026-09-30 19:44:46.847408637 +0000
+@@ -99,9 +99,11 @@
+               ./modules/home/git.nix
+               ./modules/home/jj.nix
+               ./modules/home/shell.nix
++              inputs.hermes-agent.homeManagerModules.default
+             ];
+           }
+         )
++        ./modules/hermes.nix
+       ];
+     };
+ 
+diff -ruN a/flake.nix b/flake.nix
+--- a/flake.nix	2026-09-25 05:36:10.000000000 +0000
++++ b/flake.nix	2026-09-30 19:44:46.847272170 +0000
+@@ -11,6 +11,10 @@
+       inputs.nixpkgs.follows = "clan-core/nixpkgs";
+     };
+     nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
++    hermes-agent = {
++      url = "github:NousResearch/hermes-agent";
++      inputs.nixpkgs.follows = "clan-core/nixpkgs";
++    };
+     devshell.url = "github:numtide/devshell";
+     git-hooks.url = "github:cachix/git-hooks.nix";
+     treefmt-nix = {
+diff -ruN a/modules/hermes.nix b/modules/hermes.nix
+--- a/modules/hermes.nix	1970-01-01 00:00:00.000000000 +0000
++++ b/modules/hermes.nix	2026-09-30 19:44:46.850750128 +0000
+@@ -0,0 +1,30 @@
++{ config, username, ... }:
++{
++  clan.core.vars.generators.hermes = {
++    prompts.api-key = {
++      description = "Surplus Intelligence API key";
++      type = "hidden";
++      persist = false;
++    };
++    files.env = {
++      owner = username;
++      mode = "0400";
++    };
++    script = ''
++      printf 'OPENAI_API_KEY=%s\n' "$(cat $prompts/api-key)" > $out/env
++    '';
++  };
++
++  home-manager.users.${username} = {
++    programs.hermes-agent.enable = true;
++    services.hermes-agent = {
++      enable = true;
++      environmentFiles = [ config.clan.core.vars.generators.hermes.files.env.path ];
++      settings.model = {
++        provider = "custom";
++        base_url = "https://api.surplusintelligence.ai/v1";
++        default = "deepseek-v4.1-flash";
++      };
++    };
++  };
++}

@@ -1,6 +1,4 @@
 {
-  pkgs,
-  settings,
   username,
   ...
 }:

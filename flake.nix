@@ -11,6 +11,10 @@
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
     };
     nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "clan-core/nixpkgs";
+    };
     devshell.url = "github:numtide/devshell";
     git-hooks.url = "github:cachix/git-hooks.nix";
     treefmt-nix = {

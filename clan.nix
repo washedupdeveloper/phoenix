@@ -99,9 +99,11 @@
               ./modules/home/git.nix
               ./modules/home/jj.nix
               ./modules/home/shell.nix
+              inputs.hermes-agent.homeManagerModules.default
             ];
           }
         )
+        ./modules/hermes.nix
       ];
     };
 
