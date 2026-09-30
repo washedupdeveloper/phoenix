@@ -5,9 +5,9 @@
       devshells.atomvm = {
         packages = with pkgs; [
           esptool
-          elixir # bundles mix
-          erlang
-          rebar3
+          beamPackages.elixir # bundles mix
+          beamPackages.erlang
+          beamPackages.rebar3
           screen
         ];
       };

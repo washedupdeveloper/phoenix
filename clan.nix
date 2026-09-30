@@ -30,7 +30,6 @@
 
   # Docs: https://docs.clan.lol/services/definition
   inventory.instances = {
-
     # Docs: https://docs.clan.lol/services/official/sshd
     # Generates persistent host keys + certs, grants SSH access to root.
     sshd-with-certs = {
