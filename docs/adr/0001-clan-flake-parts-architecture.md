@@ -91,23 +91,28 @@ without the ceremony where it doesn't.
   `roles.default.settings.<option>` in `clan.nix`, not a module edit.
 - `git-hooks.nix` pre-commit checks are now actually active — expect the
   first `git commit` to reformat/relint the tree.
-- `root-password/` in `vars/` is very likely stale (predates the `users`
-  service's `user-password-root/` naming) — verify with
-  `clan vars list workstation` and remove if genuinely unused. Not deleted
-  automatically here since it wasn't safe to assume without confirming
-  nothing still reads it.
-- `mycelium` vars exist under `vars/per-machine/workstation/mycelium/` with
-  no matching enabled instance (it's commented out in `clan.nix`) — same
-  caveat, worth a manual look rather than an automatic cleanup.
 
 ## Action Items
 
-1. [ ] Run `nix flake check` and `direnv reload` in the new tree.
+1. [x] `nix flake check` passes. (`direnv reload` is a local convenience and is
+   not part of the check.)
 2. [ ] `clan vars generate workstation` — should be a no-op except for
    confirming `user-root` picks up the existing `user-password-root` vars.
+   Not run as part of this work: it needs the machine, not a sandbox.
 3. [ ] `sudo nixos-rebuild switch --flake .#workstation` (or via `nom` for
    nicer output) to apply.
-4. [ ] `clan vars list workstation` — audit `root-password/` and
-   `mycelium/` for staleness.
+4. [x] `vars/` audited. Neither the `root-password/` tree nor the `mycelium/`
+   tree this ADR flagged as possibly stale exists in the tree any more, and
+   neither was ever tracked by git, so there is nothing to remove. The
+   remaining trees are `hermes/`, `openssh/`, `openssh-cert/`,
+   `state-version/`, `user-password-nixolotl/` and `user-password-root/`.
 5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`,
    scaffold `machines/<name>/`, decide `deploy.targetHost`.
+
+## Follow-up work
+
+The `topology` output this ADR's tree carried was not evaluated by
+`nix flake check` and had been broken since it was written; see
+[ADR-0002](./0002-topology-modelling.md). The general shape of the flake was
+reviewed against the Clan, flake-parts and Nix3 documentation afterwards, and
+the outstanding items are listed in [`../recommendations.md`](../recommendations.md).
