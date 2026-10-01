@@ -11,6 +11,12 @@ let
   # job and the running configuration can never disagree about what it is.
   cavemanSkills = pkgs.callPackage ./caveman-skills.nix { inherit cavemanSrc; };
 
+  # Read the state directory from the option that owns it instead of repeating
+  # the default. Mind the path: clan.nix imports only the home-manager module,
+  # so these options live under home-manager.users.<name>, and a bare
+  # `config.services.hermes-agent` does not exist in this (NixOS) scope.
+  hermesHome = config.home-manager.users.${username}.services.hermes-agent.hermesHome;
+
   # Move the locked caveman revision forward, prove it builds, and write down
   # what moved. The lock is restored when the new revision does not build, so
   # a bad upstream commit cannot break the next `nh os switch`. Activation
@@ -192,13 +198,32 @@ in
         # directory, so the two never shadow each other.
         skills.external_dirs = [ "${cavemanSkills}" ];
         # Only the style mode is pinned. An auto-loaded skill is injected in
-        # full into every session's system prompt, so pinning the other
-        # nineteen would cost far more context than they save. The rest stay
+        # full into every session's system prompt, the rest stay
         # on demand: `/caveman-commit`, `/caveman-review`, `/surgical-patch`.
         # `/caveman off` (or "normal mode") escapes it for one session.
         skills.auto_load = [ "caveman" ];
       };
     };
+
+    # Task profiles: one slash command that loads a set of skills together.
+    # Hermes reads every *.yaml under <hermesHome>/skill-bundles/, so a file
+    # here becomes /<slug> with no imperative `hermes bundles create`. The
+    # source is referenced from the module rather than symlinked by hand, so
+    # the repository stays the only place a bundle is edited.
+    home.file = builtins.listToAttrs (
+      map
+        (slug: {
+          name = "${hermesHome}/skill-bundles/${slug}.yaml";
+          value.source = ./skill-bundles/${slug}.yaml;
+        })
+        [
+          "caveman-build"
+          "caveman-fix"
+          "caveman-git"
+          "caveman-recon"
+          "caveman-refactor"
+        ]
+    );
 
     # Weekly: advance the locked caveman revision, build it, and record what
     # changed. The new skills go live on the next `nh os switch`.

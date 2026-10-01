@@ -1,0 +1,10 @@
+name: caveman-recon
+description: Orient in unfamiliar code cheaply, with compressed output.
+skills:
+  - caveman-explore
+  - cavecrew
+instruction: |
+  Use the explorer for cold-start orientation and broad cross-file localization;
+  it returns path:line citations and keeps its reads out of this context. When a
+  locate, build or review task is self-contained, delegate it to a cavecrew
+  subagent instead of doing it inline.
