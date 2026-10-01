@@ -35,10 +35,27 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
     };
-    nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
+    # nixos-wsl, devshell, git-hooks and nix-topology each ship their own
+    # nixpkgs/flake-parts. Nothing here consumes their *own* outputs -- only
+    # `nixosModules.default`, `flakeModule` and `flakeModules.default`, all of
+    # which are evaluated against this flake's pkgs and flake-parts -- so they
+    # can follow the pinned copies instead of dragging in four nixpkgs.
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL/main";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     hermes-agent = {
       url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "clan-core/nixpkgs";
+      # Without the last two, hermes-agent drags in its own home-manager and
+      # flake-parts: the lock carried two of each. It only exports a
+      # home-manager module and a nixos module here, neither of which is
+      # evaluated against its own nixpkgs or its own flake-parts, so both can
+      # safely follow the copies this flake already pins.
+      inputs = {
+        nixpkgs.follows = "clan-core/nixpkgs";
+        home-manager.follows = "home-manager";
+        flake-parts.follows = "flake-parts";
+      };
     };
     # Skills only, and the repository ships no flake. Tracking `main` is the
     # point: the revision lives in flake.lock, and the weekly refresh job in
@@ -47,8 +64,14 @@
       url = "github:JuliusBrussee/caveman";
       flake = false;
     };
-    devshell.url = "github:numtide/devshell";
-    git-hooks.url = "github:cachix/git-hooks.nix";
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
@@ -56,6 +79,7 @@
     nix-topology = {
       url = "github:oddlama/nix-topology";
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
   };
 
