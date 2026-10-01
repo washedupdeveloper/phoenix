@@ -20,9 +20,18 @@ recorded under "Considered and rejected" so it does not get re-litigated.
 | 1 | `modules/topology.nix` pointed `topology.modules` at `config.nixosConfigurations`, which does not exist in that scope, so the whole `topology` output failed to evaluate. Repointed at the repository's global `topology.nix`, which nothing had been importing. |
 | 2 | Filled out the topology: uplink, home router, Windows host with its wired NIC and its Hyper-V switch, the WSL machine as a guest of that host, and both network segments. |
 | 3 | `perSystem.clan.pkgs = pkgs` so clan's internal per-system instantiations use the same pkgs as the devshell; dropped a redundant nix-topology overlay. |
-| 4 | Added `description` and `nixConfig` to the flake. |
+| 4 | Added `description` and a `nixConfig` carrying the binary caches. |
 | 5 | Stopped tracking the generated `.pre-commit-config.yaml`; ignored `result-*`. |
-| 6 | Collapsed duplicate inputs (flake.lock: 34 nodes to 26) and added `checks.<system>.topology` so `nix flake check` actually exercises the diagram. |
+| 6 | Collapsed duplicate inputs (flake.lock: 34 nodes to 24) and added `checks.<system>.topology` so `nix flake check` actually exercises the diagram. |
+
+The lock collapse in row 6 covers `nixos-wsl`, `devshell`, `git-hooks` and
+`nix-topology` following the pinned `nixpkgs`, and `hermes-agent` following
+`home-manager` and `flake-parts`, plus clan-core's own `flake-parts` and
+`treefmt-nix`. In every case the followed node was at the *same revision* as the
+one being followed, so nothing about what any input evaluates with changed --
+confirmed by `nixosConfigurations.workstation`'s `system.build.toplevel`
+derivation path being byte-identical before and after. The only duplicate left
+is `flake-compat`, which is two genuinely different upstream repositories.
 
 ## 1. Clan.lol
 
@@ -129,6 +138,36 @@ generators and the committed `vars/` tree have drifted. ADR-0001 flagged a
 in the working tree now and neither was ever tracked by git, so that item is
 resolved.
 
+### 1.9 A clan-core doc bug that argues against its own code
+
+`inventory.modules`' option text says each module must ship a `README.md` with a
+`description` and a `features = [ "inventory" ]` frontmatter entry, and that this
+is what makes it "usable with the inventory". That is not what the resolver
+does: `lib/resolve-module/default.nix` resolves `module.input = "self"` straight
+out of your own `clan.modules`, with no README involved. The README requirement
+is real only for modules that go through clan's docs and schema generation --
+i.e. for publishing a service, not for using one locally. See 1.2.
+
+Related, and worth knowing before someone "fixes" `clan.nix`: clan-core's
+`module.input` option declares `default = null` with the `defaultText` "Name of
+the input. Default to 'null' which means the module is local" -- but the
+resolver treats `null` as *clan-core*, not local:
+
+```nix
+input = if moduleSpec.input == null then { clan.modules = clanCoreModules; } else flakeInputs.${moduleSpec.input} or inputError;
+```
+
+Verified by setting `module.input = null` on the locally-defined `base-system`
+instance: the build fails with
+
+```text
+error: clan-core doesn't provide clan-module with name 'base-system'.
+```
+
+So the comment in `clan.nix` ("module.input defaults to \"clan-core\", not
+local, so this must be explicit") is correct, and clan-core's `defaultText` is
+the thing that is wrong. Leave the comment alone.
+
 ## 2. flake-parts
 
 ### 2.1 Add `aarch64-linux` to `systems` when the Pi exists
@@ -203,23 +242,36 @@ reason.
 Worth putting in CI at that point, since it is the flag that actually exercises
 the `systems` list.
 
-### 3.3 Extend the caveman refresh job to the other branch-tracking input
+### 3.3 Extend the caveman refresh job to the other branch-tracking inputs
 
-`nixos-wsl` is pinned to `github:nix-community/NixOS-WSL/main`, so its revision
-only moves when someone runs `nix flake update`. A WSL module that has drifted
-from the installed WSL generation is discovered at the next `nh os switch`,
-which is the worst time to discover it. `modules/hermes.nix` already contains
-the pattern that solves this for `caveman`: update one input, build it, write a
-report, restore the lock if it does not build, and leave activation manual.
-Generalise that script over a list of inputs rather than writing a second
-bespoke one.
+Two inputs float on a branch rather than a tag, and their revisions only move
+when someone runs `nix flake update`:
+
+- `nixos-wsl` at `github:nix-community/NixOS-WSL/main`
+- `hermes-agent` at `github:NousResearch/hermes-agent` (no `ref`, so it tracks
+  the repository's default branch)
+
+The lock file makes builds reproducible, so neither is broken -- but the update
+semantics are "float on update", and a WSL module that has drifted from the
+installed WSL generation is discovered at the next `nh os switch`, which is the
+worst time to discover it. `modules/hermes.nix` already contains the pattern
+that solves this for `caveman`: update one input, build it, write a report,
+restore the lock if it does not build, and leave activation manual. Generalise
+that script over a list of inputs rather than writing a second bespoke one.
+
+If you would rather not float at all, pin either one to a tag or a revision.
+The trade is explicit: a tag stops surprise changes but also stops surprise
+fixes, and both of these inputs are the kind that ship fixes.
 
 ### 3.4 `nix fmt` is wired; consider failing on drift in a pre-push hook
 
 `treefmt` provides `formatter` and `checks.treefmt`, and the pre-commit hook
-runs it on staged files. A pre-push hook running
-`nix fmt -- --fail-on-change` would catch formatting drift in files that were
-written but never staged, which the pre-commit hook cannot see.
+runs it on staged files. Verified: `nix flake check` reports
+`checks.x86_64-linux` as `[ pre-commit topology treefmt ]`, so formatting *is*
+covered by the check -- treefmt-nix names that check `treefmt`, not
+`formatting`. A pre-push hook running `nix fmt -- --fail-on-change` would still
+add something the check cannot: it catches drift in files that were written but
+never staged, which neither the check nor the pre-commit hook sees.
 
 ### 3.5 What belongs in git
 
@@ -230,14 +282,73 @@ were already ignored. The remaining generated-but-tracked trees are `vars/`
 (public halves plus encrypted secrets -- clan expects these committed) and
 `sops/` (same). Both are correct.
 
-### 3.6 `nixConfig` and the trust model
+### 3.6 `nixConfig` carries caches, not features
 
-The flake now declares `nixConfig.extra-experimental-features`,
-`extra-substituters` and `extra-trusted-public-keys`. A flake's `nixConfig` is
-only honoured by a caller that has `accept-flake-config` on, and both machines
-here do (`modules/clanServices/base-system`). It is worth remembering that this
-is a trust decision, not a free win: accepting a flake's config means accepting
-its substituters and its keys.
+The flake declares `nixConfig.extra-substituters` and
+`extra-trusted-public-keys` so a third-party evaluator -- a CI runner, another
+machine -- can substitute this flake's inputs by accepting the flake config.
+Both machines here do (`nix.settings.accept-flake-config`,
+`modules/clanServices/base-system`). It is worth remembering that this is a
+trust decision, not a free win: accepting a flake's config means accepting its
+substituters and its keys.
+
+`extra-experimental-features` is deliberately **not** in `nixConfig`. It cannot
+bootstrap anything, because Nix has to parse `flake.nix` before it can read
+`nixConfig` -- so a flake whose own code needs a feature cannot enable it for
+that evaluation. Verified with nix 2.35.2: a flake declaring
+`extra-experimental-features = [ "pipe-operators" ]` and then using `|>` in its
+own `outputs` still fails with
+
+```text
+error: experimental Nix feature 'pipe-operators' is disabled;
+       add '--extra-experimental-features pipe-operators' to enable it
+```
+
+Features belong in `nix.conf`, `NIX_CONFIG`, or
+`nix.settings.experimental-features`. The devshell sets `NIX_CONFIG` for exactly
+this reason, and that is the mechanism that actually works.
+
+Incidentally, nothing in this repository uses `|>` or `<|`, so
+`pipe-operators` is currently enabled in the devshell for nothing. It is
+harmless and forward-looking; just do not mistake it for load-bearing.
+
+### 3.7 Decide whether to keep clan-core's channel nixpkgs
+
+The top-level `nixpkgs` node in `flake.lock` is a `tarball`, not a GitHub
+checkout, because clan-core pins nixpkgs as a channel:
+
+```nix
+nixpkgs.url = "https://nixos.org/channels/nixpkgs-unstable/nixexprs.tar.xz";
+```
+
+and this flake follows it. That is expected, not corruption, and it has three
+consequences worth knowing:
+
+- Substitution is fine, arguably optimal. The channel is what Hydra builds and
+  publishes to `cache.nixos.org`, and the lock's `narHash` is what makes a
+  tarball substitutable at all.
+- It is a *floating* pointer. There is no `rev` to pin in the URL, so
+  `nix flake update` moves nixpkgs to whatever the channel currently points at,
+  independently of clan-core's own pinned revision. You can only float it or
+  override it (`--override-input nixpkgs github:NixOS/nixpkgs/<rev>`).
+- It is `nixpkgs-unstable`, not `nixos-unstable`.
+
+clan-core explicitly supports being handed a different nixpkgs -- its flake
+sets `clan.checks.minNixpkgsVersion.ignore = true` with the comment "Allows
+downstream users to inject 'unsupported' nixpkgs versions". So the alternative
+is one line:
+
+```nix
+nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";   # or .../<rev> to hard-pin
+clan-core.inputs.nixpkgs.follows = "nixpkgs";          # override clan-core's channel
+```
+
+This is listed as a decision rather than done, because it changes every package
+on the deployed machine: it swaps the entire nixpkgs for a different branch at a
+different revision. It buys a rev-pinnable nixpkgs and a channel with a
+git history; it costs a full rebuild and a re-test of everything. Do it as its
+own commit, with the `toplevel` derivation path captured before and after so the
+size of the change is visible.
 
 ## 4. Upstream issues worth filing
 
@@ -275,7 +386,7 @@ redundant and an evaluation error, and that `nix flake check` cannot catch.
 | Change `extraModules` from paths to strings | The string form is the deprecated one and warns at eval time. |
 | Add `aarch64-linux` now | No machine for it; `systems` is a build contract, not a wish list. |
 | `inputs.nix-systems` for `systems` | Pulls ~11 systems including darwin for a homelab. |
-| Collapse clan-core's own `flake-parts` / `treefmt-nix` | Would mean overriding an upstream flake's internals; both are already at the same revision as ours, so the gain is a lock entry, not a build. |
+| Replace clan-core's channel-tarball nixpkgs with `github:NixOS/nixpkgs/nixos-unstable` | See below -- it changes every package on the deployed machine, so it is a decision, not a cleanup. |
 | Collapse `flake-compat` | Two different upstream repositories (`NixOS/flake-compat` and `edolstra/flake-compat`), so there is nothing to follow. |
 | Re-add `typos` to the pre-commit hooks | The existing block was `enable = false` with empty settings. If spell-checking is wanted, enable it properly and expect to build a word list. |
 | Replace `nil` with `nixd` in the pre-commit hooks | git-hooks.nix ships a `nil` hook and no `nixd` hook. `nixd` is in the devshell already; adding it as a custom hook is possible but buys a lint that `statix` and `deadnix` largely cover. |

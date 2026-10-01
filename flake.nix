@@ -1,17 +1,22 @@
 {
   description = "My ever-changing immutable homelab";
 
-  # Declared on the flake rather than only inside the devshell, so a bare `nix`
-  # command works on a fresh checkout and the binary caches this repository
-  # depends on are recorded next to the inputs that need them. Both keys only
-  # take effect for a caller that accepts the flake's config, which the machines
-  # here do (`nix.settings.accept-flake-config`, modules/clanServices/base-system).
+  # Binary caches this flake's inputs are published to, recorded next to the
+  # inputs that need them so a third-party evaluator (a CI runner, another
+  # machine) can substitute them by accepting the flake config. Both keys are
+  # only honoured by a caller that does, which the machines here do
+  # (`nix.settings.accept-flake-config`, modules/clanServices/base-system).
+  #
+  # `extra-experimental-features` is deliberately *not* set here. It cannot
+  # bootstrap anything: Nix has to parse `flake.nix` before it can read
+  # `nixConfig`, so a flake whose own code needs a feature (say
+  # `pipe-operators`) cannot enable it for that evaluation. Verified with nix
+  # 2.35.2 -- a flake declaring `extra-experimental-features = [ "pipe-operators" ]`
+  # and then using `|>` in its own `outputs` still fails with
+  # "experimental Nix feature 'pipe-operators' is disabled". Features belong in
+  # nix.conf / NIX_CONFIG / `nix.settings.experimental-features`; the devshell
+  # sets NIX_CONFIG for exactly this reason.
   nixConfig = {
-    extra-experimental-features = [
-      "nix-command"
-      "flakes"
-      "pipe-operators"
-    ];
     extra-substituters = [
       "https://nix-community.cachix.org/"
       "https://pre-commit-hooks.cachix.org/"
@@ -26,7 +31,17 @@
 
   inputs = {
     nixpkgs.follows = "clan-core/nixpkgs";
-    clan-core.url = "git+https://git.clan.lol/clan/clan-core";
+    clan-core = {
+      url = "git+https://git.clan.lol/clan/clan-core";
+      # clan-core ships its own flake-parts and treefmt-nix, both of which
+      # currently resolve to the same revisions this flake already pins, so
+      # following them removes two duplicate lock nodes without changing what
+      # clan-core evaluates with. clan-core's own flake.nix anticipates the
+      # treefmt-nix one: "Make treefmt-nix optional -- This only works if you
+      # set inputs.clan-core.inputs.treefmt-nix.follows".
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "clan-core/nixpkgs";
