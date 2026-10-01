@@ -1,2 +1,9 @@
 result
+result-*
 .direnv/
+
+# Written by the git-hooks.nix devshell as a symlink into the Nix store. The
+# upstream README asks for exactly this line ("auto-generated from the Nix
+# configuration and doesn't need to be committed"); tracking it records a store
+# path that only exists on the machine that generated it.
+/.pre-commit-config.yaml

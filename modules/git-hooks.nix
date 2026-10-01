@@ -19,12 +19,6 @@
 
             check-added-large-files.enable = true;
 
-            typos = {
-              enable = false;
-              settings = {
-              };
-            };
-
             deadnix = {
               enable = true;
               settings = {
