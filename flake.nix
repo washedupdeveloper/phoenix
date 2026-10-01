@@ -1,4 +1,29 @@
 {
+  description = "My ever-changing immutable homelab";
+
+  # Declared on the flake rather than only inside the devshell, so a bare `nix`
+  # command works on a fresh checkout and the binary caches this repository
+  # depends on are recorded next to the inputs that need them. Both keys only
+  # take effect for a caller that accepts the flake's config, which the machines
+  # here do (`nix.settings.accept-flake-config`, modules/clanServices/base-system).
+  nixConfig = {
+    extra-experimental-features = [
+      "nix-command"
+      "flakes"
+      "pipe-operators"
+    ];
+    extra-substituters = [
+      "https://nix-community.cachix.org/"
+      "https://pre-commit-hooks.cachix.org/"
+      "https://numtide.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
+      "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
+    ];
+  };
+
   inputs = {
     nixpkgs.follows = "clan-core/nixpkgs";
     clan-core.url = "git+https://git.clan.lol/clan/clan-core";
@@ -47,6 +72,11 @@
         ./modules/devshells/atomvm.nix
       ];
 
+      # One entry per architecture actually built today. clan's own flake-parts
+      # template lists several, but declaring a system here means every
+      # `perSystem` output is expected to evaluate -- and, with
+      # `nix flake check --all-systems`, to build -- for it, so a system earns
+      # its place by having a machine. `aarch64-linux` joins when the Pi does.
       systems = [
         "x86_64-linux"
       ];
@@ -95,11 +125,31 @@
             ];
           };
 
+          # The documented way to give `perSystem` a nixpkgs with a non-default
+          # config. Note this is *not* what clan builds its machines from: clan
+          # reads `perSystem.clan.pkgs` and falls back to a plain
+          # `nixpkgs.legacyPackages` when it is unset, so the two have to be
+          # pointed at the same thing or the devshell and the deployed machine
+          # disagree about `allowUnfree`. See `clan.pkgs` below.
           _module.args.pkgs = import inputs.nixpkgs {
             inherit system;
             config.allowUnfree = true;
-            overlays = [ inputs.nix-topology.overlays.default ];
           };
+
+          # The pkgs clan uses for the per-system instantiations it keeps
+          # internally -- `clanInternals.machines`, which is what the vars
+          # generators are built from, and what `clan machines`/`clan vars` read
+          # through the CLI. Clan falls back to a plain
+          # `nixpkgs.legacyPackages` when this is unset, so without it the CLI
+          # and the devshell would disagree about `allowUnfree`. This is the
+          # pairing clan's own flake-parts template shows.
+          #
+          # It does *not* change `nixosConfigurations`: clan builds those with
+          # `nixosSystem` without passing pkgs, so the deployed system keeps
+          # deriving its pkgs from `nixpkgs.hostPlatform` and `nixpkgs.*`. No
+          # overlay for nix-topology is needed here either -- its flake module
+          # extends the pkgs it evaluates with its own overlay.
+          clan.pkgs = pkgs;
 
           # The caveman skill set as its own derivation, so the weekly refresh
           # job can build a new revision and diff it before you switch to it.
