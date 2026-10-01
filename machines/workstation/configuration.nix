@@ -1,4 +1,5 @@
 {
+  lib,
   username,
   ...
 }:
@@ -33,11 +34,32 @@
     ];
   };
 
+  # This machine is a NixOS-WSL guest, not a physical box: the CPU/GPU in the
+  # diagram belong to the Windows host that runs it (see ./topology.nix).
   topology.self = {
-    hardware.info = "AMD Ryzen 9 9900X3D / RX 9070 XT";
+    # `parent` is what makes nix-topology draw this node as a guest of the
+    # Windows host rather than as a free-standing machine. `guestType` is a
+    # free-form string -- "microvm" and "nixos-container" are the built-in
+    # values -- and only feeds the default hardware info.
+    parent = "windows-host";
+    guestType = "wsl";
+    hardware.info = "NixOS-WSL (WSL2)";
+
     interfaces.wsl0 = {
-      network = "lan";
-      type = "veth";
+      # The other end of this link is `windows-host.interfaces.wsl-switch`.
+      network = "wsl-nat";
+
+      # The NIC is virtual, and its link type is ordinary ethernet. "veth" is
+      # not a nix-topology interface type, so naming it here only costs the
+      # interface its icon.
+      virtual = true;
+      type = "ethernet";
+    };
+
+    services.mosquitto = lib.mkForce {
+      name = "Mosquitto";
+      icon = "services.mosquitto";
+      details."listen[0]".text = "1883";
     };
   };
 }
