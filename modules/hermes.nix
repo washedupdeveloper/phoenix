@@ -42,34 +42,68 @@ let
     locked_rev() { jq -r '.nodes.caveman.locked.rev // empty' "$lock"; }
     skill_names() { find "$1" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort; }
 
+    # Every run that reaches a verdict rewrites the report, including a run
+    # that changes nothing. A report written only on a change cannot be told
+    # apart from a job that never ran. The body arrives on stdin.
+    write_report() {
+      {
+        echo "# caveman skills refresh"
+        echo
+        printf -- '- date: %s\n' "$(date -Iseconds)"
+        printf -- '- upstream: `%s` -> `%s`\n' "$shown_old" "$shown_new"
+        echo
+        cat
+      } > "$report"
+    }
+
     old_rev=$(locked_rev)
     # Not fatal: the diff is a nicety, the refresh is the job. A garbage
     # collected or otherwise unbuildable previous revision must not stop it.
     old_out=$(nix build --no-link --print-out-paths .#caveman-skills 2>/dev/null || true)
 
     cp "$lock" "$state/flake.lock.before"
-    nix flake update caveman
+
+    if ! update_log=$(nix flake update caveman 2>&1); then
+      cp "$state/flake.lock.before" "$lock"
+      if [ -n "$old_rev" ]; then shown_old=$old_rev; else shown_old=unlocked; fi
+      shown_new=unknown
+      {
+        echo '`nix flake update caveman` failed. `flake.lock` was restored, so'
+        echo 'nothing changed. Its output follows.'
+        echo
+        echo '```'
+        echo "$update_log"
+        echo '```'
+      } | write_report
+      echo "caveman skills: nix flake update failed; see $report" >&2
+      exit 1
+    fi
+
     new_rev=$(locked_rev)
+    if [ -n "$old_rev" ]; then shown_old=$old_rev; else shown_old=unlocked; fi
+    if [ -n "$new_rev" ]; then shown_new=$new_rev; else shown_new=unknown; fi
 
     if [ "$old_rev" = "$new_rev" ]; then
+      echo 'Upstream is already at this revision. Nothing to do.' | write_report
       echo "caveman skills: already current at $old_rev"
       exit 0
     fi
 
-    if ! new_out=$(nix build --no-link --print-out-paths .#caveman-skills); then
+    build_err=$state/build.err
+    if ! new_out=$(nix build --no-link --print-out-paths .#caveman-skills 2>"$build_err"); then
       cp "$state/flake.lock.before" "$lock"
       {
-        echo "# caveman skills refresh"
+        echo 'The new revision does not build. `flake.lock` was restored, so'
+        echo 'nothing changed and the next switch is unaffected.'
         echo
-        printf -- '- date: %s\n' "$(date -Iseconds)"
-        printf -- '- upstream: `%s` -> `%s`\n' "$old_rev" "$new_rev"
-        echo
-        printf 'The new revision does not build. `flake.lock` was restored to\n'
-        printf '`%s`; nothing changed and the next switch is unaffected.\n' "$old_rev"
-      } > "$report"
+        echo '```'
+        cat "$build_err"
+        echo '```'
+      } | write_report
       echo "caveman skills: $new_rev does not build, flake.lock restored" >&2
       exit 1
     fi
+    rm -f "$build_err"
 
     added=""
     removed=""
@@ -88,10 +122,6 @@ let
     fi
 
     {
-      echo "# caveman skills refresh"
-      echo
-      printf -- '- date: %s\n' "$(date -Iseconds)"
-      printf -- '- upstream: `%s` -> `%s`\n' "$old_rev" "$new_rev"
       printf -- '- skills: %s\n' "$(skill_names "$new_out" | wc -l)"
       echo
       echo "added:''${added:- none}"
@@ -107,7 +137,7 @@ let
       echo '`flake.lock` is updated and the new set is built, but `config.yaml`'
       echo 'still points at the previous store path. Run `nh os switch` to'
       echo 'activate, then start a new Hermes session.'
-    } > "$report"
+    } | write_report
 
     echo "caveman skills: $old_rev -> $new_rev"
     echo "caveman skills: report written to $report"
@@ -161,6 +191,12 @@ in
         # ~/.hermes/skills. Nothing is written into the profile's own skills
         # directory, so the two never shadow each other.
         skills.external_dirs = [ "${cavemanSkills}" ];
+        # Only the style mode is pinned. An auto-loaded skill is injected in
+        # full into every session's system prompt, so pinning the other
+        # nineteen would cost far more context than they save. The rest stay
+        # on demand: `/caveman-commit`, `/caveman-review`, `/surgical-patch`.
+        # `/caveman off` (or "normal mode") escapes it for one session.
+        skills.auto_load = [ "caveman" ];
       };
     };
 
