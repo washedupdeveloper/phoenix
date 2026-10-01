@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "caveman": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790807522,
+        "narHash": "sha256-0IYoFcUGCH9GgmaaW7ZC6ygnjXHXDUmGjWlr5SqR6xE=",
+        "owner": "JuliusBrussee",
+        "repo": "caveman",
+        "rev": "f5d729488caa8f6a5b6c8086fe2cccd3e8a63f91",
+        "type": "github"
+      },
+      "original": {
+        "owner": "JuliusBrussee",
+        "repo": "caveman",
+        "type": "github"
+      }
+    },
     "clan-core": {
       "inputs": {
         "data-mesher": "data-mesher",
@@ -238,11 +254,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1790800492,
-        "narHash": "sha256-yeUPnBbU/51ZqwHIBXVgmgg0dcXOGY4JhukdZ64qjuA=",
+        "lastModified": 1790881693,
+        "narHash": "sha256-pIy1tv2gkLVADnR6VefsyL5wZHvCgELeoj7YqlNPu0Y=",
         "owner": "NousResearch",
         "repo": "hermes-agent",
-        "rev": "7239625ae1b786827c952a8ace41fa6fd7f2eec5",
+        "rev": "1798b335c43d7e59066ad74a8c2d1d1c9fd537fe",
         "type": "github"
       },
       "original": {
@@ -280,11 +296,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790798411,
-        "narHash": "sha256-d2//BxpJcwe6C5iAgWqmUKbmK31U8Xho7qxwXn+Joas=",
+        "lastModified": 1790819692,
+        "narHash": "sha256-rvubAPbh3QCliic3sAK+CXTrPCGgJstY52OTs/5H1J4=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "36d5f7e937a89eee38aa2d419344c2fadddb92b7",
+        "rev": "c8ecc29e5175452bee4a2aa1ba2383856d795338",
         "type": "github"
       },
       "original": {
@@ -518,6 +534,7 @@
     },
     "root": {
       "inputs": {
+        "caveman": "caveman",
         "clan-core": "clan-core",
         "devshell": "devshell",
         "flake-parts": "flake-parts_2",

@@ -15,6 +15,13 @@
       url = "github:NousResearch/hermes-agent";
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
     };
+    # Skills only, and the repository ships no flake. Tracking `main` is the
+    # point: the revision lives in flake.lock, and the weekly refresh job in
+    # modules/hermes.nix moves it forward.
+    caveman = {
+      url = "github:JuliusBrussee/caveman";
+      flake = false;
+    };
     devshell.url = "github:numtide/devshell";
     git-hooks.url = "github:cachix/git-hooks.nix";
     treefmt-nix = {
@@ -49,6 +56,8 @@
         specialArgs = {
           homeManagerModule = inputs.home-manager.nixosModules.home-manager;
           nixosWslModule = inputs.nixos-wsl.nixosModules.default;
+          # Source tree for the caveman skills; modules/hermes.nix builds it.
+          cavemanSrc = inputs.caveman;
         };
       };
 
@@ -90,6 +99,12 @@
             inherit system;
             config.allowUnfree = true;
             overlays = [ inputs.nix-topology.overlays.default ];
+          };
+
+          # The caveman skill set as its own derivation, so the weekly refresh
+          # job can build a new revision and diff it before you switch to it.
+          packages.caveman-skills = pkgs.callPackage ./modules/caveman-skills.nix {
+            cavemanSrc = inputs.caveman;
           };
         };
     };
