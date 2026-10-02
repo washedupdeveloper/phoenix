@@ -73,20 +73,19 @@ in
 
     # One YAML per bundle becomes `/<slug>` with no imperative `hermes bundles
     # create`. A bundle slug must not match a skill name in its own set.
-    home.file = builtins.listToAttrs (
-      map
-        (slug: {
-          name = "${hermesHome}/skill-bundles/${slug}.yaml";
-          value.source = ./skill-bundles/${slug}.yaml;
-        })
-        [
-          "caveman-build"
-          "caveman-fix"
-          "caveman-git"
-          "caveman-recon"
-          "caveman-refactor"
-        ]
-    );
+    home.file =
+      [
+        "caveman-build"
+        "caveman-fix"
+        "caveman-git"
+        "caveman-recon"
+        "caveman-refactor"
+      ]
+      |> map (slug: {
+        name = "${hermesHome}/skill-bundles/${slug}.yaml";
+        value.source = ./skill-bundles/${slug}.yaml;
+      })
+      |> builtins.listToAttrs;
 
     # Weekly. The new skills go live on the next `nh os switch`.
     systemd.user.services.caveman-skills-refresh = {

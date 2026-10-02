@@ -123,11 +123,14 @@
 
               settings = {
                 download-buffer-size = lib.mkDefault 524288000;
-                experimental-features = [
-                  "nix-command"
-                  "flakes"
-                  "pipe-operators"
-                ];
+                # clan-core already sets ["nix-command" "flakes"], and a plain
+                # list definition concatenates onto it -- which is why this
+                # contributes only the extra feature rather than repeating the
+                # two. `lib.mkDefault` here would lose to clan's normal-priority
+                # definition and silently drop `pipe-operators`. Must stay in
+                # step with the devshell's NIX_CONFIG in flake.nix; see
+                # docs/experimental-features.md.
+                experimental-features = [ "pipe-operators" ];
                 auto-optimise-store = lib.mkDefault true;
                 accept-flake-config = lib.mkDefault true;
                 # The user itself comes from `clan.machines.<name>._module.args.username`

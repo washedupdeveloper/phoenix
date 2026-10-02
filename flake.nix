@@ -1,10 +1,17 @@
 {
   description = "My ever-changing immutable homelab";
 
-  # Substituters for this flake's inputs, for callers that accept the flake
-  # config. Deliberately no `extra-experimental-features`: a flake cannot enable
-  # the features its own evaluation needs. See docs/flake-internals.md.
+  # For callers that accept the flake config. `extra-experimental-features`
+  # enables `|>` for this repo's imported modules -- but not for `flake.nix`
+  # itself, which nix parses before it reads `nixConfig`, so a bare `nix` with
+  # no config still needs the feature in nix.conf. See
+  # docs/experimental-features.md.
+  #
+  # The two lists must stay literal: nix reads a flake's `nixConfig` before
+  # evaluating anything else and rejects a `let`-bound one with "expected a set
+  # but got a thunk". Keep each substituter adjacent to its key.
   nixConfig = {
+    extra-experimental-features = [ "pipe-operators" ];
     extra-substituters = [
       "https://nix-community.cachix.org/"
       "https://pre-commit-hooks.cachix.org/"
@@ -130,6 +137,7 @@
             env = [
               {
                 name = "NIX_CONFIG";
+                # Must list the same features as base-system's nix.settings.
                 value = "experimental-features = nix-command flakes pipe-operators";
               }
             ];

@@ -4,8 +4,25 @@
 | --- | --- |
 | [`adr/`](./adr/) | Decisions, with the options that were rejected and why. |
 | [`flake-internals.md`](./flake-internals.md) | The non-obvious mechanisms the inline comments point at: `nixConfig`, the two pkgs wiring, input `follows`, the topology check. |
+| [`experimental-features.md`](./experimental-features.md) | Which Nix experimental features are enabled and why, the `\|>` semantics, and the constraints on enabling them. |
 | [`hermes-agent-provisioning.md`](./hermes-agent-provisioning.md) | How the agent's skills are packaged, refreshed and loaded. |
 | [`recommendations.md`](./recommendations.md) | Outstanding work, ordered Clan.lol -> flake-parts -> Nix3. |
+
+## Priority order
+
+When the three sources disagree, the earlier one wins:
+
+1. **Clan.lol** -- this is a clan, and clan's published guidance governs. If
+   clan says to do something a certain way, do that, even when a flake-parts or
+   Nix3 idiom looks cleaner. Clan's docs are read from the pinned revision in
+   `flake.lock`, not from the website.
+2. **flake-parts** -- where clan is silent, the flake-parts idiom decides:
+   `perSystem`, `_module.args.pkgs`, module splitting, `imports`.
+3. **Nix3** -- syntax and CLI behaviour underneath both: experimental features,
+   the new CLI, the flake output set.
+
+A conflict is a signal to check whether the lower-priority source is being
+applied where it does not belong, not a coin to flip.
 
 ## Inline comment convention
 
