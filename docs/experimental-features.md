@@ -107,6 +107,29 @@ error: expected a set but got a thunk at flake.nix:7:3
 So the feature list cannot be hoisted into a shared binding at the flake root.
 It is written twice instead, and each copy points at the other.
 
+## Tooling that does not accept the flake config by default
+
+The clan CLI runs its own `nix eval` calls and does not pass
+`--accept-flake-config`, so with no ambient config it fails on the `|>` in
+`modules/hermes.nix`:
+
+```text
+$ clan vars list workstation --flake .
+Reason: experimental Nix feature 'pipe-operators' is disabled
+    at .../modules/hermes.nix:84:7
+```
+
+Two ways to satisfy it. On a machine, `accept-flake-config = true` is already in
+`/etc/nix/nix.conf` (set by `base-system`), so the plain invocation works and
+nothing is needed. Elsewhere, pass the option through:
+
+```console
+clan vars list workstation --flake . --option accept-flake-config true
+```
+
+`clan machines list` and `clan show` are unaffected either way -- they read
+inventory metadata without evaluating the machine config.
+
 ## The `nix.conf` concatenation trap
 
 `nix.settings.experimental-features` is a list, and clan-core already sets
