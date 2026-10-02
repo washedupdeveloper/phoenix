@@ -79,7 +79,7 @@
         inputs.clan-core.flakeModules.default
         inputs.devshell.flakeModule
         inputs.nix-topology.flakeModule
-        ./modules/topology.nix
+        ./modules/nix-topology.nix
         ./modules/git-hooks.nix
         ./modules/treefmt.nix
         ./modules/devshells/atomvm.nix

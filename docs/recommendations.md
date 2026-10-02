@@ -17,7 +17,7 @@ recorded under "Considered and rejected" so it does not get re-litigated.
 
 | # | Change |
 | --- | --- |
-| 1 | `modules/topology.nix` pointed `topology.modules` at `config.nixosConfigurations`, which does not exist in that scope, so the whole `topology` output failed to evaluate. Repointed at the repository's global `topology.nix`, which nothing had been importing. |
+| 1 | `modules/nix-topology.nix` pointed `topology.modules` at `config.nixosConfigurations`, which does not exist in that scope, so the whole `topology` output failed to evaluate. Repointed at the repository's global `topology.nix`, which nothing had been importing. |
 | 2 | Filled out the topology: uplink, home router, Windows host with its wired NIC and its Hyper-V switch, the WSL machine as a guest of that host, and both network segments. |
 | 3 | `perSystem.clan.pkgs = pkgs` so clan's internal per-system instantiations use the same pkgs as the devshell; dropped a redundant nix-topology overlay. |
 | 4 | Added `description` and a `nixConfig` carrying the binary caches. |
@@ -199,7 +199,7 @@ and lose `devshell.startup` and `devshell.env`. No change.
 ### 2.3 One module per concern under `modules/` is the right shape
 
 flake-parts takes plain `imports` at the top level, and this repository's
-`imports = [ ... ./modules/topology.nix ./modules/git-hooks.nix ./modules/treefmt.nix ... ]`
+`imports = [ ... ./modules/nix-topology.nix ./modules/git-hooks.nix ./modules/treefmt.nix ... ]`
 is exactly that. The heavier machinery flake-parts offers -- `flake.modules`
 for reusable flake-level modules, `partitions` for splitting a flake across
 separate input closures -- is for flakes whose inputs or eval cost have become a

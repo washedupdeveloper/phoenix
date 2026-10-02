@@ -45,7 +45,7 @@ the repository root.
 ## Decision
 
 1. **`topology.modules` lists the global topology module, not machines.**
-   `modules/topology.nix` sets `perSystem.topology.modules = [ ../topology.nix ]`.
+   `modules/nix-topology.nix` sets `perSystem.topology.modules = [ ../topology.nix ]`.
    The per-machine half is left to nix-topology's default, which is the
    documented behaviour.
 2. **Model the physical world, not the NixOS view of it.** The Windows host is
@@ -58,7 +58,7 @@ the repository root.
    machine, so the diagram draws the NixOS node under its host. `guestType` is
    free-form -- nix-topology's built-ins are `microvm` and `nixos-container` --
    and only feeds the default hardware info.
-4. **The rendered output is a check.** `modules/topology.nix` re-exposes
+4. **The rendered output is a check.** `modules/nix-topology.nix` re-exposes
    `config.flake.topology.<system>.config.output` as
    `checks.<system>.topology`, so `nix flake check` evaluates and builds the
    diagram. This is what stops (1) from recurring silently.
@@ -90,7 +90,7 @@ second way, and it is the spelling that broke.
 topology wiring at all.
 
 **Cons:** the set of rendered machines is implicit, so it is not visible from
-`modules/topology.nix`. Mitigated by the check in (4), which fails loudly if
+`modules/nix-topology.nix`. Mitigated by the check in (4), which fails loudly if
 the set comes out empty or unbuildable.
 
 ### Option C: give the mosquitto listener an explicit `address`
@@ -130,7 +130,7 @@ behaviour should not be a rendering decision, so the workaround stays in
 
 ## Consequences
 
-- Adding a machine needs no change to `modules/topology.nix`; it needs
+- Adding a machine needs no change to `modules/nix-topology.nix`; it needs
   `topology.self` in its own configuration and the `nix-topology` NixOS module,
   which the `topology` importer instance already applies to everything tagged
   `all`.

@@ -35,7 +35,7 @@
   };
 
   # A NixOS-WSL guest, not a physical box: the CPU/GPU in the diagram belong to
-  # the Windows host running it (see ./topology.nix).
+  # the Windows host running it (see ../../topology.nix).
   topology.self = {
     parent = "windows-host";
     guestType = "wsl";

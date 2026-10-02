@@ -1,6 +1,6 @@
 # Flake internals
 
-The mechanisms in `flake.nix`, `clan.nix` and `modules/topology.nix` that are
+The mechanisms in `flake.nix`, `clan.nix` and `modules/nix-topology.nix` that are
 not obvious from reading them. Each section is the elaboration behind a short
 inline comment.
 
@@ -125,7 +125,7 @@ does not exist at flake-parts top level (the flake output is
 `config.flake.nixosConfigurations`). The output had never once evaluated, and
 the only visible symptom was a dangling `result` symlink at the repository root.
 
-`modules/topology.nix` re-exposes `config.flake.topology.<system>.config.output`
+`modules/nix-topology.nix` re-exposes `config.flake.topology.<system>.config.output`
 as `checks.<system>.topology`, so the diagram is evaluated and built by
 `nix flake check`. Verified by injecting a dangling connection and re-running:
 
