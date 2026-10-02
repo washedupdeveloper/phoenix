@@ -1,13 +1,6 @@
-# Hermes-loadable skill set, built out of the caveman repository.
-#
-# Hermes indexes a skill as a direct child directory that carries a SKILL.md,
-# so only those directories are copied. The rest of skills/ -- registry.json,
-# the *.mjs helpers, native/ and generated/ -- is caveman's own build input and
-# must not reach the loader as if it were a skill.
-#
-# Shared by the `caveman-skills` flake package (which the refresh job builds)
-# and by the home-manager wiring in hermes.nix (which points Hermes at it), so
-# both always describe the same derivation.
+# Hermes indexes a skill as a direct child directory carrying a SKILL.md, so that
+# check is what keeps caveman's own build inputs out of the loader. Shared by
+# `.#caveman-skills` and modules/hermes.nix. See docs/hermes-agent-provisioning.md.
 { pkgs, cavemanSrc }:
 pkgs.runCommand "caveman-skills" { } ''
   mkdir -p $out

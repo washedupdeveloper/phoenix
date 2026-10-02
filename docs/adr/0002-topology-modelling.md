@@ -99,7 +99,8 @@ nix-topology's mosquitto extractor renders the listen string by interpolation
 with a fallback that only fires when the attribute is *absent*
 (`l.address or "[::]"`), while nixpkgs declares that address as `nullOr str`
 defaulting to `null`. The topology build therefore died with `cannot coerce
-null to a string` until the derived value was overridden.
+null to a string` until the derived value was overridden. The mechanics are in
+[`../flake-internals.md`](../flake-internals.md); what follows is the decision.
 
 | Dimension | Assessment |
 | --- | --- |

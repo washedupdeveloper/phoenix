@@ -116,3 +116,9 @@ The `topology` output this ADR's tree carried was not evaluated by
 [ADR-0002](./0002-topology-modelling.md). The general shape of the flake was
 reviewed against the Clan, flake-parts and Nix3 documentation afterwards, and
 the outstanding items are listed in [`../recommendations.md`](../recommendations.md).
+
+The mechanisms behind the decisions taken in that review -- `nixConfig`, the two
+pkgs wirings, the input `follows` and the topology check -- are written up in
+[`../flake-internals.md`](../flake-internals.md). Inline comments in the Nix
+files are deliberately short pointers into these documents; the convention is
+stated in [`../README.md`](../README.md).

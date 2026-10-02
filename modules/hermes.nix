@@ -7,20 +7,17 @@
   ...
 }:
 let
-  # The same derivation the flake exposes as `.#caveman-skills`, so the refresh
-  # job and the running configuration can never disagree about what it is.
+  # Same derivation as `.#caveman-skills`.
   cavemanSkills = pkgs.callPackage ./caveman-skills.nix { inherit cavemanSrc; };
 
-  # Read the state directory from the option that owns it instead of repeating
-  # the default. Mind the path: clan.nix imports only the home-manager module,
-  # so these options live under home-manager.users.<name>, and a bare
-  # `config.services.hermes-agent` does not exist in this (NixOS) scope.
+  # This file is evaluated as a NixOS module, so the Hermes options are one level
+  # down. Read the path from the option that owns it rather than repeating the
+  # default. See docs/hermes-agent-provisioning.md.
   hermesHome = config.home-manager.users.${username}.services.hermes-agent.hermesHome;
 
-  # Move the locked caveman revision forward, prove it builds, and write down
-  # what moved. The lock is restored when the new revision does not build, so
-  # a bad upstream commit cannot break the next `nh os switch`. Activation
-  # stays manual: nothing here rewrites a live configuration.
+  # Advances the locked caveman revision, builds it, and reports what moved,
+  # restoring the lock if the new revision does not build. Activation stays
+  # manual. Design rules: docs/hermes-agent-provisioning.md.
   refreshCavemanSkills = pkgs.writeShellScript "caveman-skills-refresh" ''
     export PATH=${
       lib.makeBinPath [
@@ -43,14 +40,13 @@ let
     mkdir -p "$state"
     cd "$flake"
 
-    # Empty when the lock has no caveman node yet -- the first run after this
-    # input is added, before any switch has locked it.
+    # `// empty` matters on the first run, before any switch has locked the
+    # input: plain `jq -r` prints the literal string `null`.
     locked_rev() { jq -r '.nodes.caveman.locked.rev // empty' "$lock"; }
     skill_names() { find "$1" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort; }
 
-    # Every run that reaches a verdict rewrites the report, including a run
-    # that changes nothing. A report written only on a change cannot be told
-    # apart from a job that never ran. The body arrives on stdin.
+    # Written on every run that reaches a verdict, including a no-op: a report
+    # only on change cannot be told apart from a job that never ran.
     write_report() {
       {
         echo "# caveman skills refresh"
@@ -63,8 +59,7 @@ let
     }
 
     old_rev=$(locked_rev)
-    # Not fatal: the diff is a nicety, the refresh is the job. A garbage
-    # collected or otherwise unbuildable previous revision must not stop it.
+    # Non-fatal: the diff is a nicety, the refresh is the job.
     old_out=$(nix build --no-link --print-out-paths .#caveman-skills 2>/dev/null || true)
 
     cp "$lock" "$state/flake.lock.before"
@@ -193,23 +188,18 @@ in
             "/home/${username}/.hermes/pastes:/root/.hermes/pastes:ro"
           ];
         };
-        # The caveman skills live in the Nix store and are scanned alongside
-        # ~/.hermes/skills. Nothing is written into the profile's own skills
-        # directory, so the two never shadow each other.
+        # Store-backed, scanned alongside ~/.hermes/skills; nothing is written
+        # into the profile's own skills directory.
         skills.external_dirs = [ "${cavemanSkills}" ];
-        # Only the style mode is pinned. An auto-loaded skill is injected in
-        # full into every session's system prompt, the rest stay
-        # on demand: `/caveman-commit`, `/caveman-review`, `/surgical-patch`.
-        # `/caveman off` (or "normal mode") escapes it for one session.
+        # Only the style mode is pinned -- an auto-loaded skill costs tokens in
+        # every session. The rest stay on demand. See
+        # docs/hermes-agent-provisioning.md.
         skills.auto_load = [ "caveman" ];
       };
     };
 
-    # Task profiles: one slash command that loads a set of skills together.
-    # Hermes reads every *.yaml under <hermesHome>/skill-bundles/, so a file
-    # here becomes /<slug> with no imperative `hermes bundles create`. The
-    # source is referenced from the module rather than symlinked by hand, so
-    # the repository stays the only place a bundle is edited.
+    # One YAML per bundle becomes `/<slug>` with no imperative `hermes bundles
+    # create`. A bundle slug must not match a skill name in its own set.
     home.file = builtins.listToAttrs (
       map
         (slug: {
@@ -225,8 +215,7 @@ in
         ]
     );
 
-    # Weekly: advance the locked caveman revision, build it, and record what
-    # changed. The new skills go live on the next `nh os switch`.
+    # Weekly. The new skills go live on the next `nh os switch`.
     systemd.user.services.caveman-skills-refresh = {
       Unit.Description = "Refresh caveman agent skills from upstream";
       Service = {

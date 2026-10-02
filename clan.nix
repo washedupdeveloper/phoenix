@@ -6,9 +6,8 @@
     description = "My ever-changing immutable homelab";
   };
 
-  # Locally-authored clan.service modules. Referenced below with
-  # `module.input = "self"` -- module.input defaults to "clan-core", not
-  # local, so this must be explicit for anything not shipped by clan-core.
+  # Locally-authored clan.service modules. `module.input = "self"` is required:
+  # a null input resolves to clan-core, not to local modules.
   modules."base-system" = ./modules/clanServices/base-system;
   modules."wsl" = ./modules/clanServices/wsl;
 
@@ -31,7 +30,6 @@
   # Docs: https://docs.clan.lol/services/definition
   inventory.instances = {
     # Docs: https://docs.clan.lol/services/official/sshd
-    # Generates persistent host keys + certs, grants SSH access to root.
     sshd-with-certs = {
       module.name = "sshd";
       module.input = "clan-core";

@@ -1,11 +1,7 @@
-# Global topology definitions -- things that can't be derived automatically
-# from a single NixOS config (per-machine specifics go in that machine's
-# own configuration.nix under `topology.self.*` instead).
+# The parts of the topology that cannot be derived from a NixOS config: the
+# uplink, the router, the Windows host and the two network segments.
+# Per-machine facts belong under `topology.self` in the machine's own config.
 # https://oddlama.github.io/nix-topology/defining-additional-things.html
-#
-# Only one machine is a NixOS configuration today, so everything the diagram
-# shows apart from that machine -- the uplink, the router, the Windows host and
-# the two network segments -- is declared here.
 { config, ... }:
 let
   inherit (config.lib.topology)
@@ -17,17 +13,11 @@ let
 in
 {
   nodes = {
-    # The WAN uplink. `mkInternet` is nix-topology's own helper for the cloud
-    # node: it sets the `internet` deviceType and a wildcard interface that
-    # every uplink attaches to.
     internet = mkInternet {
       connections = mkConnection "home-router" "wan";
     };
 
-    # The ISP router. It owns the LAN and is the DHCP server and default
-    # gateway for everything on it. `mkRouter` is `mkSwitch` with the `router`
-    # deviceType, so ports are declared through `connections` and interface
-    # options can be given alongside.
+    # DHCP server and default gateway for the LAN.
     home-router = mkRouter "Home router" {
       info = "ISP router / DHCP server";
       connections.wan = mkConnection "internet" "*";
@@ -37,8 +27,7 @@ in
       };
     };
 
-    # The Windows 11 host. It is not a NixOS machine, so nix-topology cannot
-    # derive anything about it: every interface below is declared by hand, from
+    # Not a NixOS machine, so nothing about it can be derived. Values taken from
     # the host's `ipconfig /all`.
     windows-host = mkDevice "Desktop-Storm" {
       info = "Windows 11 host - Ryzen 9 9900X3D / Radeon RX 9070 XT";
@@ -53,9 +42,8 @@ in
           gateways = [ "192.168.68.1" ];
         };
 
-        # The Hyper-V virtual switch that WSL2 attaches to. Windows owns it and
-        # NATs it onto the LAN, which is why it belongs to its own network
-        # instead of being folded into `lan`.
+        # The Hyper-V switch WSL2 attaches to. Windows owns it and NATs it onto
+        # the LAN, hence its own network rather than a second `lan` interface.
         wsl-switch = {
           network = "wsl-nat";
           virtual = true;
@@ -72,8 +60,7 @@ in
       cidrv4 = "192.168.68.0/24";
     };
 
-    # WSL2's private NAT segment. Windows picks the range per boot, so no
-    # cidrv4 is claimed here.
+    # Windows picks the range per boot, so no cidrv4 is claimed.
     wsl-nat.name = "WSL2 NAT";
   };
 }
