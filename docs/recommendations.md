@@ -312,43 +312,43 @@ Incidentally, nothing in this repository uses `|>` or `<|`, so
 `pipe-operators` is currently enabled in the devshell for nothing. It is
 harmless and forward-looking; just do not mistake it for load-bearing.
 
-### 3.7 Decide whether to keep clan-core's channel nixpkgs
+### 3.7 Keep following clan-core's nixpkgs (decided)
 
 The top-level `nixpkgs` node in `flake.lock` is a `tarball`, not a GitHub
-checkout, because clan-core pins nixpkgs as a channel:
+checkout, because clan-core pins nixpkgs as a channel and this flake follows it.
+That is expected, not corruption. Two consequences worth knowing:
 
-```nix
-nixpkgs.url = "https://nixos.org/channels/nixpkgs-unstable/nixexprs.tar.xz";
-```
-
-and this flake follows it. That is expected, not corruption, and it has three
-consequences worth knowing:
-
-- Substitution is fine, arguably optimal. The channel is what Hydra builds and
-  publishes to `cache.nixos.org`, and the lock's `narHash` is what makes a
-  tarball substitutable at all.
 - It is a *floating* pointer. There is no `rev` to pin in the URL, so
   `nix flake update` moves nixpkgs to whatever the channel currently points at,
   independently of clan-core's own pinned revision. You can only float it or
   override it (`--override-input nixpkgs github:NixOS/nixpkgs/<rev>`).
-- It is `nixpkgs-unstable`, not `nixos-unstable`.
+- It is `nixpkgs-unstable`, not `nixos-unstable`. clan-core pins that
+  deliberately, because clan also targets darwin and `nixos-unstable` is
+  NixOS-only.
 
-clan-core explicitly supports being handed a different nixpkgs -- its flake
-sets `clan.checks.minNixpkgsVersion.ignore = true` with the comment "Allows
-downstream users to inject 'unsupported' nixpkgs versions". So the alternative
-is one line:
+**Do not swap it for your own nixpkgs.** Clan publishes a recommendation for
+this exact question, in `docs/src/guides/nixpkgs-flake-input/index.md` inside
+the pinned clan-core tree:
 
-```nix
-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";   # or .../<rev> to hard-pin
-clan-core.inputs.nixpkgs.follows = "nixpkgs";          # override clan-core's channel
-```
+> **Option 1: Follow clan-core (recommended)** ... This pins your flake to the
+> same `nixpkgs` revision that `clan-core` pins. Every `clan-core` update brings
+> a matching `nixpkgs` update, so you stay on a combination that has been
+> verified end-to-end. The trade-off is that new upstream packages only reach
+> you when `clan-core` bumps its input.
+>
+> **Option 2: Track your own nixpkgs** ... This gives you faster access to
+> upstream changes, at the cost of running a combination that Clan's CI does
+> not cover. Use it if you need a package or fix that has not yet landed in the
+> version `clan-core` follows.
 
-This is listed as a decision rather than done, because it changes every package
-on the deployed machine: it swaps the entire nixpkgs for a different branch at a
-different revision. It buys a rev-pinnable nixpkgs and a channel with a
-git history; it costs a full rebuild and a re-test of everything. Do it as its
-own commit, with the `toplevel` derivation path captured before and after so the
-size of the change is visible.
+The repository already does Option 1, and Option 2's stated precondition -- a
+package that has not landed yet -- does not apply. Swapping would trade a
+CI-verified combination for an unverified one to gain nothing.
+
+`clan.checks.minNixpkgsVersion` would not have caught a bad swap either way: it
+asserts only `lib.versionAtLeast nixpkgs.lib.version "25.11"`, and this flake is
+on 26.11pre. Nothing rescues Option 2; it is a choice against published
+guidance, not a risk that gets caught.
 
 ## 4. Upstream issues worth filing
 
@@ -386,7 +386,7 @@ redundant and an evaluation error, and that `nix flake check` cannot catch.
 | Change `extraModules` from paths to strings | The string form is the deprecated one and warns at eval time. |
 | Add `aarch64-linux` now | No machine for it; `systems` is a build contract, not a wish list. |
 | `inputs.nix-systems` for `systems` | Pulls ~11 systems including darwin for a homelab. |
-| Replace clan-core's channel-tarball nixpkgs with `github:NixOS/nixpkgs/nixos-unstable` | See below -- it changes every package on the deployed machine, so it is a decision, not a cleanup. |
+| Replace clan-core's channel-tarball nixpkgs with `github:NixOS/nixpkgs/nixos-unstable` | Clan's published guidance is to follow clan-core; see 3.7. |
 | Collapse `flake-compat` | Two different upstream repositories (`NixOS/flake-compat` and `edolstra/flake-compat`), so there is nothing to follow. |
 | Re-add `typos` to the pre-commit hooks | The existing block was `enable = false` with empty settings. If spell-checking is wanted, enable it properly and expect to build a word list. |
 | Replace `nil` with `nixd` in the pre-commit hooks | git-hooks.nix ships a `nil` hook and no `nixd` hook. `nixd` is in the devshell already; adding it as a custom hook is possible but buys a lint that `statix` and `deadnix` largely cover. |
