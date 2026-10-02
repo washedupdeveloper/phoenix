@@ -254,8 +254,8 @@ when someone runs `nix flake update`:
 The lock file makes builds reproducible, so neither is broken -- but the update
 semantics are "float on update", and a WSL module that has drifted from the
 installed WSL generation is discovered at the next `nh os switch`, which is the
-worst time to discover it. `modules/hermes.nix` already contains the pattern
-that solves this for `caveman`: update one input, build it, write a report,
+worst time to discover it. `modules/hermes-refresh.nix` already contains the
+pattern that solves this for `caveman`: update one input, build it, write a report,
 restore the lock if it does not build, and leave activation manual. Generalise
 that script over a list of inputs rather than writing a second bespoke one.
 

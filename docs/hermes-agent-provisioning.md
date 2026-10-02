@@ -1,8 +1,8 @@
 # Hermes agent provisioning
 
 How the agent's skills are packaged, refreshed and loaded. The elaboration
-behind the inline comments in `modules/hermes.nix` and
-`modules/caveman-skills.nix`.
+behind the inline comments in `modules/hermes.nix`, `modules/hermes-refresh.nix`
+and `modules/caveman-skills.nix`.
 
 ## Packaging: one derivation, two consumers
 
@@ -47,9 +47,11 @@ collision and the skill becomes unreachable under its own name.
 
 ## The weekly refresh job
 
-`systemd.user.timers.caveman-skills-refresh` advances the locked caveman
-revision, builds it, and writes `~/.local/state/caveman-skills/report.md`. The
-design rules, each of which is a bug avoided:
+The script is `modules/hermes-refresh.nix`, a `callPackage`-able derivation that
+`modules/hermes.nix` wires into `systemd.user.timers.caveman-skills-refresh`.
+It advances the locked caveman revision, builds it, and writes
+`~/.local/state/caveman-skills/report.md`. The design rules, each of which is a
+bug avoided:
 
 - **The report is written on every run that reaches a verdict, including the
   no-op path.** A report written only on a change is indistinguishable from a
