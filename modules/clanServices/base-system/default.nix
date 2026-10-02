@@ -90,9 +90,20 @@
               enable = true;
               interactiveShellInit = ''
                 function fish_user_key_bindings
-                  bind --key-names nul -M insert 'accept-autosuggestion'
+                  # `ctrl-space` is the only spelling that matches the byte the
+                  # terminal sends; `nul` is not a key name. See
+                  # docs/shell-integrations.md.
+                  bind ctrl-space accept-autosuggestion
                 end
               '';
+            };
+
+            # fish is the shell every integration in modules/home/shell.nix
+            # targets; without this the login shell stays bash, where none of
+            # them -- the direnv hook included -- is installed. See
+            # docs/shell-integrations.md.
+            users.users = lib.mkIf (username != null) {
+              ${username}.shell = pkgs.fish;
             };
 
             services.openssh = {

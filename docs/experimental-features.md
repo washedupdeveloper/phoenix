@@ -80,7 +80,9 @@ error: experimental Nix feature 'pipe-operators' is disabled
 
 So "needs `nix.conf`" applies only to a caller that declines the flake config, or
 to a `|>` placed in `flake.nix` itself. The devshell's `NIX_CONFIG` covers the
-interactive case, and `direnv` (`use flake`) puts you in it.
+interactive case, and `direnv` (`use flake`) puts you in it -- provided the
+login shell is the one the direnv hook was installed for, which is a separate
+precondition; see [`shell-integrations.md`](./shell-integrations.md).
 
 **`flake.nix` and its `nixConfig` must be literal attribute sets.** A top-level
 `let ... in` and a `let`-bound `nixConfig` are both rejected:
