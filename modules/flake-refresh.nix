@@ -44,10 +44,14 @@ pkgs.writeShellScript "flake-refresh" ''
   # Evaluation, deliberately: it catches the renamed and removed options a branch
   # bump actually tends to break, at a fraction of the cost of building the
   # machine. A build failure is not caught here, and the report says so.
+  #
+  # `--accept-flake-config` is required, not cosmetic: these modules use `|>`,
+  # which the flake's own `nixConfig` enables. Without the flag the job would
+  # silently depend on the host's nix.conf having `accept-flake-config = true`.
   verify() {
     case "$1" in
-      caveman) nix build --no-link --print-out-paths .#caveman-skills ;;
-      *) nix eval --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath" ;;
+      caveman) nix build --accept-flake-config --no-link --print-out-paths .#caveman-skills ;;
+      *) nix eval --accept-flake-config --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath" ;;
     esac
   }
 
@@ -76,7 +80,7 @@ pkgs.writeShellScript "flake-refresh" ''
     # unbuildable previous revision must not stop it.
     old_out=""
     if [ "$input" = caveman ]; then
-      old_out=$(nix build --no-link --print-out-paths .#caveman-skills 2>/dev/null || true)
+      old_out=$(nix build --accept-flake-config --no-link --print-out-paths .#caveman-skills 2>/dev/null || true)
     fi
 
     if ! update_log=$(nix flake update "$input" 2>&1); then

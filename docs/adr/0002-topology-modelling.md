@@ -57,7 +57,8 @@ the repository root.
    `topology.self.parent = "windows-host"` plus `guestType = "wsl"` on the
    machine, so the diagram draws the NixOS node under its host. `guestType` is
    free-form -- nix-topology's built-ins are `microvm` and `nixos-container` --
-   and only feeds the default hardware info.
+   and it renders as the guest's type label. It also defaults `hardware.info`,
+   which this machine overrides explicitly.
 4. **The rendered output is a check.** `modules/nix-topology.nix` re-exposes
    `config.flake.topology.<system>.config.output` as
    `checks.<system>.topology`, so `nix flake check` evaluates and builds the

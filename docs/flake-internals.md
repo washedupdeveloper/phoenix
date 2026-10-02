@@ -4,7 +4,7 @@ The mechanisms in `flake.nix`, `clan.nix` and `modules/nix-topology.nix` that ar
 not obvious from reading them. Each section is the elaboration behind a short
 inline comment.
 
-## `nixConfig` carries caches, not experimental features
+## `nixConfig`: caches, plus `pipe-operators` for the imported modules
 
 `nixConfig.extra-substituters` and `extra-trusted-public-keys` are declared so a
 third-party evaluator -- a CI runner, another machine -- can substitute this
@@ -16,22 +16,11 @@ A flake's `nixConfig` is opt-in for the caller, which is why the devshell also
 exports `NIX_CONFIG`. Accepting it is a trust decision: accepting a flake's
 config means accepting its substituters and its keys.
 
-`extra-experimental-features` is deliberately **absent**. It cannot bootstrap
-anything, because Nix has to parse `flake.nix` before it can read `nixConfig` --
-so a flake whose own code needs a feature cannot enable it for that evaluation.
-Verified with nix 2.35.2: a flake declaring
-`extra-experimental-features = [ "pipe-operators" ]` and then using `|>` in its
-own `outputs` still fails with
-
-```text
-error: experimental Nix feature 'pipe-operators' is disabled;
-       add '--extra-experimental-features pipe-operators' to enable it
-```
-
-Features belong in `nix.conf`, `NIX_CONFIG`, or `nix.settings.experimental-features`.
-The devshell sets `NIX_CONFIG` for exactly this reason, and that is the mechanism
-that actually works. Nothing in this repository uses `|>` or `<|` today, so
-`pipe-operators` is enabled forward-looking rather than load-bearing.
+`extra-experimental-features = [ "pipe-operators" ]` reaches the *imported
+modules*, which nix evaluates after it has read `nixConfig`, but not `flake.nix`
+itself: nix parses that file first, so a `|>` written there can never be
+self-enabled. That is why the feature is declared in four places rather than
+one -- see [`experimental-features.md`](./experimental-features.md).
 
 ## Two pkgs wirings that must agree
 
@@ -77,10 +66,10 @@ unused surface for a homelab.
 
 ## Input `follows`
 
-Every input here is consumed for its **modules**, never for its own flake
-outputs: `nixosModules.default`, `flakeModule`, `flakeModules.default`. Those
-are all evaluated against this flake's pkgs and flake-parts, so each input can
-follow the pinned copies instead of dragging in its own nixpkgs.
+Each input here is consumed as a flake **module** -- `nixosModules.default`,
+`flakeModule`, `flakeModules.default` -- which is evaluated against this flake's
+pkgs and flake-parts. None is consumed as a package built against its own
+nixpkgs, so each can follow the pinned copies instead.
 
 `flake.lock` went from 34 nodes to 24. The collapses:
 
@@ -158,8 +147,8 @@ attrset of NixOS configurations is evaluated as a topology module, and their
 attribute names become unknown options.
 
 The wiring is verified: `topology.x86_64-linux.config.nodes` returns
-`internet`, `windows-host` and `workstation`, and the rendered `main.svg`
-carries the router, both networks and the guest relationship.
+`home-router`, `internet`, `windows-host` and `workstation`, and the rendered
+`main.svg` carries the router, both networks and the guest relationship.
 
 ## `module.input` and clan-core's contradicting default
 

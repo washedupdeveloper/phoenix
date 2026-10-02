@@ -73,6 +73,10 @@ Design rules, each a bug avoided:
   so rather than implying more coverage than it has.
 - **`PATH` is pinned with `lib.makeBinPath`, and `set -euo pipefail` is set.** A
   systemd unit gets no login shell.
+- **The nix calls pass `--accept-flake-config`.** The modules this repo evaluates
+  use `|>`, which only the flake's own `nixConfig` enables; relying on the host's
+  `nix.conf` having `accept-flake-config = true` would make the job fail with a
+  confusing "does not verify" instead of a clear reason.
 - **Failures are captured, not just reported.**
   `if ! log=$(nix flake update <input> 2>&1)` puts the stderr in the report
   instead of sending the reader to the journal for it.

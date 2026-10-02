@@ -24,8 +24,9 @@
     ];
   };
 
-  # Every input is consumed for its modules, never for its own flake outputs, so
-  # each follows the pinned copies instead of dragging in its own nixpkgs and
+  # Each input is consumed as a flake *module* -- re-instantiated against the
+  # pinned pkgs -- rather than for packages built against its own nixpkgs, so
+  # each follows the pinned copies instead of dragging in a second nixpkgs and
   # flake-parts. See docs/flake-internals.md.
   inputs = {
     nixpkgs.follows = "clan-core/nixpkgs";
@@ -55,7 +56,7 @@
       };
     };
     # Skills only, and the repo ships no flake. `main` is tracked on purpose;
-    # modules/hermes.nix advances the lock weekly.
+    # modules/flake-refresh.nix advances the lock weekly.
     caveman = {
       url = "github:JuliusBrussee/caveman";
       flake = false;
@@ -152,7 +153,7 @@
 
           clan.pkgs = pkgs;
 
-          # Built by the weekly refresh job in modules/hermes.nix.
+          # Built by the weekly refresh job in modules/flake-refresh.nix.
           packages.caveman-skills = pkgs.callPackage ./modules/caveman-skills.nix {
             cavemanSrc = inputs.caveman;
           };

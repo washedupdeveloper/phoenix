@@ -72,7 +72,8 @@ in
     };
 
     # One YAML per bundle becomes `/<slug>` with no imperative `hermes bundles
-    # create`. A bundle slug must not match a skill name in its own set.
+    # create`. Keep each slug clear of every skill name: the bundle wins the
+    # collision and shadows the skill.
     home.file =
       [
         "caveman-build"

@@ -163,9 +163,8 @@ instance: the build fails with
 error: clan-core doesn't provide clan-module with name 'base-system'.
 ```
 
-So the comment in `clan.nix` ("module.input defaults to \"clan-core\", not
-local, so this must be explicit") is correct, and clan-core's `defaultText` is
-the thing that is wrong. Leave the comment alone.
+So the comment in `clan.nix` is correct, and clan-core's `defaultText` is the
+thing that is wrong. Leave the comment alone.
 
 ## 2. flake-parts
 
@@ -272,7 +271,7 @@ were already ignored. The remaining generated-but-tracked trees are `vars/`
 (public halves plus encrypted secrets -- clan expects these committed) and
 `sops/` (same). Both are correct.
 
-### 3.6 `nixConfig` carries caches, not features
+### 3.6 `nixConfig` carries caches and `pipe-operators`
 
 The flake declares `nixConfig.extra-substituters` and
 `extra-trusted-public-keys` so a third-party evaluator -- a CI runner, another
@@ -282,25 +281,12 @@ Both machines here do (`nix.settings.accept-flake-config`,
 trust decision, not a free win: accepting a flake's config means accepting its
 substituters and its keys.
 
-`extra-experimental-features` is deliberately **not** in `nixConfig`. It cannot
-bootstrap anything, because Nix has to parse `flake.nix` before it can read
-`nixConfig` -- so a flake whose own code needs a feature cannot enable it for
-that evaluation. Verified with nix 2.35.2: a flake declaring
-`extra-experimental-features = [ "pipe-operators" ]` and then using `|>` in its
-own `outputs` still fails with
-
-```text
-error: experimental Nix feature 'pipe-operators' is disabled;
-       add '--extra-experimental-features pipe-operators' to enable it
-```
-
-Features belong in `nix.conf`, `NIX_CONFIG`, or
-`nix.settings.experimental-features`. The devshell sets `NIX_CONFIG` for exactly
-this reason, and that is the mechanism that actually works.
-
-Incidentally, nothing in this repository uses `|>` or `<|`, so
-`pipe-operators` is currently enabled in the devshell for nothing. It is
-harmless and forward-looking; just do not mistake it for load-bearing.
+`extra-experimental-features = [ "pipe-operators" ]` covers the *imported
+modules*, which nix evaluates after it has read `nixConfig`. It cannot cover
+`flake.nix` itself, because nix parses that file before it reads `nixConfig` --
+so a `|>` written there can never be self-enabled. That is the whole reason the
+feature is declared in four places rather than one; see
+[`experimental-features.md`](./experimental-features.md).
 
 ### 3.7 Keep following clan-core's nixpkgs (decided)
 
