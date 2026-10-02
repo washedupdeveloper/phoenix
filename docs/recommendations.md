@@ -17,21 +17,20 @@ recorded under "Considered and rejected" so it does not get re-litigated.
 
 | # | Change |
 | --- | --- |
-| 1 | `modules/nix-topology.nix` pointed `topology.modules` at `config.nixosConfigurations`, which does not exist in that scope, so the whole `topology` output failed to evaluate. Repointed at the repository's global `topology.nix`, which nothing had been importing. |
-| 2 | Filled out the topology: uplink, home router, Windows host with its wired NIC and its Hyper-V switch, the WSL machine as a guest of that host, and both network segments. |
-| 3 | `perSystem.clan.pkgs = pkgs` so clan's internal per-system instantiations use the same pkgs as the devshell; dropped a redundant nix-topology overlay. |
-| 4 | Added `description` and a `nixConfig` carrying the binary caches. |
+| 1 | `modules/nix-topology.nix` pointed `topology.modules` at `config.nixosConfigurations`, which does not exist in that scope, so the whole output failed to evaluate. Repointed at the root `topology.nix`, which nothing imported. |
+| 2 | Filled out the topology: uplink, home router, Windows host with its wired NIC and Hyper-V switch, the WSL machine as its guest, both networks. |
+| 3 | `perSystem.clan.pkgs = pkgs` so clan's internal instantiations use the same pkgs as the devshell; dropped a redundant nix-topology overlay. |
+| 4 | Added `description` and a `nixConfig` carrying the binary caches and `pipe-operators`. |
 | 5 | Stopped tracking the generated `.pre-commit-config.yaml`; ignored `result-*`. |
-| 6 | Collapsed duplicate inputs (flake.lock: 34 nodes to 24) and added `checks.<system>.topology` so `nix flake check` actually exercises the diagram. |
+| 6 | Collapsed duplicate inputs (34 to 24 lock nodes) and added `checks.<system>.topology`. |
+| 7 | Generalised the weekly refresh job over every branch-tracking input. |
 
-The lock collapse in row 6 covers `nixos-wsl`, `devshell`, `git-hooks` and
-`nix-topology` following the pinned `nixpkgs`, and `hermes-agent` following
-`home-manager` and `flake-parts`, plus clan-core's own `flake-parts` and
-`treefmt-nix`. In every case the followed node was at the *same revision* as the
-one being followed, so nothing about what any input evaluates with changed --
-confirmed by `nixosConfigurations.workstation`'s `system.build.toplevel`
-derivation path being byte-identical before and after. The only duplicate left
-is `flake-compat`, which is two genuinely different upstream repositories.
+Row 6 covers `nixos-wsl`, `devshell`, `git-hooks` and `nix-topology` following
+the pinned `nixpkgs`, `hermes-agent` following `home-manager` and `flake-parts`,
+and clan-core's own `flake-parts` and `treefmt-nix`. Each followed node was at
+the *same revision* as the one being followed, so nothing changed about what any
+input evaluates with. The only duplicate left is `flake-compat`, which is two
+genuinely different upstream repositories.
 
 ## 1. Clan.lol
 
@@ -242,26 +241,17 @@ reason.
 Worth putting in CI at that point, since it is the flag that actually exercises
 the `systems` list.
 
-### 3.3 Extend the caveman refresh job to the other branch-tracking inputs
+### 3.3 Decide whether to keep floating on the branch-tracking inputs
 
-Two inputs float on a branch rather than a tag, and their revisions only move
-when someone runs `nix flake update`:
+`caveman`, `nixos-wsl` and `hermes-agent` all track a branch rather than a tag,
+and the weekly refresh job now advances and verifies each of them (applied table,
+row 7). That makes floating safe against a *bad* revision, since a failure is
+rolled back and reported -- but not silent: a good revision still lands on the
+machine only at the next `nh os switch`.
 
-- `nixos-wsl` at `github:nix-community/NixOS-WSL/main`
-- `hermes-agent` at `github:NousResearch/hermes-agent` (no `ref`, so it tracks
-  the repository's default branch)
-
-The lock file makes builds reproducible, so neither is broken -- but the update
-semantics are "float on update", and a WSL module that has drifted from the
-installed WSL generation is discovered at the next `nh os switch`, which is the
-worst time to discover it. `modules/hermes-refresh.nix` already contains the
-pattern that solves this for `caveman`: update one input, build it, write a report,
-restore the lock if it does not build, and leave activation manual. Generalise
-that script over a list of inputs rather than writing a second bespoke one.
-
-If you would rather not float at all, pin either one to a tag or a revision.
-The trade is explicit: a tag stops surprise changes but also stops surprise
-fixes, and both of these inputs are the kind that ship fixes.
+The alternative is pinning any of them to a tag or a revision. The trade is
+explicit: a tag stops surprise changes and stops surprise fixes, and all three of
+these inputs are the kind that ship fixes. Recommended: keep floating.
 
 ### 3.4 `nix fmt` is wired; consider failing on drift in a pre-push hook
 

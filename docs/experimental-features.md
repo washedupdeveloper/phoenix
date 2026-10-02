@@ -4,36 +4,31 @@ Which Nix experimental features this repository enables, why, and why the rest
 are not. Priority order when guidance conflicts: **Clan.lol, then flake-parts,
 then Nix3.**
 
-## The one that matters: `pipe-operators`
+## `pipe-operators`, and the `|>` semantics
 
-`|>` and `<|` are why `pipe-operators` is enabled at all. Semantics, verified
-against nix 2.35.2 rather than recalled:
+Verified against nix 2.35.2:
 
-- `a |> f` is `f a`, and `f <| a` is also `f a`. Left-associative, so
+- `a |> f` is `f a`; `f <| a` is also `f a`. Left-associative, so
   `x |> f |> g` is `g (f x)`.
-- **Function application binds tighter than `|>`.** `f 1 |> g` parses as
-  `g (f 1)`. That is usually what you want, but it means the right-hand side
-  needs parentheses whenever it is not a bare function: `1 |> f + 1` parses, but
-  fails at evaluation with `cannot coerce a function to a string`, and
-  `1 |> (f + 1)` is not valid either -- pipe only accepts a function on the
-  right.
+- **Function application binds tighter than `|>`.** `f 1 |> g` is `g (f 1)`, and
+  the right side must be a function: `1 |> f + 1` parses but fails at evaluation
+  with `cannot coerce a function to a string`.
 - Multi-argument functions work naturally: `3 |> add 4` is `add 4 3`.
 
-Where it earns its place: a chain of whole-value transformations that currently
-reads inside-out. `modules/hermes.nix` turns a list of bundle slugs into
-`home.file` entries, which as nesting is `builtins.listToAttrs (map f slugs)`
-and as a pipe is the same order you would say it out loud.
+Where it earns its place: chains of whole-value transformation that otherwise
+read inside-out. `modules/hermes.nix` turns bundle slugs into `home.file`
+entries, where `builtins.listToAttrs (map f slugs)` becomes the order you would
+say it out loud.
 
 Where it does not: anything whose argument order puts the data last.
-`lib.genAttrs config.systems f` takes the *names* first, so piping would invert
-it and read worse than the call. Pipes are used in one place in this repository
-and the rest is left alone on purpose -- a pipe on every expression is the same
-mistake as a comment on every line.
+`lib.genAttrs config.systems f` takes the *names* first, so piping inverts it.
+One pipe in this repository is a considered result; a pipe on every expression
+is the same mistake as a comment on every line.
 
 ## The full list
 
-Everything nix 2.35.2 recognises — 19 features, probed from the binary rather
-than a list recalled from documentation (two rows below pair related features):
+Everything nix 2.35.2 recognises -- 19 features, probed from the binary rather
+than recalled (two rows below pair related features):
 
 | Feature | Enabled | Why |
 | --- | --- | --- |
@@ -55,12 +50,12 @@ than a list recalled from documentation (two rows below pair related features):
 | `external-builders` | no | Remote builder protocol; single-machine homelab. |
 | `configurable-impure-env` | no | Widens what impure evaluation may read; not needed. |
 
-Note `repl-flake` is **not** in the list: it was removed in nix 2.22, folded into
-`flakes`.
+`repl-flake` is absent because it no longer exists: removed in nix 2.22, folded
+into `flakes`.
 
-## How it is enabled, and the three constraints
+## Where it is enabled
 
-Four places, because they are four different contexts:
+Four contexts, so four places:
 
 | Context | Where |
 | --- | --- |
@@ -70,18 +65,10 @@ Four places, because they are four different contexts:
 | A bare `nix` with no config accepted | nothing -- needs `nix.conf` or `NIX_CONFIG` |
 
 **A flake cannot enable the feature for `flake.nix` itself, but it can for the
-modules it imports.** This distinction is the whole point, and getting it wrong
-is easy:
-
-- `flake.nix` is parsed *before* `nixConfig` is read, so a `|>` written in
-  `flake.nix` can never be self-enabled. That is a hard bootstrap limit.
-- A `|>` in an **imported** module is evaluated *after* `nixConfig` applies, so
-  the flake can and does enable it -- `nixConfig.extra-experimental-features`
-  above, which works for any caller that accepts the flake config
-  (`--accept-flake-config`, or `accept-flake-config = true`, which the machines
-  here set).
-
-Verified both ways on a scratch flake, with the pipe in an imported file:
+modules it imports.** `flake.nix` is parsed *before* `nixConfig` is read, so a
+`|>` written there can never be self-enabled -- a hard bootstrap limit. An
+imported module is evaluated *after*, so `nixConfig.extra-experimental-features`
+does cover it, for any caller that accepts the flake config:
 
 ```console
 $ env -u NIX_CONFIG nix eval --accept-flake-config --json '.#x'
@@ -91,23 +78,22 @@ $ env -u NIX_CONFIG nix eval --json '.#x'
 error: experimental Nix feature 'pipe-operators' is disabled
 ```
 
-So the entry requirement is narrower than "always needs `nix.conf`": it applies
-only to a caller that declines the flake config, or to a `|>` placed in
-`flake.nix` itself. The devshell's `NIX_CONFIG` covers the interactive case, and
-`direnv` (`use flake`) puts you in it.
+So "needs `nix.conf`" applies only to a caller that declines the flake config, or
+to a `|>` placed in `flake.nix` itself. The devshell's `NIX_CONFIG` covers the
+interactive case, and `direnv` (`use flake`) puts you in it.
 
-**`flake.nix` and its `nixConfig` must be literal attribute sets.** Both a
-top-level `let ... in` and a `let`-bound `nixConfig` are rejected:
+**`flake.nix` and its `nixConfig` must be literal attribute sets.** A top-level
+`let ... in` and a `let`-bound `nixConfig` are both rejected:
 
 ```text
 error: file '/path/flake.nix' must be an attribute set
 error: expected a set but got a thunk at flake.nix:7:3
 ```
 
-So the feature list cannot be hoisted into a shared binding at the flake root.
-It is written twice instead, and each copy points at the other.
+So the feature list cannot be hoisted into a shared binding at the flake root. It
+is written twice instead, and each copy points at the other.
 
-## Tooling that does not accept the flake config by default
+## Tooling that does not accept the flake config
 
 The clan CLI runs its own `nix eval` calls and does not pass
 `--accept-flake-config`, so with no ambient config it fails on the `|>` in
@@ -119,36 +105,33 @@ Reason: experimental Nix feature 'pipe-operators' is disabled
     at .../modules/hermes.nix:84:7
 ```
 
-Two ways to satisfy it. On a machine, `accept-flake-config = true` is already in
-`/etc/nix/nix.conf` (set by `base-system`), so the plain invocation works and
-nothing is needed. Elsewhere, pass the option through:
+On a machine this is moot: `base-system` sets `accept-flake-config = true` in
+`/etc/nix/nix.conf`, so the plain invocation works. Elsewhere, pass it through:
 
 ```console
 clan vars list workstation --flake . --option accept-flake-config true
 ```
 
-`clan machines list` and `clan show` are unaffected either way -- they read
-inventory metadata without evaluating the machine config.
+`clan machines list` and `clan show` never evaluate the machine config, and are
+unaffected either way.
 
 ## The `nix.conf` concatenation trap
 
-`nix.settings.experimental-features` is a list, and clan-core already sets
+clan-core sets, at normal priority (`nixosModules/clanCore/nix-settings.nix`):
 
 ```nix
 nix.settings.experimental-features = [ "nix-command" "flakes" ];
 ```
 
-at normal priority (`nixosModules/clanCore/nix-settings.nix`). List options
-merge by concatenation, so a second normal-priority definition is *appended*.
-Two consequences, both learned the hard way:
+List options merge by concatenation, so a second normal-priority definition is
+*appended*. Two consequences:
 
-- Repeating the two defaults gives the duplicated line
+- Repeating the two defaults yields
   `experimental-features = nix-command flakes nix-command flakes pipe-operators`.
   Harmless -- nix ignores the repeat -- but it reads as a bug.
-- Wrapping the definition in `lib.mkDefault` makes it **lose** to clan's
-  normal-priority definition, which silently drops the feature. The machine
-  comes up without `pipe-operators` and this repository's own Nix code no longer
-  evaluates on it.
+- `lib.mkDefault` on your own definition makes it **lose** to clan's
+  normal-priority one, silently dropping the feature. The machine then comes up
+  unable to evaluate this repository's own Nix code.
 
 So `base-system` contributes only the extra feature:
 

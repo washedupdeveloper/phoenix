@@ -1,7 +1,7 @@
 # Hermes agent provisioning
 
 How the agent's skills are packaged, refreshed and loaded. The elaboration
-behind the inline comments in `modules/hermes.nix`, `modules/hermes-refresh.nix`
+behind the inline comments in `modules/hermes.nix`, `modules/flake-refresh.nix`
 and `modules/caveman-skills.nix`.
 
 ## Packaging: one derivation, two consumers
@@ -47,43 +47,42 @@ collision and the skill becomes unreachable under its own name.
 
 ## The weekly refresh job
 
-The script is `modules/hermes-refresh.nix`, a `callPackage`-able derivation that
-`modules/hermes.nix` wires into `systemd.user.timers.caveman-skills-refresh`.
-It advances the locked caveman revision, builds it, and writes
-`~/.local/state/caveman-skills/report.md`. The design rules, each of which is a
-bug avoided:
+`modules/flake-refresh.nix` is a `callPackage`-able script that
+`modules/hermes.nix` wires into `systemd.user.timers.flake-refresh`. It walks the
+inputs that track a branch (`caveman`, `nixos-wsl`, `hermes-agent`), advancing
+and verifying each, and writes `~/.local/state/flake-refresh/report.md`.
+
+Design rules, each a bug avoided:
 
 - **The report is written on every run that reaches a verdict, including the
-  no-op path.** A report written only on a change is indistinguishable from a
-  job that never ran, and "already current" is the common case.
-- **The lock is snapshotted before anything moves and restored on both failure
-  paths** -- `nix flake update` failing, and the new revision not building.
-  Nobody is watching the job, so it has to be strictly non-regressing: leaving a
-  bad upstream revision locked turns one failed build into a broken
-  `nh os switch` days later. `nix flake update` can also fail on its own (a
-  renamed or unfetched ref) and leave `flake.lock` half-written.
-- **Only the new build is fatal.** Building the *previous* revision, to diff
-  against, is a nicety and may fail because it was garbage collected, so it is
-  `$(cmd 2>/dev/null || true)` and its consumer is guarded. Under `set -e` a
-  bare `$(cmd)` would abort the whole job over a failure that does not matter.
-- **`jq -r '.nodes.caveman.locked.rev // empty'`.** The `// empty` matters on
-  the first run, before any switch has locked the input: plain `jq -r` prints
-  the literal string `null`, and the change detection then reports a bogus
-  revision.
-- **`PATH` is pinned with `lib.makeBinPath` and `set -euo pipefail` is set.** A
-  systemd unit gets no login shell, so `nix`, `git`, `jq`, `diff` and `comm` are
-  absent unless declared.
-- **Failures are captured, not just reported.** `if ! update_log=$(nix flake update caveman 2>&1)`
-  puts the stderr in the report, rather than sending the reader to the journal
-  for the one line the job already had.
-- **Activation stays manual.** Nothing rewrites a live configuration; the report
-  names the exact next action (`nh os switch`), because the job deliberately
-  does not activate.
-- **The state directory is the diagnostic.** An empty one, or a lone
-  `flake.lock.before` with no report, says which line the job died on.
+  no-op path.** A report only on change is indistinguishable from a job that
+  never ran, and "already current" is the common case.
+- **The lock is snapshotted and restored per input.** A failure rolls back only
+  that input, so one bad revision does not discard the others' good updates.
+  Nobody is watching, so the job must be strictly non-regressing: a bad upstream
+  revision left locked turns one failed update into a broken `nh os switch` days
+  later.
+- **Only the new revision is fatal.** Building the previous one, to diff
+  against, is a nicety that may fail on a garbage-collected path, so it is
+  `$(cmd 2>/dev/null || true)` with a guarded consumer. Under `set -e` a bare
+  `$(cmd)` would abort the job over a failure that does not matter.
+- **Verification is evaluation, not building** -- except `caveman`, whose
+  `.#caveman-skills` is cheap and isolated. The other two feed the machine
+  configuration, so the job evaluates `nixosConfigurations.workstation` and
+  stops there. A build failure surfaces at `nh os switch`, and the report says
+  so rather than implying more coverage than it has.
+- **`PATH` is pinned with `lib.makeBinPath`, and `set -euo pipefail` is set.** A
+  systemd unit gets no login shell.
+- **Failures are captured, not just reported.**
+  `if ! log=$(nix flake update <input> 2>&1)` puts the stderr in the report
+  instead of sending the reader to the journal for it.
+- **Activation stays manual.** The report names the next action (`nh os switch`).
 
-The same pattern is the right shape for the other branch-tracking inputs
-(`nixos-wsl`, `hermes-agent`); see [`recommendations.md`](./recommendations.md).
+Backticks in the generated script belong in single-quoted strings. A literal
+backtick inside double quotes is command-substituted, and a backslash written
+before a backtick in a Nix `''` string is a literal backslash rather than an
+escape -- so an "escaped" backtick reaches the report with the backslash still
+attached to it.
 
 ## Scope pitfall: which `config`
 

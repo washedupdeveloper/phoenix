@@ -14,8 +14,8 @@ let
   # default. See docs/hermes-agent-provisioning.md.
   hermesHome = config.home-manager.users.${username}.services.hermes-agent.hermesHome;
 
-  # Built by modules/hermes-refresh.nix; see docs/hermes-agent-provisioning.md.
-  refreshCavemanSkills = pkgs.callPackage ./hermes-refresh.nix { inherit username; };
+  # Built by modules/flake-refresh.nix; see docs/hermes-agent-provisioning.md.
+  flakeRefresh = pkgs.callPackage ./flake-refresh.nix { inherit username; };
 in
 {
   # Rootless Podman: container runtime for Hermes' "docker" terminal backend.
@@ -87,17 +87,17 @@ in
       })
       |> builtins.listToAttrs;
 
-    # Weekly. The new skills go live on the next `nh os switch`.
-    systemd.user.services.caveman-skills-refresh = {
-      Unit.Description = "Refresh caveman agent skills from upstream";
+    # Weekly. The new revisions go live on the next `nh os switch`.
+    systemd.user.services.flake-refresh = {
+      Unit.Description = "Refresh the branch-tracking flake inputs";
       Service = {
         Type = "oneshot";
-        ExecStart = "${refreshCavemanSkills}";
+        ExecStart = "${flakeRefresh}";
       };
     };
 
-    systemd.user.timers.caveman-skills-refresh = {
-      Unit.Description = "Weekly caveman agent skills refresh";
+    systemd.user.timers.flake-refresh = {
+      Unit.Description = "Weekly flake input refresh";
       Timer = {
         OnCalendar = "weekly";
         Persistent = true;
