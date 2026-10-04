@@ -112,7 +112,6 @@
       module.name = "wsl";
       module.input = "self";
       roles.default.tags.wsl = { };
-      roles.default.settings.windowsUsername = "storm";
     };
 
     topology = {

@@ -2,31 +2,18 @@
   _class = "clan.service";
   manifest = {
     name = "wsl";
-    description = "NixOS-WSL specific configuration (bind mounts, interop, launchers).";
+    description = "NixOS-WSL specific configuration (interop, launchers).";
     categories = [ "System" ];
     readme = ''
-      Layers NixOS-WSL specifics onto machine tagged "wsl".
-      `windowsUsername` is the Windows account name, used to resolve the Windows-side .ssh folder path.
+      Layers NixOS-WSL specifics onto machines tagged "wsl".
     '';
   };
 
   roles.default = {
     description = "The single WSL-machine role.";
 
-    interface =
-      { lib, ... }:
-      {
-        options = {
-          windowsUsername = lib.mkOption {
-            type = lib.types.str;
-            description = "Windows account name; used to resolve the Windows-side .ssh folder path.";
-            example = "storm";
-          };
-        };
-      };
-
     perInstance =
-      { settings, ... }:
+      { ... }:
       {
         nixosModule =
           {
@@ -59,6 +46,11 @@
               exec ${usbipAutoAttachBin} "$ip" --busid "$busid" --usbip-path "${pkgs.linuxPackages.usbip}/bin/usbip"
             '';
 
+            # WSL exposes binfmt_misc with a read-only status file, so systemd's
+            # binfmt service can never apply binfmt.d rules and fails at boot.
+            # Nothing here registers binary formats, so it is disabled.
+            systemd.services.systemd-binfmt.enable = false;
+
             wsl = {
               enable = true;
               defaultUser = username;
@@ -75,20 +67,6 @@
             };
 
             services.resolved.enable = lib.mkForce false;
-
-            fileSystems."/home/${username}/.ssh" = {
-              device = "C:\\Users\\${settings.windowsUsername}\\.ssh";
-              fsType = "drvfs";
-              options = [
-                "rw"
-                "noatime"
-                "uid=1000"
-                "gid=100"
-                "case=off"
-                "umask=0077"
-                "fmask=0177"
-              ];
-            };
           };
       };
   };
