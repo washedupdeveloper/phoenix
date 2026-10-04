@@ -1,0 +1,9 @@
+# Force LF in the working tree on every platform. Without this, a Windows
+# checkout with core.autocrlf=true rewrites .nix files and shell scripts to
+# CRLF, which breaks Nix parsing and shebang scripts.
+* text=auto eol=lf
+
+# Encrypted clan vars and sops secrets must stay byte-identical -- never
+# normalise their line endings.
+/vars/** -text
+/sops/** -text
