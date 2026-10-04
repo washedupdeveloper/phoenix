@@ -13,6 +13,14 @@
 
   nix.gc.automatic = false;
 
+  # Build parallelism is capped per machine, not in `base-system`: how much
+  # headroom a host has is a property of that host, and this one has been
+  # hard powering off under load. See docs/adr/0003.
+  nix.settings = {
+    max-jobs = 2;
+    cores = 4;
+  };
+
   programs.nh = {
     enable = true;
     clean.enable = true;

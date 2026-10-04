@@ -43,7 +43,13 @@ in
   };
 
   home-manager.users.${username} = {
-    programs.hermes-agent.enable = true;
+    # The Electron app and its XDG launcher entry; it starts its own
+    # `hermes serve` backend rather than sharing a service. See
+    # docs/hermes-agent-provisioning.md.
+    programs.hermes-agent = {
+      enable = true;
+      desktop.enable = true;
+    };
     services.hermes-agent = {
       enable = true;
       environmentFiles = [ config.clan.core.vars.generators.hermes.files.env.path ];

@@ -1,8 +1,9 @@
 # Hermes agent provisioning
 
-How the agent's skills are packaged, refreshed and loaded. The elaboration
-behind the inline comments in `modules/hermes.nix`, `modules/flake-refresh.nix`
-and `modules/caveman-skills.nix`.
+How the agent is packaged and which surfaces consume that package: the skills
+it loads, the weekly refresh of its source inputs, and the desktop application.
+The elaboration behind the inline comments in `modules/hermes.nix`,
+`modules/flake-refresh.nix` and `modules/caveman-skills.nix`.
 
 ## Packaging: one derivation, two consumers
 
@@ -44,6 +45,47 @@ imperative `hermes bundles create`.
 
 A bundle slug must not match a skill name in its own set: the bundle wins the
 collision and the skill becomes unreachable under its own name.
+
+## The desktop application
+
+`programs.hermes-agent.desktop.enable` adds `hermes-desktop` to `home.packages`,
+with an XDG launcher entry. The Electron app is a passthru of the same agent
+package, and the wrapper points `HERMES_DESKTOP_HERMES` at the Nix-built `hermes`
+binary, so the app installs no second runtime and downloads nothing on first
+start. The launcher carries `HERMES_HOME` itself: a desktop menu reads no shell
+profile, so `home.sessionVariables` alone would leave the app opening `~/.hermes`
+while the services use `hermesHome`.
+
+The app is self-contained: it runs its own `hermes serve` backend over the same
+`HERMES_HOME`, which is why `backend.mode` is left at `none` here. Sessions,
+skills, memory and config are therefore shared with the TUI, but the backend
+lives and dies with the app window. A backend that outlives the window -- what
+cron, heartbeats and the messaging gateway need -- is the deliberate extra step:
+
+```nix
+services.hermes-agent = {
+  backend.mode = "serve";
+  backend.sessionTokenFile = config.clan.core.vars.generators.<name>.files.<file>.path;
+};
+```
+
+Both halves are required: the module only points the launcher at the service
+when a backend exists *and* a token file is set, and the token is read at start
+time so it never enters the Nix store. Without it the app starts its own backend
+instead.
+
+`HERMES_MANAGED` rides into the launcher with the services, so the app refuses a
+configuration edit the same way `hermes config set` does and names `nh os
+switch` as the rebuild. Settings declared in `modules/hermes.nix` are the ones
+that win; the app's own Settings panes are read-only for them.
+
+On WSL2 the app renders through WSLg. NixOS-WSL bind-mounts the WSLg X11 socket
+to `/tmp/.X11-unix/X0`, and Hermes selects the Wayland ozone platform itself, so
+no `desktop.electron_flags` entry is needed. GPU acceleration via the Windows
+GPU is opportunistic -- the launcher sets `GALLIUM_DRIVER=d3d12` only when
+`/dev/dxg` and Mesa's `d3d12_dri.so` are both present -- and falls back to the
+software rasterizer otherwise. `wsl.startMenuLaunchers` copies the entry into
+`/usr/share/applications`, which is what surfaces it in the Windows Start menu.
 
 ## The weekly refresh job
 
