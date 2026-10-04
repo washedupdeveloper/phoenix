@@ -16,9 +16,9 @@ Verified against nix 2.35.2:
 - Multi-argument functions work naturally: `3 |> add 4` is `add 4 3`.
 
 Where it earns its place: chains of whole-value transformation that otherwise
-read inside-out. `modules/hermes.nix` turns bundle slugs into `home.file`
-entries, where `builtins.listToAttrs (map f slugs)` becomes the order you would
-say it out loud.
+read inside-out -- `builtins.listToAttrs (map f slugs)` becomes the order you
+would say it out loud. No module in this repository uses it today; the feature
+stays enabled because `base-system` sets it for the clan.
 
 Where it does not: anything whose argument order puts the data last.
 `lib.genAttrs config.systems f` takes the *names* first, so piping inverts it.
@@ -98,13 +98,13 @@ is written twice instead, and each copy points at the other.
 ## Tooling that does not accept the flake config
 
 The clan CLI runs its own `nix eval` calls and does not pass
-`--accept-flake-config`, so with no ambient config it fails on the `|>` in
-`modules/hermes.nix`:
+`--accept-flake-config`, so with no ambient config it fails on any `|>` in an
+imported module:
 
 ```text
 $ clan vars list workstation --flake .
 Reason: experimental Nix feature 'pipe-operators' is disabled
-    at .../modules/hermes.nix:84:7
+    at .../modules/<module>.nix:NN:C
 ```
 
 On a machine this is moot: `base-system` sets `accept-flake-config = true` in

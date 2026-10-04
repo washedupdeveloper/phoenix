@@ -26,8 +26,7 @@ recorded under "Considered and rejected" so it does not get re-litigated.
 | 7 | Generalised the weekly refresh job over every branch-tracking input. |
 
 Row 6 covers `nixos-wsl`, `devshell`, `git-hooks` and `nix-topology` following
-the pinned `nixpkgs`, `hermes-agent` following `home-manager` and `flake-parts`,
-and clan-core's own `flake-parts` and `treefmt-nix`. Each followed node was at
+the pinned `nixpkgs`, and clan-core's own `flake-parts` and `treefmt-nix`. Each followed node was at
 the *same revision* as the one being followed, so nothing changed about what any
 input evaluates with. The only duplicate left is `flake-compat`, which is two
 genuinely different upstream repositories.
@@ -240,17 +239,17 @@ reason.
 Worth putting in CI at that point, since it is the flag that actually exercises
 the `systems` list.
 
-### 3.3 Decide whether to keep floating on the branch-tracking inputs
+### 3.3 Decide whether to keep floating on `nixos-wsl`
 
-`caveman`, `nixos-wsl` and `hermes-agent` all track a branch rather than a tag,
-and the weekly refresh job now advances and verifies each of them (applied table,
-row 7). That makes floating safe against a *bad* revision, since a failure is
-rolled back and reported -- but not silent: a good revision still lands on the
-machine only at the next `nh os switch`.
+`nixos-wsl` tracks a branch rather than a tag. The weekly refresh job that used
+to advance and verify it -- along with `caveman` and `hermes-agent`, removed with
+the Hermes provisioning -- is gone, so floating is manual now: a new revision
+lands only when someone runs `nix flake update nixos-wsl` and then `nh os
+switch`.
 
-The alternative is pinning any of them to a tag or a revision. The trade is
-explicit: a tag stops surprise changes and stops surprise fixes, and all three of
-these inputs are the kind that ship fixes. Recommended: keep floating.
+The alternative is pinning it to a tag or a revision. The trade is explicit: a
+tag stops surprise changes and stops surprise fixes, and `nixos-wsl` is the kind
+of input that ships fixes. Recommended: keep floating.
 
 ### 3.4 `nix fmt` is wired; consider failing on drift in a pre-push hook
 

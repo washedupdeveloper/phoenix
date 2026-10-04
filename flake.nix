@@ -47,20 +47,6 @@
       url = "github:nix-community/NixOS-WSL/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs = {
-        nixpkgs.follows = "clan-core/nixpkgs";
-        home-manager.follows = "home-manager";
-        flake-parts.follows = "flake-parts";
-      };
-    };
-    # Skills only, and the repo ships no flake. `main` is tracked on purpose;
-    # modules/flake-refresh.nix advances the lock weekly.
-    caveman = {
-      url = "github:JuliusBrussee/caveman";
-      flake = false;
-    };
     devshell = {
       url = "github:numtide/devshell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -105,7 +91,6 @@
         specialArgs = {
           homeManagerModule = inputs.home-manager.nixosModules.home-manager;
           nixosWslModule = inputs.nixos-wsl.nixosModules.default;
-          cavemanSrc = inputs.caveman;
         };
       };
 
@@ -152,11 +137,6 @@
           };
 
           clan.pkgs = pkgs;
-
-          # Built by the weekly refresh job in modules/flake-refresh.nix.
-          packages.caveman-skills = pkgs.callPackage ./modules/caveman-skills.nix {
-            cavemanSrc = inputs.caveman;
-          };
         };
     };
 }

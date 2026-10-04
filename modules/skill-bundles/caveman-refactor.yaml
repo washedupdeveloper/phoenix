@@ -1,8 +1,0 @@
-name: caveman-refactor
-description: Restructure code while proving behavior is preserved.
-skills:
-  - safe-refactor
-  - verify-and-stop
-instruction: |
-  Establish the verification before the first structural edit. Move one
-  ownership boundary at a time, and keep behavior changes out of the refactor.

@@ -27,7 +27,7 @@ one -- see [`experimental-features.md`](./experimental-features.md).
 `perSystem` has two separate package sets, and they are easy to confuse.
 
 `perSystem._module.args.pkgs` is what `perSystem` itself uses -- the devshell,
-`packages.caveman-skills`, anything else evaluated in that scope. Setting it to
+any `packages.*`, anything else evaluated in that scope. Setting it to
 `import inputs.nixpkgs { config.allowUnfree = true; }` is the documented way to
 give `perSystem` a nixpkgs with a non-default config.
 
@@ -79,7 +79,6 @@ nixpkgs, so each can follow the pinned copies instead.
 | `devshell` | `nixpkgs` | its own nixpkgs |
 | `git-hooks` | `nixpkgs` | its own nixpkgs |
 | `nix-topology` | `nixpkgs`, `flake-parts` | its own nixpkgs and flake-parts |
-| `hermes-agent` | `nixpkgs`, `home-manager`, `flake-parts` | its own of each |
 | `clan-core` | `flake-parts`, `treefmt-nix` | two duplicates |
 
 In every case the followed node was at the *same revision* as the one being

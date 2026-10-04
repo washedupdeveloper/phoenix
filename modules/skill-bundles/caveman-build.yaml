@@ -1,9 +1,0 @@
-name: caveman-build
-description: Build new behavior with strict scope and an explicit stop condition.
-skills:
-  - lean-build
-  - verify-and-stop
-instruction: |
-  Search the repository for an existing implementation before writing one.
-  Keep the slice to the stated scope, name the stop condition up front, and end
-  by proving the new behavior actually works.

@@ -1,8 +1,0 @@
-name: caveman-git
-description: Review the diff, then write the commit message that matches it.
-skills:
-  - caveman-review
-  - caveman-commit
-instruction: |
-  Review first: one line per finding, with location, problem and fix. Then write
-  the commit message in Conventional Commits form, saying why over what.
