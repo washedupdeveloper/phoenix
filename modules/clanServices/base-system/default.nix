@@ -115,6 +115,13 @@
             };
 
             users.mutableUsers = lib.mkDefault false;
+            # Accepted risk, recorded rather than left implicit: this is a
+            # single-user WSL guest, its only interactive account is clan-managed
+            # (vars-backed password), SSH is key-only -- PasswordAuthentication
+            # and KbdInteractiveAuthentication are both off above -- and that
+            # account is in `@wheel`, which is also a nix trusted-user. A sudo
+            # password would not add a boundary nothing else crosses. Flip this
+            # to `true` if the machine ever gains a second user.
             security.sudo.wheelNeedsPassword = lib.mkDefault false;
             security.sudo.execWheelOnly = lib.mkDefault true;
 
@@ -136,13 +143,22 @@
                 # docs/experimental-features.md.
                 experimental-features = [ "pipe-operators" ];
                 auto-optimise-store = lib.mkDefault true;
-                accept-flake-config = lib.mkDefault true;
-                # The user itself comes from `clan.machines.<name>._module.args.username`
+                # `accept-flake-config` is deliberately left at nix's default
+                # (`false`): accepting a flake's config means trusting its
+                # substituters and its public keys, and that should not happen
+                # silently for every flake this machine ever evaluates. Nothing
+                # here needs it -- the caches, keys and `pipe-operators` that
+                # flake.nix's `nixConfig` asks for are set below at system level.
+                #
+                # `[ "root" "@wheel" ]` is nix's own default. The account clan
+                # creates is already in `@wheel`, so naming it as well only
+                # looked like a widening. The group entry has to stay: a trusted
+                # user may set restricted options, and the devshell's NIX_CONFIG
+                # (experimental-features) is one of them.
                 trusted-users = [
                   "root"
                   "@wheel"
-                ]
-                ++ lib.optional (username != null) username;
+                ];
                 substituters = [
                   "https://cache.nixos.org"
                   "https://nix-community.cachix.org/"

@@ -66,7 +66,13 @@
     '';
   };
 
-  networking.firewall.allowedTCPPorts = [ 1883 ]; # mosquitto
+  # The broker stays reachable from the LAN -- the plant monitor is a separate
+  # device -- but 1883 is opened on `eth0` only rather than on every interface:
+  # `networkingMode=mirrored` in .wslconfig makes the guest share the Windows
+  # host's interfaces, so a bare `allowedTCPPorts` entry would publish the broker
+  # on all of them. If the interface is ever renamed, this rule silently stops
+  # matching and the device loses the broker.
+  networking.firewall.interfaces.eth0.allowedTCPPorts = [ 1883 ];
   services.mosquitto = {
     enable = true;
     listeners = [

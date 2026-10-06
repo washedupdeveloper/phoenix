@@ -108,8 +108,10 @@ Reason: experimental Nix feature 'pipe-operators' is disabled
     at .../modules/<module>.nix:NN:C
 ```
 
-On a machine this is moot: `base-system` sets `accept-flake-config = true` in
-`/etc/nix/nix.conf`, so the plain invocation works. Elsewhere, pass it through:
+On a machine this is moot: `base-system` enables `pipe-operators` in
+`/etc/nix/nix.conf` itself, so the feature is ambient and the plain invocation
+works -- the flake's `nixConfig` is not what supplies it. Elsewhere, pass it
+through:
 
 ```console
 clan vars list workstation --flake . --option accept-flake-config true

@@ -8,9 +8,13 @@ inline comment.
 
 `nixConfig.extra-substituters` and `extra-trusted-public-keys` are declared so a
 third-party evaluator -- a CI runner, another machine -- can substitute this
-flake's inputs by accepting the flake config. The keys match what
-`modules/clanServices/base-system` already trusts, and both machines set
-`nix.settings.accept-flake-config`, so nothing new is being asked for.
+flake's inputs by accepting the flake config. They exist for *other* evaluators:
+the keys match what `modules/clanServices/base-system` already trusts at system
+level, so the machine itself needs neither the flake's config nor
+`accept-flake-config`. That setting is deliberately left at nix's default
+(`false`) -- accepting a flake's config means trusting its substituters and its
+keys, which is not something a machine should do silently for every flake it
+happens to evaluate.
 
 A flake's `nixConfig` is opt-in for the caller, which is why the devshell also
 exports `NIX_CONFIG`. Accepting it is a trust decision: accepting a flake's
