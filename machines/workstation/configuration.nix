@@ -4,16 +4,12 @@
   ...
 }:
 {
-  networking.hostName = "workstation";
+  networking = {
+    hostName = "workstation";
+    useDHCP = false;
+  };
 
   nixpkgs.hostPlatform = "x86_64-linux";
-
-  # TEMPORARY default password, until the sops/vars secret store is provisioned.
-  # Overrides the clan users-service password, whose var cannot be decrypted
-  # yet: the machine's age key does not match the recipient the vars were
-  # encrypted to. Remove this block once the vars decrypt again.
-  users.users.nixolotl.hashedPasswordFile = lib.mkForce null;
-  users.users.nixolotl.hashedPassword = "REDACTED-PASSWORD-HASH";
 
   programs.nix-ld.enable = true;
   services.locate.enable = true;

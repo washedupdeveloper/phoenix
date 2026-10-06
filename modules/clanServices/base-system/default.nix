@@ -68,9 +68,6 @@
             ...
           }:
           {
-            nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-            networking.hostName = lib.mkDefault "nixos";
-            networking.useDHCP = lib.mkDefault false;
             time.timeZone = lib.mkDefault settings.timeZone;
             console.keyMap = lib.mkDefault settings.keyMap;
 
