@@ -27,9 +27,9 @@
     };
   };
 
-  # Docs: https://docs.clan.lol/services/definition
+  # Docs: https://clan.lol/docs/26.05/services/definition
   inventory.instances = {
-    # Docs: https://docs.clan.lol/services/official/sshd
+    # Docs: https://clan.lol/docs/26.05/services/official/sshd
     sshd-with-certs = {
       module.name = "sshd";
       module.input = "clan-core";
@@ -55,7 +55,7 @@
       };
     };
 
-    # Docs: https://docs.clan.lol/services/official/users
+    # Docs: https://clan.lol/docs/26.05/services/official/users
     user-root = {
       module.name = "users";
       module.input = "clan-core";
@@ -83,7 +83,9 @@
       };
     };
 
-    hm = {
+    # Spelled out rather than abbreviated: instance names surface in `clan
+    # vars`, in deployment output and in every settings path.
+    home-manager = {
       module.name = "importer";
       module.input = "clan-core";
       roles.default.machines.workstation = { };
@@ -125,14 +127,14 @@
     #   roles.peer.tags = [ "all" ];
     # };
 
-    # Docs: https://docs.clan.lol/services/official/zerotier
+    # Docs: https://clan.lol/docs/26.05/services/official/zerotier
     # Requires a controller machine deployed first.
     # zerotier = {
     #   roles.controller.machines.vps-controller = { };
     #   roles.peer.tags.all = { };
     # };
 
-    # Docs: https://docs.clan.lol/services/official/tor
+    # Docs: https://clan.lol/docs/26.05/services/official/tor
     # tor = {
     #   roles.server.tags.all = { };
     # };

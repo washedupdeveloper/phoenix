@@ -71,7 +71,9 @@ Each input here is consumed as a flake **module** -- `nixosModules.default`,
 pkgs and flake-parts. None is consumed as a package built against its own
 nixpkgs, so each can follow the pinned copies instead.
 
-`flake.lock` went from 34 nodes to 24. The collapses:
+`flake.lock` went from 34 nodes to 24 at the time of that review, and stands at
+18 now: `ed0e372` removed the Hermes provisioning and took `hermes-agent`,
+`caveman` and the inputs they dragged in with them. The collapses:
 
 | Input | Follows | Removes |
 | --- | --- | --- |

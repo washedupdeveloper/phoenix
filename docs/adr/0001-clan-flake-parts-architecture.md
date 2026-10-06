@@ -33,10 +33,13 @@ a ThinkPad on bare-metal `x86_64-linux`), while only the NixOS-WSL
    password management (vars-backed). No hardcoded
    `users.users.<name>.openssh.authorizedKeys.keys` in machine configs.
 3. **Module authoring:** `base-system` and `wsl` are authored as real
-   `clan.service` modules with typed `interface.options`
-   (`timeZone`/`locale`/`keyMap`/`editor`, `windowsUsername`), registered
-   locally via `clan.modules` and referenced by name/tag like official
-   clan-core services. `home-manager` wiring stays on the generic `importer`
+   `clan.service` modules, registered locally via `clan.modules` and
+   referenced by name/tag like official clan-core services. Only
+   `base-system` exposes typed `interface.options`
+   (`timeZone`/`locale`/`keyMap`/`editor`/`extraLocale`); `wsl` declares no
+   interface and ignores per-instance settings, since the single WSL machine
+   is its only consumer — it earns one when a second, differently-configured
+   machine needs it. `home-manager` wiring stays on the generic `importer`
    service — it's bespoke to this flake, not reused elsewhere, and a full
    `clan.service` wrapper would add ceremony with no payoff.
 
@@ -104,7 +107,10 @@ without the ceremony where it doesn't.
 4. [x] `vars/` audited. Neither the `root-password/` tree nor the `mycelium/`
    tree this ADR flagged as possibly stale exists in the tree any more, and
    neither was ever tracked by git, so there is nothing to remove. The
-   remaining trees are `hermes/`, `openssh/`, `openssh-cert/`,
+   `hermes/` tree that survived that audit turned out to have no generator
+   behind it — no `clan.core.vars.generators` entry could reproduce it — and
+   was removed. The remaining per-machine trees are
+   `mosquitto-plant-monitor/`, `openssh/`, `openssh-cert/`,
    `state-version/`, `user-password-nixolotl/` and `user-password-root/`.
 5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`,
    scaffold `machines/<name>/`, decide `deploy.targetHost`.

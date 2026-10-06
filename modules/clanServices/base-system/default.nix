@@ -73,14 +73,11 @@
 
             environment = {
               variables.EDITOR = lib.mkDefault settings.editor;
-              systemPackages = with pkgs; [
-                nixd
-                deadnix
-                statix
-                nixfmt
-                nix-output-monitor
-                direnv
-              ];
+              # The nix tooling (nixd, deadnix, statix, nixfmt,
+              # nix-output-monitor) lives in the flake's devshell, and direnv
+              # comes from home-manager's `programs.direnv`. Installing them
+              # here as well put a second copy -- and, via nixd, a second nix --
+              # into every machine's system closure.
             };
 
             programs.fish = {
@@ -103,18 +100,18 @@
               ${username}.shell = pkgs.fish;
             };
 
+            # Host keys belong to clan's `sshd` service -- the `sshd-with-certs`
+            # instance in clan.nix -- which keeps them in the vars store. See
+            # ADR-0001 decision 2. Declaring `hostKeys` here as well does not
+            # override clan's list, it concatenates onto it, leaving the machine
+            # serving a second, unmanaged key that no `clan vars` run can
+            # reproduce.
             services.openssh = {
               enable = true;
               settings = {
                 PasswordAuthentication = false;
                 KbdInteractiveAuthentication = false;
               };
-              hostKeys = [
-                {
-                  path = "/etc/ssh/ssh_host_ed25519_key";
-                  type = "ed25519";
-                }
-              ];
             };
 
             users.mutableUsers = lib.mkDefault false;

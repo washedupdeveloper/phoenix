@@ -40,7 +40,10 @@ guardrail for the interval, not a fix.
    gains `max-jobs = 2` and `cores = 4` in
    `machines/workstation/configuration.nix`: at most 8 concurrent compile
    threads out of 24, leaving the rest of the VM and the Windows host headroom
-   while the power-off is unexplained.
+   while the power-off is unexplained. *Raised on 2026-10-04 to `max-jobs = 6`
+   and `cores = 2` — still 12 threads, half the host's 24 — once the power-off
+   had been traced to the host firmware rather than to build load; the live
+   numbers are in that file, this paragraph is the record.*
 2. **The knob is deliberately low and deliberately tunable.** It is a
    diagnostic guardrail, not a performance setting. Raise it once the host is
    stable.
@@ -50,7 +53,7 @@ guardrail for the interval, not a fix.
 
    ```console
    nix build .#nixosConfigurations.workstation.config.system.build.toplevel \
-     --max-jobs 2 --cores 4 --keep-going
+     --max-jobs 6 --cores 2 --keep-going
    nh os switch
    ```
 
@@ -133,8 +136,8 @@ policy.
 
 ## Consequences
 
-- `nh os switch` and `nixos-rebuild switch` on `workstation` build at most two
-  derivations at a time, four cores each. The daemon reads `/etc/nix/nix.conf`,
+- `nh os switch` and `nixos-rebuild switch` on `workstation` build at most six
+  derivations at a time, two cores each. The daemon reads `/etc/nix/nix.conf`,
   so the cap applies to every invocation, not just the ones a human typed.
 - A command-line `--max-jobs` or `--cores` still overrides it, which is what
   the bootstrap in Decision (3) relies on.

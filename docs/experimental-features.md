@@ -22,8 +22,9 @@ stays enabled because `base-system` sets it for the clan.
 
 Where it does not: anything whose argument order puts the data last.
 `lib.genAttrs config.systems f` takes the *names* first, so piping inverts it.
-One pipe in this repository is a considered result; a pipe on every expression
-is the same mistake as a comment on every line.
+The one pipe this repository ever carried left with `modules/hermes.nix`
+(`ed0e372`), and it was a considered result, not a house style; a pipe on every
+expression would be the same mistake as a comment on every line.
 
 ## The full list
 
