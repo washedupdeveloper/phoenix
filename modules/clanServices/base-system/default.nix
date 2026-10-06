@@ -127,7 +127,6 @@
               };
 
               settings = {
-                download-buffer-size = lib.mkDefault 524288000;
                 # clan-core already sets ["nix-command" "flakes"], and a plain
                 # list definition concatenates onto it -- which is why this
                 # contributes only the extra feature rather than repeating the

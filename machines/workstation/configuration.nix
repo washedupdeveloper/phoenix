@@ -18,13 +18,21 @@
 
   nix.gc.automatic = false;
 
-  # Build parallelism is capped per machine, not in `base-system`: how much
-  # headroom a host has is a property of that host. Raised from the original
-  # guardrail (max-jobs 2 / cores 4) to 6 x 2 = 12 threads, half of the host's
-  # 24. See docs/adr/0003.
+  # These are per-host facts, not clan baseline: how much headroom a host has,
+  # and how fast its link is, are properties of that host. Build parallelism was
+  # raised from the original guardrail (max-jobs 2 / cores 4) to 6 x 2 = 12
+  # threads, half of the host's 24 -- see docs/adr/0003.
+  #
+  # `download-buffer-size` is Nix's internal curl buffer, and it exists only to
+  # stop substitutions stalling when a transfer outruns Nix's processing (the
+  # "download buffer is full" warning). Nix 2.35 defaults it to 1 MiB; 500 MiB is
+  # ~500x that, and above the 64 MiB that still warned on gigabit links. It is
+  # allocated per transfer and `http-connections` defaults to 25, so raise it
+  # only if that warning actually appears.
   nix.settings = {
     max-jobs = 6;
     cores = 2;
+    download-buffer-size = 524288000;
   };
 
   programs.nh = {
