@@ -1,29 +1,5 @@
 {
   description = "My ever-changing immutable homelab";
-
-  # For callers that accept the flake config. `extra-experimental-features`
-  # enables `|>` for this repo's imported modules -- but not for `flake.nix`
-  # itself, which nix parses before it reads `nixConfig`, so a bare `nix` with
-  # no config still needs the feature in nix.conf. See
-  # docs/experimental-features.md.
-  #
-  # The two lists must stay literal: nix reads a flake's `nixConfig` before
-  # evaluating anything else and rejects a `let`-bound one with "expected a set
-  # but got a thunk". Keep each substituter adjacent to its key.
-  nixConfig = {
-    extra-experimental-features = [ "pipe-operators" ];
-    extra-substituters = [
-      "https://nix-community.cachix.org/"
-      "https://pre-commit-hooks.cachix.org/"
-      "https://numtide.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-      "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
-      "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
-    ];
-  };
-
   # Each input is consumed as a flake *module* -- re-instantiated against the
   # pinned pkgs -- rather than for packages built against its own nixpkgs, so
   # each follows the pinned copies instead of dragging in a second nixpkgs and
@@ -139,4 +115,27 @@
           clan.pkgs = pkgs;
         };
     };
+
+  # For callers that accept the flake config. `extra-experimental-features`
+  # enables `|>` for this repo's imported modules -- but not for `flake.nix`
+  # itself, which nix parses before it reads `nixConfig`, so a bare `nix` with
+  # no config still needs the feature in nix.conf. See
+  # docs/experimental-features.md.
+  #
+  # The two lists must stay literal: nix reads a flake's `nixConfig` before
+  # evaluating anything else and rejects a `let`-bound one with "expected a set
+  # but got a thunk". Keep each substituter adjacent to its key.
+  nixConfig = {
+    extra-experimental-features = [ "pipe-operators" ];
+    extra-substituters = [
+      "https://nix-community.cachix.org/"
+      "https://pre-commit-hooks.cachix.org/"
+      "https://numtide.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
+      "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
+    ];
+  };
 }

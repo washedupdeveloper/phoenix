@@ -67,11 +67,21 @@
   };
 
   # The broker stays reachable from the LAN -- the plant monitor is a separate
-  # device -- but 1883 is opened on `eth0` only rather than on every interface:
-  # `networkingMode=mirrored` in .wslconfig makes the guest share the Windows
-  # host's interfaces, so a bare `allowedTCPPorts` entry would publish the broker
-  # on all of them. If the interface is ever renamed, this rule silently stops
-  # matching and the device loses the broker.
+  # device -- and 1883 is written as an `eth0` rule rather than a bare
+  # `allowedTCPPorts` entry, because `networkingMode=mirrored` in .wslconfig
+  # makes this guest share the Windows host's interfaces and the bare form would
+  # cover all of them.
+  #
+  # THIS RULE DOES NOTHING TODAY. nixos-wsl disables the unit outright
+  # (`systemd.services.firewall.enable = false` in its `modules/systemd`), so
+  # `networking.firewall.*` is inert on any WSL machine and this guest runs no
+  # firewall at all -- confirmed by `firewall.service` being masked and by the
+  # live nftables ruleset carrying only WSL's own chains. The exposure is
+  # accepted deliberately: the broker belongs to a proof of concept, it still
+  # requires the vars-backed credential, and forcing the firewall on over
+  # nixos-wsl would risk the guest's networking for a LAN-only port. The rule is
+  # kept in the narrow form so it is already correct if that changes:
+  #   systemd.services.firewall.enable = lib.mkForce true;
   networking.firewall.interfaces.eth0.allowedTCPPorts = [ 1883 ];
   services.mosquitto = {
     enable = true;
