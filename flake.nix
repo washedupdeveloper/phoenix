@@ -1,9 +1,6 @@
 {
   description = "My ever-changing immutable homelab";
-  # Each input is consumed as a flake *module* -- re-instantiated against the
-  # pinned pkgs -- rather than for packages built against its own nixpkgs, so
-  # each follows the pinned copies instead of dragging in a second nixpkgs and
-  # flake-parts. See docs/flake-internals.md.
+
   inputs = {
     nixpkgs.follows = "clan-core/nixpkgs";
     clan-core = {
@@ -49,18 +46,14 @@
         inputs.clan-core.flakeModules.default
         inputs.devshell.flakeModule
         inputs.nix-topology.flakeModule
-        ./modules/nix-topology.nix
-        ./modules/git-hooks.nix
-        ./modules/treefmt.nix
-        ./modules/devshells/atomvm.nix
+        ./modules/flake/nix-topology.nix
+        ./modules/flake/git-hooks.nix
+        ./modules/flake/treefmt.nix
+        ./modules/flake/checks.nix
+        ./modules/flake/atomvm.nix
       ];
 
-      # A system here is a promise that every perSystem output evaluates for it,
-      # so it earns its place by having a machine. aarch64-linux joins with the
-      # Pi.
-      systems = [
-        "x86_64-linux"
-      ];
+      systems = [ "x86_64-linux" ];
 
       clan = {
         imports = [ (import ./clan.nix { inherit inputs; }) ];
@@ -131,11 +124,13 @@
       "https://nix-community.cachix.org/"
       "https://pre-commit-hooks.cachix.org/"
       "https://numtide.cachix.org"
+      "https://cache.clan.lol"
     ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
       "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
+      "cache.clan.lol-1:3KztgSAB5R1M+Dz7vzkBGzXdodizbgLXGXKXlcQLA28="
     ];
   };
 }

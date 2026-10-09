@@ -5,7 +5,7 @@
   # Machines join the diagram on their own -- nix-topology defaults
   # `topology.nixosConfigurations` to every config carrying a `topology`
   # option. This list is for additional topology modules only.
-  perSystem.topology.modules = [ ../topology.nix ];
+  perSystem.topology.modules = [ ../../topology.nix ];
 
   # `nix flake check` skips outputs it does not recognise with only a warning,
   # so without this a broken diagram is invisible. See docs/flake-internals.md.
