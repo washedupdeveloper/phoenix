@@ -127,4 +127,4 @@ The mechanisms behind the decisions taken in that review -- `nixConfig`, the two
 pkgs wirings, the input `follows` and the topology check -- are written up in
 [`../flake-internals.md`](../flake-internals.md). Inline comments in the Nix
 files are deliberately short pointers into these documents; the convention is
-stated in [`../README.md`](../README.md).
+stated in [`../../README.md`](../../README.md).

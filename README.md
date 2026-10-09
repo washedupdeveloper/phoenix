@@ -2,11 +2,11 @@
 
 | Document | Covers |
 | --- | --- |
-| [`adr/`](./adr/) | Decisions, with the options that were rejected and why. |
-| [`flake-internals.md`](./flake-internals.md) | The non-obvious mechanisms the inline comments point at: `nixConfig`, the two pkgs wiring, input `follows`, the topology check. |
-| [`shell-integrations.md`](./shell-integrations.md) | Which shell the fish-only integrations (direnv, `nix-your-shell`, starship) are written for, why the login shell has to match, and the fish key-binding spellings that are load-bearing. |
-| [`experimental-features.md`](./experimental-features.md) | Which Nix experimental features are enabled and why, the `\|>` semantics, and the constraints on enabling them. |
-| [`recommendations.md`](./recommendations.md) | Outstanding work, ordered Clan.lol -> flake-parts -> Nix3. |
+| [`adr/`](./docs/adr/) | Decisions, with the options that were rejected and why. |
+| [`flake-internals.md`](./docs/flake-internals.md) | The non-obvious mechanisms the inline comments point at: `nixConfig`, the two pkgs wiring, input `follows`, the topology check. |
+| [`shell-integrations.md`](./docs/shell-integrations.md) | Which shell the fish-only integrations (direnv, `nix-your-shell`, starship) are written for, why the login shell has to match, and the fish key-binding spellings that are load-bearing. |
+| [`experimental-features.md`](./docs/experimental-features.md) | Which Nix experimental features are enabled and why, the `\|>` semantics, and the constraints on enabling them. |
+| [`recommendations.md`](./docs/recommendations.md) | Outstanding work, ordered Clan.lol -> flake-parts -> Nix3. |
 
 ## Priority order
 
