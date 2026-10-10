@@ -25,7 +25,7 @@ config means accepting its substituters and its keys.
 `extra-experimental-features = [ "pipe-operators" ]` reaches the *imported
 modules*, which nix evaluates after it has read `nixConfig`, but not `flake.nix`
 itself: nix parses that file first, so a `|>` written there can never be
-self-enabled. That is why the feature is declared in four places rather than
+self-enabled. That is why the feature is declared in three places rather than
 one -- see [`experimental-features.md`](./experimental-features.md).
 
 ## Two pkgs wirings that must agree

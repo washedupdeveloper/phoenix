@@ -18,7 +18,6 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 
   programs.nix-ld.enable = true;
-  services.locate.enable = true;
 
   # Overrides base-system's `nix.gc.automatic = mkDefault true`, which makes
   # its gc.dates and gc.options inert here: `programs.nh.clean` below does
@@ -86,18 +85,39 @@
   # correct if that changes:
   #   systemd.services.firewall.enable = lib.mkForce true;
   networking.firewall.interfaces.eth0.allowedTCPPorts = [ 1883 ];
-  services.mosquitto = {
-    enable = true;
-    listeners = [
-      {
-        port = 1883;
-        users.plant_monitor = {
-          hashedPasswordFile =
-            config.clan.core.vars.generators.mosquitto-plant-monitor.files.plant-monitor-password-hash.path;
-          acl = [ "readwrite plants/#" ];
-        };
-      }
-    ];
+  services = {
+    # `prunePaths` REPLACES the nixpkgs default rather than extending it, so the
+    # default entries are restated here -- keep them in step with
+    # nixos/modules/misc/locate.nix. /mnt holds the host's volumes as 9p mounts
+    # (c, d, e, f), and indexing those from the guest is slow and useless.
+    locate = {
+      enable = true;
+      prunePaths = [
+        "/mnt"
+        "/tmp"
+        "/var/tmp"
+        "/var/cache"
+        "/var/lock"
+        "/var/run"
+        "/var/spool"
+        "/nix/store"
+        "/nix/var/log/nix"
+      ];
+    };
+
+    mosquitto = {
+      enable = true;
+      listeners = [
+        {
+          port = 1883;
+          users.plant_monitor = {
+            hashedPasswordFile =
+              config.clan.core.vars.generators.mosquitto-plant-monitor.files.plant-monitor-password-hash.path;
+            acl = [ "readwrite plants/#" ];
+          };
+        }
+      ];
+    };
   };
 
   # A NixOS-WSL guest, not a physical box: the CPU/GPU in the diagram belong to

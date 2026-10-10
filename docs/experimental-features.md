@@ -56,7 +56,7 @@ into `flakes`.
 
 ## Where it is enabled
 
-Four contexts, so four places:
+Four contexts, three places (the fourth sets nothing):
 
 | Context | Where |
 | --- | --- |

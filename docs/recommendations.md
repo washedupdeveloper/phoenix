@@ -287,7 +287,7 @@ config means accepting its substituters and its keys.
 modules*, which nix evaluates after it has read `nixConfig`. It cannot cover
 `flake.nix` itself, because nix parses that file before it reads `nixConfig` --
 so a `|>` written there can never be self-enabled. That is the whole reason the
-feature is declared in four places rather than one; see
+feature is declared in three places rather than one; see
 [`experimental-features.md`](./experimental-features.md).
 
 ### 3.7 Keep following clan-core's nixpkgs (decided)
