@@ -1,4 +1,4 @@
-# phoenix docs
+# phoenix
 
 | Document | Covers |
 | --- | --- |
@@ -29,10 +29,15 @@ applied where it does not belong, not a coin to flip.
 An inline comment earns its place only if the code cannot be understood without
 it. Concretely, it states what is **not evident** and **would cause a mistake**
 if unknown: a non-obvious requirement, a workaround, or the reason a line is
-written the surprising way. One or two lines, at a glance.
+written the surprising way.
 
-When the reasoning needs more room, the comment becomes a pointer -- `See
-docs/flake-internals.md` -- and the reasoning goes here.
+Most such comments are one or two lines, and that is the shape to aim for --
+a rule of thumb, not a limit. Length is situational: a subtle interaction can
+honestly need ten lines, and an obvious one needs none. The test is whether
+every line is load-bearing, not how many there are.
+
+When the reasoning outgrows the code it explains, the comment becomes a
+pointer -- `See docs/flake-internals.md` -- and the reasoning goes there.
 
 What does not belong inline:
 
