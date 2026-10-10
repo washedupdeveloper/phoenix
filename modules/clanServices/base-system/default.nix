@@ -152,11 +152,11 @@
                 # except `cache.clan.lol`, which flake.nix declares for other
                 # evaluators and this machine does not substitute from.
                 #
-                # `[ "root" "@wheel" ]` is nix's own default. The account clan
-                # creates is already in `@wheel`, so naming it as well only
-                # looked like a widening. The group entry has to stay: a trusted
-                # user may set restricted options, and the devshell's NIX_CONFIG
-                # (experimental-features) is one of them.
+                # nix's default is `root` alone; `@wheel` is added here
+                # deliberately, and that is a widening. It stays because a trusted
+                # user may set restricted options and the devshell's NIX_CONFIG
+                # (experimental-features) is one. The explicit `root` duplicates the
+                # default -- harmless, kept for readability.
                 trusted-users = [
                   "root"
                   "@wheel"
