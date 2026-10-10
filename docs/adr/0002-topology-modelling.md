@@ -45,7 +45,7 @@ the repository root.
 ## Decision
 
 1. **`topology.modules` lists the global topology module, not machines.**
-   `modules/flake/nix-topology.nix` sets `perSystem.topology.modules = [ ../topology.nix ]`.
+   `modules/flake/nix-topology.nix` sets `perSystem.topology.modules = [ ../../topology.nix ]`.
    The per-machine half is left to nix-topology's default, which is the
    documented behaviour.
 2. **Model the physical world, not the NixOS view of it.** The Windows host is

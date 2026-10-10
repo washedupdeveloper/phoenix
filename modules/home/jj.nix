@@ -9,6 +9,7 @@
       enable = true;
       settings = {
         user = identity;
+        # Parked: not enabled yet.
         # template = {
         #   aliases = {
         #     format_short_id = lib.mkDefault "id.shortest(12)";

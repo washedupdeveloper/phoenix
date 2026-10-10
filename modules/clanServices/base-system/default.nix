@@ -148,7 +148,9 @@
                 # substituters and its public keys, and that should not happen
                 # silently for every flake this machine ever evaluates. Nothing
                 # here needs it -- the caches, keys and `pipe-operators` that
-                # flake.nix's `nixConfig` asks for are set below at system level.
+                # flake.nix's `nixConfig` asks for are set below at system level,
+                # except `cache.clan.lol`, which flake.nix declares for other
+                # evaluators and this machine does not substitute from.
                 #
                 # `[ "root" "@wheel" ]` is nix's own default. The account clan
                 # creates is already in `@wheel`, so naming it as well only

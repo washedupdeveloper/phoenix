@@ -42,6 +42,7 @@
       nix-direnv.enable = true;
       enableFishIntegration = true;
     };
+    # Parked: not enabled yet.
     # fzf = {
     #   enable = true;
     #   enableFishIntegration = true;

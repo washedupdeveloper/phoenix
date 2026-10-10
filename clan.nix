@@ -123,6 +123,7 @@
       roles.default.extraModules = [ inputs.nix-topology.nixosModules.default ];
     };
 
+    # Parked: not deployed yet.
     # mycelium = {
     #   roles.peer.tags = [ "all" ];
     # };
@@ -135,6 +136,7 @@
     # };
 
     # Docs: https://clan.lol/docs/26.05/services/official/tor
+    # Parked: not deployed yet.
     # tor = {
     #   roles.server.tags.all = { };
     # };

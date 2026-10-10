@@ -255,7 +255,8 @@ of input that ships fixes. Recommended: keep floating.
 
 `treefmt` provides `formatter` and `checks.treefmt`, and the pre-commit hook
 runs it on staged files. Verified: `nix flake check` reports
-`checks.x86_64-linux` as `[ pre-commit topology treefmt ]`, so formatting *is*
+`checks.x86_64-linux` as `[ nixos-workstation pre-commit topology treefmt ]`, so
+formatting *is*
 covered by the check -- treefmt-nix names that check `treefmt`, not
 `formatting`. A pre-push hook running `nix fmt -- --fail-on-change` would still
 add something the check cannot: it catches drift in files that were written but
@@ -275,10 +276,13 @@ were already ignored. The remaining generated-but-tracked trees are `vars/`
 The flake declares `nixConfig.extra-substituters` and
 `extra-trusted-public-keys` so a third-party evaluator -- a CI runner, another
 machine -- can substitute this flake's inputs by accepting the flake config.
-Both machines here do (`nix.settings.accept-flake-config`,
-`modules/clanServices/base-system`). It is worth remembering that this is a
-trust decision, not a free win: accepting a flake's config means accepting its
-substituters and its keys.
+This machine does **not** (`nix.settings.accept-flake-config` is left at nix's
+default of `false` in `modules/clanServices/base-system`, deliberately), so the
+flake's `nixConfig` reaches other evaluators -- a CI runner, another machine --
+and not this one. Nothing here depends on accepting it: the caches and keys are
+set at system level instead, with one exception noted below. It is worth
+remembering that this is a trust decision, not a free win: accepting a flake's
+config means accepting its substituters and its keys.
 
 `extra-experimental-features = [ "pipe-operators" ]` covers the *imported
 modules*, which nix evaluates after it has read `nixConfig`. It cannot cover
