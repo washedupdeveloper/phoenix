@@ -86,19 +86,7 @@
       module.name = "importer";
       module.input = "clan-core";
       roles.default.machines.workstation = { };
-      roles.default.extraModules = [
-        ./modules/home/default.nix
-        (
-          { username, ... }:
-          {
-            home-manager.users.${username}.imports = [
-              ./modules/home/git.nix
-              ./modules/home/jj.nix
-              ./modules/home/shell.nix
-            ];
-          }
-        )
-      ];
+      roles.default.extraModules = [ ./modules/home/default.nix ];
     };
 
     base-system = {

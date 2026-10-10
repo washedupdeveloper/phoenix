@@ -1,6 +1,7 @@
 {
   lib,
   identity,
+  gitSigningKey,
   ...
 }:
 {
@@ -12,7 +13,9 @@
       commit.gpgsign = lib.mkDefault true;
       gpg.format = lib.mkDefault "ssh";
       gpg.ssh.allowedSignersFile = lib.mkDefault "~/.ssh/allowed_signers";
-      user = identity;
+      user = identity // {
+        signingkey = gitSigningKey;
+      };
     };
   };
 }

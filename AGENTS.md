@@ -7,10 +7,14 @@ decisions and the alternatives that were rejected. This file is the part needed
 ## Verify
 
 ```bash
-nix flake check --keep-going   # the gate
-nix fmt -- --ci                # treefmt: nixfmt, statix, deadnix
+nix flake check --keep-going   # the gate (builds; see below)
+nix fmt -- --ci                # formatting only -- treefmt runs nixfmt
 nix develop                    # nixd, statix, deadnix, nixfmt, clan-cli
 ```
+
+`nix fmt` formats and nothing else. **statix and deadnix are pre-commit
+hooks, not treefmt formatters**, so they run on commit (or on push, with the
+gate) and a green `nix fmt` says nothing about them.
 
 `nix flake check` is the gate, and it **builds**: `modules/flake/checks.nix`
 derives `flake.checks` from `nixosConfigurations`, so every machine's toplevel

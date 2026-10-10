@@ -153,10 +153,10 @@
                 # evaluators and this machine does not substitute from.
                 #
                 # nix's default is `root` alone; `@wheel` is added here
-                # deliberately, and that is a widening. It stays because a trusted
-                # user may set restricted options and the devshell's NIX_CONFIG
-                # (experimental-features) is one. The explicit `root` duplicates the
-                # default -- harmless, kept for readability.
+                # deliberately, and that is a widening: every @wheel account may
+                # then set restricted options. Kept as a deliberate choice --
+                # narrow it to the default if that is not wanted. The explicit
+                # `root` duplicates the default, harmlessly.
                 trusted-users = [
                   "root"
                   "@wheel"

@@ -23,7 +23,6 @@ recorded under "Considered and rejected" so it does not get re-litigated.
 | 4 | Added `description` and a `nixConfig` carrying the binary caches and `pipe-operators`. |
 | 5 | Stopped tracking the generated `.pre-commit-config.yaml`; ignored `result-*`. |
 | 6 | Collapsed duplicate inputs (34 to 24 lock nodes) and added `checks.<system>.topology`. |
-| 7 | Generalised the weekly refresh job over every branch-tracking input. |
 
 Row 6 covers `nixos-wsl`, `devshell`, `git-hooks` and `nix-topology` following
 the pinned `nixpkgs`, and clan-core's own `flake-parts` and `treefmt-nix`. Each followed node was at
