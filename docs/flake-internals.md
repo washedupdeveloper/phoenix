@@ -8,10 +8,12 @@ inline comment.
 
 `nixConfig.extra-substituters` and `extra-trusted-public-keys` are declared so a
 third-party evaluator -- a CI runner, another machine -- can substitute this
-flake's inputs by accepting the flake config. They exist for *other* evaluators:
-the keys match what `modules/clanServices/base-system` already trusts at system
-level, so the machine itself needs neither the flake's config nor
-`accept-flake-config`. That setting is deliberately left at nix's default
+flake's inputs by accepting the flake config. They exist for *other* evaluators.
+The overlap with `modules/clanServices/base-system` is partial: that module
+trusts nix-community, pre-commit-hooks and numtide, but **not**
+`cache.clan.lol`, so the machine needs neither the flake's config nor
+`accept-flake-config` -- and does not substitute from clan's cache. That
+setting is deliberately left at nix's default
 (`false`) -- accepting a flake's config means trusting its substituters and its
 keys, which is not something a machine should do silently for every flake it
 happens to evaluate.

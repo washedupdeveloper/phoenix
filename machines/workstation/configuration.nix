@@ -8,6 +8,10 @@
 {
   networking = {
     hostName = "workstation";
+    # Load-bearing, not cosmetic: the address comes from WSL mirrored
+    # networking on the Windows host, and leaving useDHCP at its default
+    # would make nixpkgs generate a Match-all DHCP client that competes
+    # with the host for the lease.
     useDHCP = false;
   };
 
@@ -16,6 +20,9 @@
   programs.nix-ld.enable = true;
   services.locate.enable = true;
 
+  # Overrides base-system's `nix.gc.automatic = mkDefault true`, which makes
+  # its gc.dates and gc.options inert here: `programs.nh.clean` below does
+  # the same job with a keep-policy, and running both would duplicate it.
   nix.gc.automatic = false;
 
   # These are per-host facts, not clan baseline: how much headroom a host has,
@@ -23,16 +30,13 @@
   # raised from the original guardrail (max-jobs 2 / cores 4) to 6 x 2 = 12
   # threads, half of the host's 24 -- see docs/adr/0003.
   #
-  # `download-buffer-size` is Nix's internal curl buffer, and it exists only to
-  # stop substitutions stalling when a transfer outruns Nix's processing (the
-  # "download buffer is full" warning). Nix 2.35 defaults it to 1 MiB; 500 MiB is
-  # ~500x that, and above the 64 MiB that still warned on gigabit links. It is
-  # allocated per transfer and `http-connections` defaults to 25, so raise it
-  # only if that warning actually appears.
+  # `download-buffer-size` is deliberately NOT set. Nix 2.33 fixed the root
+  # cause of the "download buffer is full" warning with libcurl write pausing
+  # and lowered the default to 1 MiB, stating it is no longer recommended to
+  # raise it. The pinned Nix is 2.35.2.
   nix.settings = {
     max-jobs = 6;
     cores = 2;
-    download-buffer-size = 524288000;
   };
 
   programs.nh = {
@@ -75,12 +79,11 @@
   # THIS RULE DOES NOTHING TODAY. nixos-wsl disables the unit outright
   # (`systemd.services.firewall.enable = false` in its `modules/systemd`), so
   # `networking.firewall.*` is inert on any WSL machine and this guest runs no
-  # firewall at all -- confirmed by `firewall.service` being masked and by the
-  # live nftables ruleset carrying only WSL's own chains. The exposure is
-  # accepted deliberately: the broker belongs to a proof of concept, it still
-  # requires the vars-backed credential, and forcing the firewall on over
-  # nixos-wsl would risk the guest's networking for a LAN-only port. The rule is
-  # kept in the narrow form so it is already correct if that changes:
+  # firewall at all. The exposure is accepted deliberately: the broker belongs
+  # to a proof of concept, it still requires the vars-backed credential, and
+  # forcing the firewall on over nixos-wsl would risk the guest's networking for
+  # a LAN-only port. The rule is kept in the narrow form so it is already
+  # correct if that changes:
   #   systemd.services.firewall.enable = lib.mkForce true;
   networking.firewall.interfaces.eth0.allowedTCPPorts = [ 1883 ];
   services.mosquitto = {

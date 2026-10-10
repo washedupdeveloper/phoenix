@@ -68,9 +68,9 @@
 
           # nixos-wsl enables this for WSLg's GPU acceleration. Nothing on this
           # machine runs a graphical program, and the stack it drags in -- mesa,
-          # its llvm-lib, mesa-libgbm, vulkan-loader -- is ~1.6 GiB of a 2.4 GiB
-          # system closure. Forced off; delete this line to get it back, which a
-          # GUI app running under WSLg would need.
+          # its llvm-lib, mesa-libgbm, vulkan-loader -- is ~0.8 GiB: the closure
+          # went 2.4 GiB -> 1.6 GiB in 5530cbf. Forced off; delete this line to
+          # get it back, which a GUI app running under WSLg would need.
           hardware.graphics.enable = lib.mkForce false;
         };
     };

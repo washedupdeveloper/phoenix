@@ -43,14 +43,11 @@
               "nixolotl" =
                 "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhTgCNuk6WYCrN0Sl0ViGe7cpPofT2ECwUYQ0uQ5zLm nixolotl@proton.me";
             };
-            # certificate.searchDomains = [ "example.com" ];
           };
         };
         client = {
           tags = [ "all" ];
-          settings = {
-            # certificate.searchDomains = [ "example.com" ];
-          };
+          settings = { };
         };
       };
     };

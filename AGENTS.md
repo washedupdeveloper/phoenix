@@ -55,7 +55,9 @@ Each of these is a trap that yields a plausible-looking wrong result.
 - **`networking.firewall.*` is inert here.** nixos-wsl disables the firewall
   unit, so a rule documents intent and does not filter. Do not read a rule as
   protection, and do not file a port finding from the config alone — check
-  whether the unit is even running.
+  whether the unit is even running. This behaviour is set by the **nixos-wsl
+  pin in `flake.lock`**, not by anything here, so a `nix flake update` can
+  change it silently.
 - **The cache lists exist twice** — `flake.nix`'s `nixConfig` (for other
   evaluators) and `base-system`'s `nix.settings` (for this machine). They are
   not required to match, but a cache added to one and not the other is inert on

@@ -17,6 +17,18 @@
           hooks = {
             treefmt.enable = true;
 
+            # The build gate, which nothing ran before: `nix flake check`
+            # builds every check, including the machine toplevel that
+            # modules/flake/checks.nix derives. That is minutes of work, so it
+            # runs at pre-push rather than on every commit.
+            flake-check = {
+              enable = true;
+              name = "nix flake check";
+              entry = "nix flake check";
+              pass_filenames = false;
+              stages = [ "pre-push" ];
+            };
+
             check-added-large-files.enable = true;
 
             deadnix = {
