@@ -62,8 +62,15 @@
     ];
 
     script = ''
+      # `-U` hashes a plaintext `user:password` file in place. The `-b` form
+      # would put the secret in argv instead, where /proc/<pid>/cmdline stays
+      # world-readable for the life of the process. The plaintext file is built
+      # by redirection, so it never becomes an argument either. `umask` comes
+      # first so that file is 0600 for the moment it exists.
+      umask 077
       xkcdpass --numwords 6 --delimiter - --count 1 | tr -d "\n" > "$out"/plant-monitor-password
-      mosquitto_passwd -c -b "$out"/plant-monitor-passwd plant_monitor "$(cat "$out"/plant-monitor-password)"
+      { printf 'plant_monitor:'; cat "$out"/plant-monitor-password; printf '\n'; } > "$out"/plant-monitor-passwd
+      mosquitto_passwd -U "$out"/plant-monitor-passwd
       cut -d: -f2 "$out"/plant-monitor-passwd > "$out"/plant-monitor-password-hash
       rm "$out"/plant-monitor-passwd
     '';
@@ -79,11 +86,24 @@
   # (`systemd.services.firewall.enable = false` in its `modules/systemd`), so
   # `networking.firewall.*` is inert on any WSL machine and this guest runs no
   # firewall at all. The exposure is accepted deliberately: the broker belongs
-  # to a proof of concept, it still requires the vars-backed credential, and
-  # forcing the firewall on over nixos-wsl would risk the guest's networking for
-  # a LAN-only port. The rule is kept in the narrow form so it is already
-  # correct if that changes:
+  # to a proof of concept and forcing the firewall on over nixos-wsl would risk
+  # the guest's networking for one service's port. The rule is kept in the
+  # narrow form so it is already correct if that changes:
   #   systemd.services.firewall.enable = lib.mkForce true;
+  #
+  # Three things that acceptance does not say, recorded so it is not narrower
+  # than what it covers:
+  #   - It is not only the broker. With the unit off every listener is open, and
+  #     `base-system` asks for sshd as well (`services.openssh.openFirewall`
+  #     yields `allowedTCPPorts = [ 22 ]`): :22 and :1883 both accept from
+  #     anywhere the host is reachable.
+  #   - The credential does not protect the wire. The listener sets no
+  #     `cafile`/`certfile`/`keyfile`, so MQTT is cleartext and the password is
+  #     readable in transit. It bounds an active guesser, not a passive
+  #     listener.
+  #   - "LAN" means whatever the Windows host is exposed to. Mirrored
+  #     networking shares the host's interfaces, so the reach is the host's
+  #     reach -- including any interface it bridges or VPNs.
   networking.firewall.interfaces.eth0.allowedTCPPorts = [ 1883 ];
   services = {
     # `prunePaths` REPLACES the nixpkgs default rather than extending it, so the
@@ -127,10 +147,16 @@
     guestType = "wsl";
     hardware.info = "NixOS-WSL (WSL2)";
 
+    # `networkingMode=mirrored` on the host: the guest shares the host's
+    # interfaces, so this NIC carries its own address on the LAN rather than one
+    # on a NAT segment. WSL assigns it, not the guest -- see `useDHCP = false`
+    # above.
     interfaces.wsl0 = {
-      network = "wsl-nat";
+      network = "lan";
       virtual = true;
       type = "ethernet";
+      addresses = [ "192.168.68.108/24" ];
+      gateways = [ "192.168.68.1" ];
     };
 
     # Overrides only the rendered text, to work around an upstream nix-topology

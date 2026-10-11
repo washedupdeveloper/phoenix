@@ -1,5 +1,5 @@
 # The parts of the topology that cannot be derived from a NixOS config: the
-# uplink, the router, the Windows host and the two network segments.
+# uplink, the router, the Windows host and the LAN.
 # Per-machine facts belong under `topology.self` in the machine's own config.
 # https://oddlama.github.io/nix-topology/defining-additional-things.html
 { config, ... }:
@@ -29,6 +29,10 @@ in
 
     # Not a NixOS machine, so nothing about it can be derived. Values taken from
     # the host's `ipconfig /all`.
+    #
+    # No Hyper-V switch is modelled: `networkingMode=mirrored` in the host's
+    # `.wslconfig` puts the guest's NIC straight onto the LAN rather than behind
+    # a NAT, so there is no second segment to draw. See docs/adr/0002.
     windows-host = mkDevice "Desktop-Storm" {
       info = "Windows 11 host - Ryzen 9 9900X3D / Radeon RX 9070 XT";
       connections.eth = mkConnection "home-router" "lan";
@@ -41,15 +45,6 @@ in
           addresses = [ "192.168.68.107/24" ];
           gateways = [ "192.168.68.1" ];
         };
-
-        # The Hyper-V switch WSL2 attaches to. Windows owns it and NATs it onto
-        # the LAN, hence its own network rather than a second `lan` interface.
-        wsl-switch = {
-          network = "wsl-nat";
-          virtual = true;
-          type = "ethernet";
-          physicalConnections = [ (mkConnection "workstation" "wsl0") ];
-        };
       };
     };
   };
@@ -59,8 +54,5 @@ in
       name = "Home network";
       cidrv4 = "192.168.68.0/24";
     };
-
-    # Windows picks the range per boot, so no cidrv4 is claimed.
-    wsl-nat.name = "WSL2 NAT";
   };
 }

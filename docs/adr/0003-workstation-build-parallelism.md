@@ -26,9 +26,12 @@ powers down one of the 9900X3D's two CCDs and disables SMT, leaving 6 cores /
 6 threads instead of 12 / 24. WSL passed the reduced count straight through as
 `nr_cpus=6`. Disabling the mode restored 12 cores / 24 threads, and the WSL
 `wsl2.processors cannot exceed the number of logical processors` warning
-disappeared with it -- that warning compares the configured count against the
-count Windows reports, and with no `processors` key in `.wslconfig` there is no
-configured count to compare.
+disappeared with it. That warning compares the configured count against the
+count Windows reports, and `.wslconfig` does configure one -- `processors=12`,
+half the host's 24. With the firmware reporting 6, the configured 12 exceeded
+it and the warning fired; restoring 12 logical processors satisfied it.
+*Corrected on 2026-10-11: this paragraph previously claimed `.wslconfig` had no
+`processors` key, which it has had since it was written.*
 
 So the load is not the whole story, and the host is still under investigation
 for the power-off itself (memory profile, firmware, WHEA). The cap below is a

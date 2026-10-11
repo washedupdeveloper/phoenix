@@ -116,12 +116,13 @@
 
             users.mutableUsers = lib.mkDefault false;
             # Accepted risk, recorded rather than left implicit: this is a
-            # single-user WSL guest, its only interactive account is clan-managed
-            # (vars-backed password), SSH is key-only -- PasswordAuthentication
-            # and KbdInteractiveAuthentication are both off above -- and that
-            # account is in `@wheel`, which is also a nix trusted-user. A sudo
-            # password would not add a boundary nothing else crosses. Flip this
-            # to `true` if the machine ever gains a second user.
+            # single-user WSL guest. Both of its accounts are clan-managed and
+            # vars-backed -- `nixolotl` and `root` -- and SSH is key-only:
+            # PasswordAuthentication and KbdInteractiveAuthentication are both
+            # off above. `nixolotl` is in `@wheel`, which is also a nix
+            # trusted-user. A sudo password would not add a boundary nothing
+            # else crosses. Flip this to `true` if the machine ever gains a
+            # second human user.
             security.sudo.wheelNeedsPassword = lib.mkDefault false;
             security.sudo.execWheelOnly = lib.mkDefault true;
 

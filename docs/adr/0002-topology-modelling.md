@@ -7,8 +7,10 @@
 ## Context
 
 `workstation` is not a physical machine. It is a NixOS-WSL guest running under
-a Windows 11 host, on a private NAT segment that Windows creates and manages,
-which is itself behind an ISP router on the home LAN. The repository carried a
+a Windows 11 host, which sits behind an ISP router on the home LAN. The guest
+was on a private NAT segment that Windows created and managed when this ADR was
+drafted; `networkingMode=mirrored` has since replaced that with a direct LAN
+presence, and the correction under (2) is dated. The repository carried a
 `topology.nix` describing an internet uplink, a "Windows Host" with one
 unnamed NIC, and a `lan` network -- and nothing imported it.
 
@@ -49,10 +51,16 @@ the repository root.
    The per-machine half is left to nix-topology's default, which is the
    documented behaviour.
 2. **Model the physical world, not the NixOS view of it.** The Windows host is
-   a `device` node carrying the hardware, the wired NIC's MAC and DHCP address,
-   and the Hyper-V switch WSL2 attaches to. The router is a `router` node. The
-   LAN and WSL2's NAT segment are two separate networks, because they are two
-   separate networks -- folding them together would misrepresent the NAT.
+   a `device` node carrying the hardware and the wired NIC's MAC and DHCP
+   address. The router is a `router` node. The LAN and WSL2's segment are
+   modelled as separate networks only for as long as they *are* separate --
+   folding them together would have misrepresented the NAT.
+   *Corrected on 2026-10-11: the host has run `networkingMode=mirrored` since
+   before this ADR was written, so there is no NAT segment and there never was
+   one to draw. `topology.nix` no longer defines `wsl-nat`, the host no longer
+   carries a `wsl-switch` interface, and the guest's `wsl0` sits on `lan` with
+   its own address. The principle above is unchanged; the model was simply wrong
+   about which world to model.*
 3. **The guest relationship is declared, not implied.**
    `topology.self.parent = "windows-host"` plus `guestType = "wsl"` on the
    machine, so the diagram draws the NixOS node under its host. `guestType` is
@@ -141,15 +149,16 @@ behaviour should not be a rendering decision, so the workaround stays in
 - A future upstream fix to the mosquitto extractor makes the override in
   `machines/workstation/configuration.nix` redundant. It can be deleted then;
   it is `lib.mkForce`, so it will keep winning until it is.
-- The Windows host's addresses are recorded by hand from `ipconfig /all`. If
-  the DHCP lease or the NIC changes, the diagram is wrong until
-  `topology.nix` is edited. The MAC is the stable part.
+- The Windows host's addresses are recorded by hand from `ipconfig /all`, and
+  the guest's from `ip addr`. If a DHCP lease or the NIC changes, the diagram is
+  wrong until `topology.nix` (host) or the machine's `topology.self` (guest) is
+  edited. The MAC is the stable part.
 
 ## Action Items
 
 1. [x] `nix build .#topology.x86_64-linux.config.output` succeeds and
-   `main.svg` shows Internet -> Home router -> Desktop-Storm, the WSL2 NAT
-   network, and the NixOS node hanging off the host's `guests` port.
+   `main.svg` shows Internet -> Home router -> Desktop-Storm with the guest on
+   the LAN, the NixOS node hanging off the host's `guests` port.
 2. [x] `nix flake check` passes, and lists `checks.x86_64-linux.topology`.
 3. [ ] Consider filing the mosquitto extractor bug upstream -- see
    [`../recommendations.md`](../recommendations.md) section 4.1.

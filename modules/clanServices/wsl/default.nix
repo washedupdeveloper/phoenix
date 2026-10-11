@@ -45,8 +45,12 @@
           '';
 
           # WSL exposes binfmt_misc with a read-only status file, so systemd's
-          # binfmt service can never apply binfmt.d rules and fails at boot.
-          # Nothing here registers binary formats, so it is disabled.
+          # binfmt service can never apply binfmt.d rules and fails at boot. It
+          # is disabled for that reason, not for lack of rules: the `wsl` block
+          # below sets `interop.register = true`, which does declare
+          # `boot.binfmt.registrations.WSLInterop`. The declaration is inert --
+          # WSL registers the format itself and systemd-binfmt is masked -- so
+          # interop works without the unit.
           systemd.services.systemd-binfmt.enable = false;
 
           wsl = {

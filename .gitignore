@@ -8,3 +8,6 @@ result-*
 
 # Local council run output (findings, plans, score) - analysis, not source.
 .review-council/
+
+# The running broker's persistence file. Local runtime state, not source.
+mosquitto.db
