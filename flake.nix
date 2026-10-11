@@ -50,6 +50,7 @@
         ./modules/flake/git-hooks.nix
         ./modules/flake/treefmt.nix
         ./modules/flake/checks.nix
+        ./modules/flake/tests.nix
         ./modules/flake/atomvm.nix
       ];
 

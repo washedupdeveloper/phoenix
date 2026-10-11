@@ -22,6 +22,12 @@ is built rather than merely evaluated. Without it a machine that evaluates but
 fails to build would pass — the one failure a config repository most needs
 caught.
 
+`nix flake check` is also where the tests run. `modules/flake/tests.nix`
+contributes `unit-<group>` (evaluation-time assertions, milliseconds) and
+`e2e-<name>` (a VM that boots the real modules, minutes). `docs/testing.md`
+covers what each can and cannot prove, and the two environment requirements the
+VM tests depend on.
+
 ## Layout
 
 | Path | Axis | Holds |
@@ -33,6 +39,7 @@ caught.
 | `modules/home/` | per-user | home-manager modules |
 | `machines/<name>/` | per-machine | that machine's NixOS configuration |
 | `topology.nix` | — | the physical model for nix-topology |
+| `tests/` | per-system | test definitions, imported by `modules/flake/tests.nix` |
 
 The axis is the point. `modules/flake/` is instantiated **once per system** and
 contributes flake outputs; everything else is instantiated **per machine**. A

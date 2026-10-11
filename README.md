@@ -7,6 +7,7 @@
 | [`shell-integrations.md`](./docs/shell-integrations.md) | Which shell the fish-only integrations (direnv, `nix-your-shell`, starship) are written for, why the login shell has to match, and the fish key-binding spellings that are load-bearing. |
 | [`experimental-features.md`](./docs/experimental-features.md) | Which Nix experimental features are enabled and why, the `\|>` semantics, and the constraints on enabling them. |
 | [`recommendations.md`](./docs/recommendations.md) | Outstanding work, ordered Clan.lol -> flake-parts -> Nix3. |
+| [`testing.md`](./docs/testing.md) | The unit/e2e split, what each proves, and the environment requirements the VM tests depend on. |
 
 ## Priority order
 
