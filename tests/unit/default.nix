@@ -1,21 +1,22 @@
-# Unit tests: assertions about the *evaluated* configuration.
+# Core unit tests: assertions about the *evaluated* system configuration.
 #
-# These are not VM tests and they do not build anything. Each one reads a value
-# out of a machine's evaluated config and compares it with what this repository
-# intends, so a change that silently alters the security posture, the topology
-# model or a pinned value fails the gate in milliseconds instead of never.
+# Scope is the system itself -- what it is, what it exposes, and what it must
+# never become. Service-specific expectations (a broker's port, a server's
+# credentials) do not belong here: they are properties of a module, and they
+# move with that module into its own test when it becomes its own module.
 #
-# The properties below are the ones this repository has actually got wrong, plus
-# the ones AGENTS.md names as a trap that yields a plausible-looking wrong
-# result. Anything a build can already see is deliberately absent -- a test that
-# restates the build adds a second place to be wrong.
+# These are not VM tests and they build nothing. Each one reads a value out of a
+# machine's evaluated config and compares it with what this repository intends,
+# so a change that silently alters the system fails the gate in milliseconds.
 #
 # Naming: `lib.runTests` only runs an attribute whose name starts with `test`.
 {
   lib,
   machines,
-  topology,
   systems,
+  topology,
+  clan,
+  clanInternals,
 }:
 let
   named = lib.mapAttrsToList (name: cfg: {
@@ -23,57 +24,148 @@ let
     inherit (cfg) config;
   }) machines;
 
-  # `topology.self` is a nix-topology option, so a machine without the module
-  # does not have it at all.
-  topologySelfOf = m: m.config.topology.self or null;
+  # --------------------------------------------------------------------------
+  # Helpers
+  # --------------------------------------------------------------------------
 
-  # Every network any machine's `topology.self` puts an interface on.
-  referencedNetworks = lib.unique (
-    lib.concatMap (
-      m:
-      let
-        self = topologySelfOf m;
-      in
-      if self == null then
-        [ ]
-      else
-        lib.concatMap (iface: lib.optional (iface ? network) iface.network) (
-          lib.attrValues (self.interfaces or { })
-        )
-    ) named
+  # A clan role is assigned to machines three ways -- `tags = [ "x" ]`,
+  # `tags.x = { }`, or `machines.<name> = { }` -- and clan accepts all three.
+  # Normalise so a check does not depend on which spelling was used.
+  tagNames =
+    tags:
+    if builtins.isList tags then
+      tags
+    else if builtins.isAttrs tags then
+      builtins.attrNames tags
+    else
+      [ ];
+
+  # Every role of every instance, flattened.
+  roles = lib.concatMap (
+    instanceName:
+    let
+      instance = clan.inventory.instances.${instanceName};
+    in
+    lib.mapAttrsToList (roleName: role: {
+      inherit instanceName roleName;
+      tags = tagNames (role.tags or [ ]);
+      machines = builtins.attrNames (role.machines or { });
+      module = instance.module.name;
+      input = instance.module.input or null;
+    }) (instance.roles or { })
+  ) (builtins.attrNames clan.inventory.instances);
+
+  # The tags any machine actually carries.
+  machineTags = lib.unique (
+    lib.concatMap (m: tagNames (m.tags or [ ])) (builtins.attrValues clan.inventory.machines)
   );
 
-  definedNetworks = lib.attrNames topology.networks;
-  topologyNodes = lib.attrNames topology.nodes;
+  machineNames = builtins.attrNames clan.machines;
 
-  # The credential generator SEC-0001 changed. Kept as a lookup rather than a
-  # path so a rename fails loudly here instead of reading `null` and passing.
-  generatorsOf = m: m.config.clan.core.vars.generators or { };
-  credentialGenerators = lib.filterAttrs (name: _: name == "mosquitto-plant-monitor") (
-    lib.foldl' (acc: m: acc // generatorsOf m) { } named
+  # --------------------------------------------------------------------------
+  # Ports. The point of this group is the word "only": the set of ports this
+  # system declares as reachable is enumerated here, in full, so a new service
+  # cannot open one without this list being edited on purpose.
+  #
+  # `networking.firewall.*` is inert on a WSL guest (nixos-wsl disables the
+  # unit), so this is a declaration of intent rather than a filter. The e2e
+  # ports test is what checks the running system; this checks the intent, and
+  # the two must agree.
+  # --------------------------------------------------------------------------
+  declaredTcp = lib.unique (
+    lib.concatMap (m: m.config.networking.firewall.allowedTCPPorts or [ ]) named
   );
+  declaredUdp = lib.unique (
+    lib.concatMap (m: m.config.networking.firewall.allowedUDPPorts or [ ]) named
+  );
+  sshdPorts = lib.unique (lib.concatMap (m: m.config.services.openssh.ports or [ ]) named);
 
-  # The generator's script, as text, for the ordering assertion below.
-  scriptLines = script: lib.splitString "\n" script;
-  lineIndexOf =
-    needle: lines:
-    lib.findFirst (i: lib.hasInfix needle (lib.elemAt lines i)) null (
-      lib.range 0 (lib.length lines - 1)
-    );
-
-  sshdSettingsOf = m: m.config.services.openssh.settings or { };
+  # --------------------------------------------------------------------------
+  # clan deployability helpers
+  # --------------------------------------------------------------------------
+  deployableMachines = builtins.attrNames (clanInternals.machines.${builtins.head systems} or { });
 in
 {
   # --------------------------------------------------------------------------
-  # Security posture. These are the settings the council audits and the
-  # reasoning for which lives in the modules' own comments.
+  # What the system is. A drift here is silent and changes the machine.
+  # --------------------------------------------------------------------------
+  system = {
+    test_state_version_is_pinned = {
+      expr = lib.unique (lib.map (m: m.config.system.stateVersion) named);
+      expected = [ "26.05" ];
+    };
+
+    test_host_name_is_declared = {
+      expr = lib.unique (lib.map (m: m.config.networking.hostName) named);
+      expected = [ "workstation" ];
+    };
+
+    test_time_zone_is_declared = {
+      expr = lib.unique (lib.map (m: m.config.time.timeZone) named);
+      expected = [ "Europe/Copenhagen" ];
+    };
+
+    test_locale_and_keymap_are_declared = {
+      expr = lib.unique (lib.map (m: "${m.config.i18n.defaultLocale}:${m.config.console.keyMap}") named);
+      expected = [ "en_DK.UTF-8:dk-latin1" ];
+    };
+
+    test_every_machine_is_x86_64_linux = {
+      expr = lib.unique (lib.map (m: m.config.nixpkgs.hostPlatform.system) named);
+      expected = [ "x86_64-linux" ];
+    };
+
+    # The flake builds for exactly the systems it declares.
+    test_every_machine_runs_on_a_declared_system = {
+      expr = lib.all (m: lib.elem m.config.nixpkgs.hostPlatform.system systems) named;
+      expected = true;
+    };
+  };
+
+  # --------------------------------------------------------------------------
+  # What the system exposes. See the note above the `ports` group: this is the
+  # "and nothing else" half of the suite.
+  # --------------------------------------------------------------------------
+  ports = {
+    test_only_the_declared_tcp_ports_are_reachable = {
+      expr = declaredTcp;
+      # 22 -- sshd. Declared by `services.openssh.openFirewall`.
+      expected = [ 22 ];
+    };
+
+    test_only_the_declared_udp_ports_are_reachable = {
+      expr = declaredUdp;
+      # 5353 -- mDNS, declared by clan-core's own networking module for its
+      # local discovery. Not this repository's doing, and not something to
+      # remove without checking clan's networking guide first.
+      expected = [ 5353 ];
+    };
+
+    # The firewall entry and the listener must not drift apart: a port declared
+    # open that nothing listens on is a stale rule, and a listener with no rule
+    # is an accident waiting for the firewall to be switched on.
+    test_sshd_listens_on_exactly_its_declared_port = {
+      expr = sshdPorts;
+      expected = [ 22 ];
+    };
+
+    # Nothing in this repository may open a bare port beyond sshd. A service
+    # that needs one gets an interface-scoped rule instead.
+    test_the_only_bare_tcp_port_is_sshd = {
+      expr = lib.subtractLists sshdPorts declaredTcp;
+      expected = [ ];
+    };
+  };
+
+  # --------------------------------------------------------------------------
+  # Security posture. These are the settings a change can quietly relax.
   # --------------------------------------------------------------------------
   security = {
     test_sshd_refuses_password_authentication = {
       expr = lib.all (
         m:
         let
-          s = sshdSettingsOf m;
+          s = m.config.services.openssh.settings or { };
         in
         (s.PasswordAuthentication or null) == false && (s.KbdInteractiveAuthentication or null) == false
       ) named;
@@ -81,7 +173,9 @@ in
     };
 
     test_sshd_refuses_root_passwords = {
-      expr = lib.all (m: (sshdSettingsOf m).PermitRootLogin or null == "prohibit-password") named;
+      expr = lib.all (
+        m: (m.config.services.openssh.settings or { }).PermitRootLogin or null == "prohibit-password"
+      ) named;
       expected = true;
     };
 
@@ -92,12 +186,34 @@ in
       expr = lib.all (
         m:
         let
-          users = m.config.users.users or { };
-          withHash = lib.filterAttrs (_: u: u.hashedPasswordFile or null != null) users;
+          withHash = lib.filterAttrs (_: u: u.hashedPasswordFile or null != null) (
+            m.config.users.users or { }
+          );
         in
         lib.all (u: lib.hasPrefix "/run/secrets-for-users/vars/" u.hashedPasswordFile) (
           lib.attrValues withHash
         )
+      ) named;
+      expected = true;
+    };
+
+    # No account may be created without a password and without being locked:
+    # an empty password is a login, not a missing one.
+    test_no_account_has_an_empty_password = {
+      expr = lib.all (
+        m:
+        let
+          users = m.config.users.users or { };
+        in
+        lib.all (
+          u:
+          let
+            pw = u.hashedPassword or null;
+          in
+          # `null` means no password set (fine if the account is locked or has
+          # a file); an empty string is a password that is the empty string.
+          pw == null || pw != ""
+        ) (lib.attrValues users)
       ) named;
       expected = true;
     };
@@ -117,80 +233,41 @@ in
       expected = true;
     };
 
-    # The broker's rule is written per-interface on purpose: mirrored
-    # networking shares the host's interfaces, so the bare list would open the
-    # port everywhere. See the comment above the rule.
-    test_the_broker_port_is_interface_scoped = {
-      expr = lib.all (
-        m:
-        let
-          fw = m.config.networking.firewall;
-        in
-        lib.elem 1883 (fw.interfaces.eth0.allowedTCPPorts or [ ])
-        && !(lib.elem 1883 (fw.allowedTCPPorts or [ ]))
-      ) named;
-      expected = true;
-    };
-
-    # Nothing else may join sshd on the bare list without this test being
-    # updated, which is the point: the list is the set of ports open on every
-    # interface the machine has.
-    test_only_sshd_opens_a_bare_port = {
-      expr = lib.all (m: (m.config.networking.firewall.allowedTCPPorts or [ ]) == [ 22 ]) named;
+    # No unfree or known-insecure package may be admitted without this list
+    # being edited.
+    test_no_insecure_packages_are_permitted = {
+      expr = lib.all (m: (m.config.nixpkgs.config.permittedInsecurePackages or [ ]) == [ ]) named;
       expected = true;
     };
   };
 
   # --------------------------------------------------------------------------
-  # The credential generator. SEC-0001 was a secret in argv; these pin the
-  # shape of the fix so it cannot silently regress.
+  # Integrity. nixpkgs ships ~1500 assertions and a warning channel; both are
+  # free sanity checks that this repository's own changes can trip.
   # --------------------------------------------------------------------------
-  generator = {
-    test_the_generator_exists = {
-      expr = lib.attrNames credentialGenerators;
-      expected = [ "mosquitto-plant-monitor" ];
+  integrity = {
+    # A failed assertion is nixpkgs saying the configuration is internally
+    # inconsistent. The build would fail too, but the message here is the
+    # assertion's own.
+    test_no_nixpkgs_assertion_fails = {
+      expr = lib.concatMap (
+        m:
+        map (a: "${m.name}: ${a.message}") (builtins.filter (a: !a.assertion) (m.config.assertions or [ ]))
+      ) named;
+      expected = [ ];
     };
 
-    # `-b` puts the passphrase in argv, where /proc/<pid>/cmdline is
-    # world-readable. `-U` hashes a file in place instead.
-    test_the_secret_is_never_an_argument = {
-      expr = lib.all (
-        g:
-        let
-          s = g.script or "";
-        in
-        lib.hasInfix "mosquitto_passwd" s && !(lib.hasInfix "-b " s)
-      ) (lib.attrValues credentialGenerators);
-      expected = true;
+    # Warnings do not fail a build, so nothing else in the gate would catch
+    # them. Deprecations and misconfigurations surface here.
+    test_no_nixpkgs_warning_is_emitted = {
+      expr = lib.concatMap (m: map (w: "${m.name}: ${w}") (m.config.warnings or [ ])) named;
+      expected = [ ];
     };
 
-    test_the_hash_is_produced_in_place = {
-      expr = lib.all (g: lib.hasInfix "mosquitto_passwd -U" (g.script or "")) (
-        lib.attrValues credentialGenerators
-      );
-      expected = true;
-    };
-
-    # `umask` has to precede the first write, or the plaintext lands 0644 and
-    # mosquitto_passwd warns it is world-readable. This is the ordering bug
-    # found while fixing SEC-0001.
-    test_umask_precedes_the_first_secret_write = {
-      expr = lib.all (
-        g:
-        let
-          lines = scriptLines (g.script or "");
-          umaskAt = lineIndexOf "umask" lines;
-          secretAt = lineIndexOf "plant-monitor-password" lines;
-        in
-        umaskAt != null && secretAt != null && umaskAt < secretAt
-      ) (lib.attrValues credentialGenerators);
-      expected = true;
-    };
-
-    test_the_intermediate_plaintext_is_removed = {
-      expr = lib.all (g: lib.hasInfix "rm \"$out\"/plant-monitor-passwd" (g.script or "")) (
-        lib.attrValues credentialGenerators
-      );
+    # The firewall must be asked for, even though nixos-wsl disables the unit.
+    # Turning it off entirely would make the declaration above meaningless.
+    test_the_firewall_is_declared_on = {
+      expr = lib.all (m: m.config.networking.firewall.enable == true) named;
       expected = true;
     };
   };
@@ -201,41 +278,95 @@ in
   # --------------------------------------------------------------------------
   structure = {
     test_every_machine_declares_its_guest_relationship = {
-      expr = lib.all (m: (topologySelfOf m).parent or null != null) named;
+      expr = lib.all (m: (m.config.topology.self or { }).parent or null != null) named;
       expected = true;
     };
 
-    test_every_machine_runs_on_a_declared_system = {
-      expr = lib.all (m: lib.elem m.config.nixpkgs.hostPlatform.system systems) named;
-      expected = true;
-    };
-
-    # The topology check catches the class of bug fixed in RD-0003: a machine
-    # put on a network the global model does not define renders a dangling
-    # node, and nothing else notices.
     test_every_referenced_network_is_defined = {
-      expr = lib.subtractLists definedNetworks referencedNetworks;
+      expr = lib.subtractLists (lib.attrNames topology.networks) (
+        lib.unique (
+          lib.concatMap (
+            m:
+            let
+              self = m.config.topology.self or null;
+            in
+            if self == null then
+              [ ]
+            else
+              lib.concatMap (i: lib.optional (i ? network) i.network) (lib.attrValues (self.interfaces or { }))
+          ) named
+        )
+      );
       expected = [ ];
     };
 
     test_every_machine_appears_in_the_topology = {
-      expr = lib.subtractLists topologyNodes (lib.map (m: m.name) named);
+      expr = lib.subtractLists (lib.attrNames topology.nodes) (lib.map (m: m.name) named);
       expected = [ ];
     };
   };
 
   # --------------------------------------------------------------------------
-  # Pinned values. A drift here is silent and changes what the machine is.
+  # clan deployability. What `clan machines update` needs to be true before it
+  # can deploy anything: the machine is a clan machine, it builds as one, and
+  # every service in the inventory is actually assigned to it.
   # --------------------------------------------------------------------------
-  pins = {
-    test_state_version_is_pinned = {
-      expr = lib.attrValues (lib.mapAttrs (_: m: m.config.system.stateVersion) machines);
-      expected = [ "26.05" ];
+  clan = {
+    # The artifact `clan machines build` produces. If clan cannot see the
+    # machine, there is nothing to deploy.
+    test_every_machine_is_a_clan_machine_with_a_build_artifact = {
+      expr = lib.subtractLists deployableMachines machineNames;
+      expected = [ ];
     };
 
-    test_every_machine_is_x86_64_linux = {
-      expr = lib.unique (lib.map (m: m.config.nixpkgs.hostPlatform.system) named);
-      expected = [ "x86_64-linux" ];
+    # AGENTS.md's trap: a null input resolves to clan-core, so a local service
+    # silently loads the wrong module. Every instance must name its source.
+    test_every_instance_names_its_module_source = {
+      expr = lib.filter (r: r.input == null) roles;
+      expected = [ ];
+    };
+
+    # A local (`self`) instance must name a module this repository defines;
+    # otherwise clan resolves it to clan-core and fails at build time.
+    test_every_self_instance_names_a_local_module = {
+      expr = lib.filter (
+        r: r.input == "self" && !(lib.elem r.module (builtins.attrNames clan.modules))
+      ) roles;
+      expected = [ ];
+    };
+
+    # A role assigned to nothing never applies, and nothing says so. Each role
+    # must be reachable by tag or by machine name.
+    test_every_role_is_assigned_to_something = {
+      expr = lib.filter (r: r.tags == [ ] && r.machines == [ ]) roles;
+      expected = [ ];
+    };
+
+    # A role tagged with a tag no machine carries is the same silent failure
+    # spelled differently.
+    test_every_role_tag_is_carried_by_a_machine = {
+      expr = lib.unique (lib.concatMap (r: lib.subtractLists machineTags r.tags) roles);
+      expected = [ ];
+    };
+
+    # A role naming a machine that does not exist is a typo that would deploy
+    # nothing.
+    test_every_role_machine_exists = {
+      expr = lib.unique (lib.concatMap (r: lib.subtractLists machineNames r.machines) roles);
+      expected = [ ];
+    };
+
+    # Every declared machine must be in the inventory, or `clan machines
+    # update` will not know where to reach it.
+    test_every_machine_is_in_the_inventory = {
+      expr = lib.subtractLists (builtins.attrNames clan.inventory.machines) machineNames;
+      expected = [ ];
+    };
+
+    # ...and every inventory machine must be tagged, or no role can target it.
+    test_every_inventory_machine_carries_a_tag = {
+      expr = lib.filter (m: tagNames (m.tags or [ ]) == [ ]) (lib.attrValues clan.inventory.machines);
+      expected = [ ];
     };
   };
 }
