@@ -17,16 +17,26 @@
           hooks = {
             treefmt.enable = true;
 
-            # The build gate, which nothing ran before: `nix flake check`
-            # builds every check, including the machine toplevel that
-            # modules/flake/checks.nix derives. That is minutes of work, so it
-            # runs at pre-push rather than on every commit.
+            # The whole gate, on every commit: `nix flake check` builds every
+            # check -- the machine toplevel, the topology, the unit groups, the
+            # VM tests -- and runs these hooks again through
+            # `checks.pre-commit`. One command covers everything.
+            #
+            # The guard is load-bearing. `checks.pre-commit` runs
+            # `pre-commit run --all-files`, so this hook would run inside the
+            # gate and call the gate again, without end. Inside a Nix build
+            # `NIX_BUILD_TOP` is set and outside it is not, so the nested
+            # invocation returns immediately and the recursion stops at depth
+            # one. Do not remove it.
             flake-check = {
               enable = true;
               name = "nix flake check";
-              entry = "nix flake check";
+              entry = ''
+                sh -c 'if [ -n "$NIX_BUILD_TOP" ]; then exit 0; fi; exec nix flake check'
+              '';
+              language = "system";
               pass_filenames = false;
-              stages = [ "pre-push" ];
+              stages = [ "pre-commit" ];
             };
 
             check-added-large-files.enable = true;
