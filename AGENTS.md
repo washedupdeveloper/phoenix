@@ -13,8 +13,16 @@ nix develop                    # nixd, statix, deadnix, nixfmt, clan-cli
 ```
 
 `nix fmt` formats and nothing else. **statix and deadnix are pre-commit
-hooks, not treefmt formatters**, so they run on commit (or on push, with the
-gate) and a green `nix fmt` says nothing about them.
+hooks, not treefmt formatters**, so they run on commit and a green `nix fmt`
+says nothing about them.
+
+**The whole gate runs on commit.** The pre-commit hook for `nix flake check`
+refuses a commit unless the linters, the machine toplevel, the topology, the
+unit groups and the VM tests all pass, so nothing is committed unchecked and
+`nix flake check` is the only command needed. The hook is guarded on
+`NIX_BUILD_TOP` — `nix flake check` runs these hooks again through
+`checks.pre-commit`, so without the guard the gate would call itself. Changing
+the hooks needs `nix develop` to reinstall them.
 
 `nix flake check` is the gate, and it **builds**: `modules/flake/checks.nix`
 derives `flake.checks` from `nixosConfigurations`, so every machine's toplevel

@@ -218,6 +218,54 @@ case-insensitive.
   the SVG would pin a renderer's layout.
 - **Service-specific behaviour.** See Scope.
 
+## The gate and the git hooks
+
+`nix flake check` is the only command needed, and it runs on every commit.
+
+It covers everything: `modules/flake/checks.nix` builds each machine's
+toplevel, `modules/flake/nix-topology.nix` builds the diagram,
+`modules/flake/tests.nix` contributes the unit groups and the e2e tests, and
+`checks.pre-commit` runs the lint hooks. A commit is refused unless all of it
+passes.
+
+The pre-commit hook that invokes it is guarded, and the guard is load-bearing:
+
+```console
+sh -c 'if [ -n "$NIX_BUILD_TOP" ]; then exit 0; fi; ...; exec nix flake check'
+```
+
+`nix flake check` builds `checks.pre-commit`, which runs `pre-commit
+run --all-files`. A hook in the `pre-commit` stage therefore runs *inside* the
+gate, so an unguarded `nix flake check` hook would call the gate again, without
+end. `NIX_BUILD_TOP` is set inside a Nix build and unset in a shell — measured,
+unlike `IN_NIX_SANDBOX`, which this Nix leaves unset even in a sandboxed build
+— so the nested invocation returns immediately and the recursion stops at depth
+one.
+
+Measured cost of a commit, warm store, on this machine:
+
+| change | checks rebuilt | time |
+| --- | --- | --- |
+| nothing | 0 | ~45s |
+| a comment | 2 | ~45s |
+| the system closure | 19 | ~49s |
+| the shared `base-system` module | 47 | ~114s |
+
+The last row is the one to know about: touching a module the VM tests apply
+rebuilds their nodes and re-runs both VMs.
+
+Two consequences worth knowing:
+
+- The lint hooks run twice per commit: once directly, and once inside the gate.
+  They are seconds and idempotent, so this is deliberate rather than worth
+  unpicking.
+- The hooks live in `.pre-commit-config.yaml`, a symlink into the store. It
+  only moves when the flake is re-evaluated and the install script re-run,
+  which is what `nix develop` does. A hook added to `git-hooks.nix` without
+  re-entering the devshell is written down and never installed — that is how
+  the `nix flake check` hook sat inert in `modules/flake/git-hooks.nix` while
+  the installed config predated it.
+
 ## Running them
 
 ```console
@@ -225,6 +273,7 @@ nix flake check                                 # everything, including the VM t
 nix build .#checks.x86_64-linux.unit-ports      # one unit group, milliseconds
 nix build .#checks.x86_64-linux.e2e-ports       # one e2e test, minutes
 nix log .#checks.x86_64-linux.e2e-ports         # the VM's own log
+nix develop                                     # reinstalls the git hooks
 ```
 
 The e2e tests boot a VM, so they cost minutes and need `/dev/kvm`. That is the

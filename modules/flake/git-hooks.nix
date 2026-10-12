@@ -32,7 +32,7 @@
               enable = true;
               name = "nix flake check";
               entry = ''
-                sh -c 'if [ -n "$NIX_BUILD_TOP" ]; then exit 0; fi; exec nix flake check'
+                sh -c 'if [ -n "$NIX_BUILD_TOP" ]; then exit 0; fi; command -v nix >/dev/null || { echo "nix is not on PATH -- run git from the devshell (nix develop)" >&2; exit 1; }; exec nix flake check'
               '';
               language = "system";
               pass_filenames = false;
