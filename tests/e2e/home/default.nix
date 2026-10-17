@@ -91,26 +91,25 @@
     # nothing below can be true and the failure should say so first.
     node1.wait_for_unit("home-manager-nixolotl.service")
 
-    # --- one identity, two tools -------------------------------------------
-    # `git config --get` reads the file home-manager rendered, not the Nix
-    # option, so a module that never reached ~/.gitconfig fails here.
-    git_email = node1.succeed("su - nixolotl -c 'git config --global --get user.email'").strip()
-    assert git_email == "31986015+washedupdeveloper@users.noreply.github.com", git_email
-    git_name = node1.succeed("su - nixolotl -c 'git config --global --get user.name'").strip()
-    assert git_name == "Nixolotl", git_name
+    # What the modules *render* -- both identity blocks, git's signing key
+    # staying out of jj, the fish hook and the key binding -- is asserted by the
+    # `build-home` checks against the files home-manager links. What follows is
+    # what only a booted machine can answer: whether the tools agree with those
+    # files and with each other.
 
+    # --- one identity, two tools, as each tool parses it --------------------
+    # Not a grep of the rendered files: `jj config get` runs jj's own parser
+    # against jj's own activated config, so this catches a file that is right
+    # and in the wrong place.
+    git_email = node1.succeed("su - nixolotl -c 'git config --global --get user.email'").strip()
     jj_email = node1.succeed("su - nixolotl -c 'jj config get user.email'").strip()
     assert jj_email == git_email, f"git and jj disagree: {git_email} vs {jj_email}"
 
-    # jj has no `user.signingkey` of its own; git's key must not have leaked
-    # into it, which is the drift the shared identity exists to prevent.
-    jj_user = node1.succeed("su - nixolotl -c 'jj config list user'")
-    assert "signingkey" not in jj_user, jj_user
-
     # --- git actually signs ------------------------------------------------
-    # A real commit is the only assertion that proves `commit.gpgsign`,
-    # `gpg.format = ssh` and the signing key work together: a config git never
-    # parsed still answers `git config --get`.
+    # The strongest assertion available: `git config --get` answers from the
+    # same file whether or not git can use it, so a commit git verifies proves
+    # `commit.gpgsign`, `gpg.format = ssh`, the signing key and the allowed
+    # signers file all reached the live config and all work together.
     node1.succeed("su - nixolotl -c 'mkdir -p ~/sign-test && cd ~/sign-test && git init -q'")
     node1.succeed(
         "su - nixolotl -c 'mkdir -p ~/.ssh && test -f ~/.ssh/id_ed25519"
@@ -128,18 +127,13 @@
     ).strip()
     assert signature == "G", f"commit signature state {signature!r}, expected a good signature"
 
-    # --- the fish integration is installed and works -----------------------
-    # Every integration in modules/home/shell.nix is a fish hook, and the hook
-    # is only read if fish is the login shell -- the pair that was inert while
-    # the account landed in bash. First the file fish actually reads.
-    node1.succeed("grep -q 'direnv hook fish' /home/nixolotl/.config/fish/config.fish")
-
-    # Then the behaviour. direnv's hook is `--on-event fish_prompt`, and the
-    # `PWD` hook it defines only exists after the first prompt -- which a
-    # `fish -c` shell never draws. So the function the hook installs is called
-    # directly: what this proves is that the hook is loaded, that direnv runs
-    # under the account's own PATH, and that an allowed .envrc reaches the
-    # shell's environment.
+    # --- the fish integration runs, not merely exists ----------------------
+    # `build-home` asserts the hook is in the rendered config. This runs it:
+    # direnv's own hook is `--on-event fish_prompt`, and the `PWD` hook it
+    # defines only exists after the first prompt, which a `fish -c` shell never
+    # draws -- so the function the hook installs is called directly. What this
+    # proves is that the hook loaded under the account's own PATH and that an
+    # allowed .envrc reaches the shell's environment.
     node1.succeed("su - nixolotl -c 'mkdir -p ~/envrc-test'")
     node1.succeed("su - nixolotl -c 'echo \"export PROBE=live\" > ~/envrc-test/.envrc'")
     node1.succeed("su - nixolotl -c 'cd ~/envrc-test && direnv allow'")
@@ -148,11 +142,11 @@
     )
     assert "live" in probe, f"the fish direnv hook did not export PROBE: {probe!r}"
 
-    # The Ctrl+Space binding, as the shell holds it. A `fish -c` session never
-    # initialises key bindings at all, so this reads the function fish calls
-    # when it does. That is where a wrong spelling fails: `nul` binds n, u and
-    # l, and `-M insert` binds a mode this configuration never enters. See
-    # docs/shell-integrations.md.
+    # The key binding as fish resolves it. `build-home` asserts the `bind` line
+    # is in the config; this asserts fish accepts the key name, which is the
+    # half that fails silently -- `nul` would bind n, u and l. A `fish -c`
+    # session never initialises key bindings, so the function fish calls is read
+    # rather than the binding table.
     binding = node1.succeed(
         "su - nixolotl -c \"fish -ic 'functions fish_user_key_bindings'\""
     )

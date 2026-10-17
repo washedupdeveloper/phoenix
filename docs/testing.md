@@ -19,11 +19,24 @@ expectations move with the service into its own module and its own test. Today
 expected to leave; they have no assertions here, and adding one would only have
 to be removed again.
 
-## Two kinds
+## Three tiers
 
-They exist because they prove different things.
+Each tier exists because it proves something the others cannot, and the tier is
+chosen by what the assertion *needs* rather than by what is convenient:
 
-### Unit tests — what the configuration *says*
+| Tier | Answers | Cost | Needs |
+| --- | --- | --- | --- |
+| `unit` | what an option *says* | milliseconds | nothing |
+| `build` | what that option *rendered* | seconds | the artifact |
+| `e2e` | what a running machine *does* with it | minutes | `/dev/kvm` |
+
+**Python is the price of the third tier and nothing else.** A `testScript` is the
+only place this suite needs an imperative language, so an assertion that can be
+made against a rendered file must not be made by booting a machine to look at
+it. Reach for `unit` first, then `build`, and keep `e2e` for the residue: a
+daemon parsing its own config, a socket being open, a command succeeding.
+
+### Unit — what the configuration *says*
 
 `tests/unit/default.nix`, wired as `checks.unit-<group>`. Evaluation-time
 assertions: each reads a value out of a machine's evaluated config and compares
@@ -91,34 +104,79 @@ machine's evaluated config.
 - **The identity reaches the tool modules through `extraSpecialArgs`**, not
   through a second definition inside one of them.
 
-### E2E tests — what the running system *does*
+### Build — what the configuration *renders*
+
+`tests/build/default.nix`, wired as `checks.build-<group>`. Each check is a
+`runCommand` that reads the artifacts the configuration produced and asserts on
+their bytes. No kernel, no QEMU, no Python — the artifact is the evidence.
+
+Two sources, both read from the evaluated configuration rather than restated:
+
+- `config.system.build.etc` — the merged `/etc` that activation installs. The
+  output holds an `etc/` directory, so a file is at
+  `${cfg.system.build.etc}/etc/<name>`.
+- `home-manager.users.<name>.home.file.<absolute path>.source` — the exact file
+  home-manager links into the account's home.
+
+The account and its home directory are discovered from the configuration, so
+renaming the user moves these checks with it.
+
+| Check | Asserts |
+| --- | --- |
+| `build-etc` (8) | `locale.conf` carries `LANG=en_DK.UTF-8`, `set-environment` exports `EDITOR=nano`, `localtime` links to the Copenhagen zone, the sudoers rule is `%wheel ALL=(ALL:ALL) NOPASSWD`, the three sshd posture lines, and the system fish config carries `bind ctrl-space accept-autosuggestion` |
+| `build-home` (6) | the rendered git config has `gpgsign`, `format = ssh` and the signing key; the rendered jj config has **no** `signingkey`; the fish config carries the direnv and `nix-your-shell` hooks |
+| `build-home-identity` (3) | git's and jj's `user.email` and `user.name` are equal **in the rendered files**, and the name is derived from the account |
+
+A failure prints the offending file, so a drift says what changed rather than
+that something did. The tier is what makes the suite fast: these seventeen
+assertions cost seconds and cover ground that used to need a boot.
+
+The one thing this tier cannot see is **activation** — a correct file that lands
+in the wrong place, or a correct account that never gets written. That is
+home-manager's and nixpkgs' own contract, and where it matters it is checked by
+one runtime assertion rather than by re-reading the file.
+
+### E2E — what the running system *does*
 
 `tests/e2e/<name>/`, wired as `checks.e2e-<name>`. These boot a machine with the
-**real** modules applied and assert against the running system.
+**real** modules applied, through `pkgs.testers.runNixOSTest` — the same
+machinery the [nix.dev integration-testing
+tutorial](https://nix.dev/tutorials/nixos/integration-testing-using-virtual-machines.html)
+documents — with clan-core's `clanTest` module imported into it.
+
+Only what a live machine can answer belongs here:
 
 | Test | Proves |
 | --- | --- |
-| `e2e-base-system` | the real `base-system` module renders into the running system: timezone, locale, `$EDITOR`, the conditional user half, and `sshd -T` — sshd's own parse of the config it will serve |
-| `e2e-home` | the user's home-manager configuration works: git and jj read the same identity from the rendered files, git signs a real commit with the configured SSH key, and the fish direnv hook and Ctrl+Space binding fire |
+| `e2e-base-system` | the account exists in the passwd database with the declared shell (activation writes it, so no file in the store can say so), `sshd -T` accepts the config it will serve, and sudo actually escalates without a prompt |
+| `e2e-home` | git and jj read one identity from their own activated configs, git signs a commit that verifies against `~/.ssh/allowed_signers`, the fish direnv hook exports an allowed `.envrc`, and fish accepts the `ctrl-space` key name |
 | `e2e-ports` | nothing listens that the configuration did not declare |
 
-`e2e-home` is the running-system half of the `home` unit group. It boots the
-real `git.nix`, `jj.nix` and `shell.nix`; only the composition that
-`modules/home/default.nix` performs is restated in the test, because a clanTest
-builds its nodes out of `clanInternals.nixosModules` (bare module sets), so
-`clan.specialArgs` — how the repository hands `homeManagerModule` to that
-module — never reaches them, and supplying the argument through `_module.args`
-recurses. The composition and the identity wiring are pinned by the `home`
-unit group instead, which reads the real machine's evaluated configuration.
+Every one of those is a claim about behaviour: a daemon parsing, a tool
+resolving, a privilege check succeeding, a socket bound. Anything that was a
+claim about a file moved to `build`.
 
-Its strongest assertion is a commit: `git config --get` answers from the same
-file whether or not git can use it, so a signature git verifies against
-`~/.ssh/allowed_signers` is the only proof that `commit.gpgsign`,
-`gpg.format = ssh` and the key agree. The fish half is two claims: the hook is
-in the file fish reads, and running it exports an allowed `.envrc` into the
-shell's environment. The hook's own trigger is a prompt event, which a
-`fish -c` shell never draws, so the function the hook installs is invoked
-directly rather than waiting for a prompt.
+`sshd -T` is the strongest file-related assertion that still needs the machine:
+`build-etc` proves the lines are in `/etc/ssh/sshd_config`, and `sshd -T` proves
+sshd accepts them — a line that is spelled right and parsed wrong satisfies the
+first and not the second.
+
+`e2e-home`'s strongest assertion is a commit. `git config --get` answers from
+the same file whether or not git can use it, so a commit git verifies proves
+`commit.gpgsign`, `gpg.format = ssh`, the signing key and the allowed-signers
+file all reached the live config **and** work together. The fish half is the
+same split: `build-home` proves the hook is in the rendered config, and the VM
+runs it. direnv's hook is `--on-event fish_prompt`, and the `PWD` hook it
+defines only exists after the first prompt, which a `fish -c` shell never draws,
+so the function the hook installs is invoked directly.
+
+`e2e-home` restates the composition that `modules/home/default.nix` performs,
+because a clanTest builds its nodes out of `clanInternals.nixosModules` (bare
+module sets), so `clan.specialArgs` — how the repository hands
+`homeManagerModule` to that module — never reaches them, and supplying the
+argument through `_module.args` recurses. The composition and the identity
+wiring are pinned by the `home` unit group instead, which reads the real
+machine's evaluated configuration.
 
 `e2e-ports` is the running-system half of the `ports` unit group, and the two
 are different claims. The unit test says what the configuration *intends* to
@@ -312,9 +370,9 @@ case-insensitive.
 
 It covers everything: `modules/flake/checks.nix` builds each machine's
 toplevel, `modules/flake/nix-topology.nix` builds the diagram,
-`modules/flake/tests.nix` contributes the unit groups and the e2e tests, and
-`checks.pre-commit` runs the lint hooks. A commit is refused unless all of it
-passes.
+`modules/flake/tests.nix` contributes the unit groups, the build checks and the
+e2e tests, and `checks.pre-commit` runs the lint hooks. A commit is refused
+unless all of it passes.
 
 The pre-commit hook that invokes it is guarded, and the guard is load-bearing:
 
@@ -359,15 +417,17 @@ Two consequences worth knowing:
 ```console
 nix flake check                                 # everything, including the VM tests
 nix build .#checks.x86_64-linux.ports           # one unit group, milliseconds
+nix build .#checks.x86_64-linux.build-etc       # one build group, seconds
 nix build .#checks.x86_64-linux.e2e-home        # one e2e test, minutes
 nix log .#checks.x86_64-linux.e2e-home          # the VM's own log
 nix develop                                     # reinstalls the git hooks
 ```
 
 The attribute name is the group name — `checks.x86_64-linux.ports`, not
-`unit-ports`. `unit-<group>` is the *derivation* name, which is what a log or a
-store path shows.
+`unit-ports`. The `unit-`/`build-` prefix is the *derivation* name, which is what
+a log or a store path shows; `e2e-` is in both.
 
 The e2e tests boot a VM, so they cost minutes and need `/dev/kvm`. That is the
 price of the only check that can see what a daemon actually does, and it is why
-the unit tests exist alongside them rather than instead of them.
+the cheaper tiers exist alongside them rather than instead of them: a change
+that breaks a rendered file now fails in seconds, before a VM is ever built.

@@ -30,11 +30,15 @@ is built rather than merely evaluated. Without it a machine that evaluates but
 fails to build would pass — the one failure a config repository most needs
 caught.
 
-`nix flake check` is also where the tests run. `modules/flake/tests.nix`
-contributes `unit-<group>` (evaluation-time assertions, milliseconds) and
-`e2e-<name>` (a VM that boots the real modules, minutes). `docs/testing.md`
-covers what each can and cannot prove, and the two environment requirements the
-VM tests depend on.
+`nix flake check` is also where the tests run, in three tiers.
+`modules/flake/tests.nix` contributes `unit-<group>` (the *value* of an option,
+milliseconds), `build-<group>` (the *file* the option rendered, seconds) and
+`e2e-<name>` (what a running machine does with it, minutes, via
+`pkgs.testers.runNixOSTest`). **Python is the price of the third tier and
+nothing else** — an assertion that can be made against a rendered file must not
+be made by booting a machine to look at it. `docs/testing.md` covers what each
+tier can and cannot prove, and the two environment requirements the VM tests
+depend on.
 
 ## Layout
 
