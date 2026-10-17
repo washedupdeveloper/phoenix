@@ -7,7 +7,10 @@ output that `modules/flake/checks.nix` and `modules/flake/nix-topology.nix` do.
 ## Scope
 
 The suite tests **the system**: what it is, what it exposes, and what it must
-never become.
+never become. Two groups sit outside that and are named for it: `flake` covers
+the flake's own wiring -- the two package sets, the devshell, the output set --
+and `home` covers the user's home-manager configuration, which is per-user
+rather than per-machine.
 
 It deliberately does not test individual services. A broker's port or a
 server's credential is a property of that service, not of the system, and those
@@ -31,7 +34,7 @@ Each group is its own check, so `nix flake check --keep-going` reports every
 failing group rather than stopping at the first, and a failure names the test
 and both values.
 
-Six groups, 32 assertions:
+Eight groups, 54 assertions:
 
 | Group | What it pins |
 | --- | --- |
@@ -41,6 +44,52 @@ Six groups, 32 assertions:
 | `integrity` (3) | no nixpkgs assertion fails, no nixpkgs warning is emitted, the firewall is declared on |
 | `structure` (3) | every machine declares its guest relationship, appears in the topology, and references only defined networks |
 | `clan` (8) | deployability — see below |
+| `flake` (10) | the flake's own wiring — see below |
+| `home` (12) | the user's home-manager configuration — see below |
+
+### `flake` — the wiring no machine config shows
+
+`tests/unit/flake.nix`. It reads the per-system flake-parts config, which is
+why it is built inside `perSystem` in `modules/flake/tests.nix` rather than
+from a machine.
+
+- **The two package sets agree.** `_module.args.pkgs` and `clan.pkgs` are two
+  wirings of one set; if they disagree the devshell allows unfree packages and
+  the clan CLI does not. Checked through the consumer —
+  `clanInternals.machines.<system>.<machine>.config.nixpkgs.pkgs` — so removing
+  `perSystem.clan.pkgs` fails the test rather than passing it vacuously.
+- **The devshell and the machine enable the same experimental features.** The
+  devshell's `NIX_CONFIG` and `nix.settings.experimental-features` are two
+  declarations of one list, and a feature in one but not the other is a
+  command that parses in the devshell and not in a rebuild.
+- **`systems` is a build contract.** Every declared system has a devshell and a
+  non-empty `checks`, and the declared set is exactly the set the machines run
+  on.
+- **Every custom output is paired with a check.** The output names nix does not
+  know are enumerated, so a new one cannot be added without a `checks` entry.
+- **The cache split holds.** The machine trusts nix-community,
+  pre-commit-hooks and numtide, does not substitute from `cache.clan.lol`, and
+  does not accept flake config silently.
+
+### `home` — the user half
+
+`tests/unit/home.nix`. It reads `home-manager.users.<name>` out of each
+machine's evaluated config.
+
+- **One identity, two tools.** git's and jj's `user.name`/`user.email` are the
+  same values, and the name is derived from the account name. AGENTS.md records
+  that the two copies drifted while each tool carried its own.
+- **git's signing key stays out of jj.** `user.signingkey` is git-only; jj's
+  signing is `signing.backend` plus `signing.key`, so a shared blob carrying
+  git's key gives jj a setting it does not understand.
+- **The home is the account's home**, its state version follows the system's,
+  and home-manager and the ssh-agent are enabled.
+- **Fish is the shell every integration targets**, all seven fish integrations
+  are on, and the login shell is fish — the pair that
+  [`shell-integrations.md`](./shell-integrations.md) says was inert while the
+  account landed in bash.
+- **The identity reaches the tool modules through `extraSpecialArgs`**, not
+  through a second definition inside one of them.
 
 ### E2E tests — what the running system *does*
 
@@ -50,7 +99,26 @@ Six groups, 32 assertions:
 | Test | Proves |
 | --- | --- |
 | `e2e-base-system` | the real `base-system` module renders into the running system: timezone, locale, `$EDITOR`, the conditional user half, and `sshd -T` — sshd's own parse of the config it will serve |
+| `e2e-home` | the user's home-manager configuration works: git and jj read the same identity from the rendered files, git signs a real commit with the configured SSH key, and the fish direnv hook and Ctrl+Space binding fire |
 | `e2e-ports` | nothing listens that the configuration did not declare |
+
+`e2e-home` is the running-system half of the `home` unit group. It boots the
+real `git.nix`, `jj.nix` and `shell.nix`; only the composition that
+`modules/home/default.nix` performs is restated in the test, because a clanTest
+builds its nodes out of `clanInternals.nixosModules` (bare module sets), so
+`clan.specialArgs` — how the repository hands `homeManagerModule` to that
+module — never reaches them, and supplying the argument through `_module.args`
+recurses. The composition and the identity wiring are pinned by the `home`
+unit group instead, which reads the real machine's evaluated configuration.
+
+Its strongest assertion is a commit: `git config --get` answers from the same
+file whether or not git can use it, so a signature git verifies against
+`~/.ssh/allowed_signers` is the only proof that `commit.gpgsign`,
+`gpg.format = ssh` and the key agree. The fish half is two claims: the hook is
+in the file fish reads, and running it exports an allowed `.envrc` into the
+shell's environment. The hook's own trigger is a prompt event, which a
+`fish -c` shell never draws, so the function the hook installs is invoked
+directly rather than waiting for a prompt.
 
 `e2e-ports` is the running-system half of the `ports` unit group, and the two
 are different claims. The unit test says what the configuration *intends* to
@@ -103,8 +171,26 @@ rather than depending on which was used.
 
 ## Findings
 
-The suite found these while being written. Both are recorded rather than fixed:
-each is a decision about intent, not a defect with an obvious repair.
+The suite found these while being written. Each is recorded rather than fixed
+unless it is a defect with an obvious repair.
+
+**`lib.throwTestFailures` does not exist, so the suite's failure path was
+broken.** `lib.runTests` returns a list of failures, and the reporter for them
+lives at `lib.debug.throwTestFailures`. With the bare `lib.throwTestFailures`,
+a *failing* unit test produced `attribute 'throwTestFailures' missing` instead
+of the test's own name, expected value and result — so the gate went red with a
+message about the reporter rather than about the test. It went unnoticed because
+every group passed, and the branch is only evaluated when one does not. Fixed:
+`modules/flake/tests.nix` now calls `lib.debug.throwTestFailures`.
+
+**`nixConfig` cannot be read from evaluation, so it is not tested.** It sits
+outside the flake's outputs: `builtins.getFlake` has no `nixConfig` attribute
+and `nix flake metadata --json` omits it. The only way to read it would be to
+parse `flake.nix` as text, which breaks on any reformat, so the `flake` group
+asserts the invariant from the machine side instead — the three caches it must
+substitute from, the absence of `cache.clan.lol`, and that flake config is not
+accepted silently. The consequence is worth knowing: a cache added to
+`nixConfig` and *not* to `base-system` is caught by nobody.
 
 **`base-system`'s `username` default is unreachable.** The module's
 `perInstance.nixosModule` takes `username ? null` and gates the user half on
@@ -211,6 +297,8 @@ case-insensitive.
 
 - **The build.** `modules/flake/checks.nix` already builds every machine's
   toplevel; a test that repeated it would be a second, slower copy.
+- **`nixConfig`'s contents.** See Findings: it is outside the flake's outputs,
+  so only a text-level check could read it.
 - **The WSL-specific half.** `modules/clanServices/wsl` configures a guest for
   the WSL kernel. Nothing off-WSL can boot it, so it is covered by the unit
   tests and the topology check, not by a VM.
@@ -270,11 +358,15 @@ Two consequences worth knowing:
 
 ```console
 nix flake check                                 # everything, including the VM tests
-nix build .#checks.x86_64-linux.unit-ports      # one unit group, milliseconds
-nix build .#checks.x86_64-linux.e2e-ports       # one e2e test, minutes
-nix log .#checks.x86_64-linux.e2e-ports         # the VM's own log
+nix build .#checks.x86_64-linux.ports           # one unit group, milliseconds
+nix build .#checks.x86_64-linux.e2e-home        # one e2e test, minutes
+nix log .#checks.x86_64-linux.e2e-home          # the VM's own log
 nix develop                                     # reinstalls the git hooks
 ```
+
+The attribute name is the group name — `checks.x86_64-linux.ports`, not
+`unit-ports`. `unit-<group>` is the *derivation* name, which is what a log or a
+store path shows.
 
 The e2e tests boot a VM, so they cost minutes and need `/dev/kvm`. That is the
 price of the only check that can see what a daemon actually does, and it is why

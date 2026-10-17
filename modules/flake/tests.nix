@@ -47,18 +47,25 @@ let
 
   # One check per group, so `--keep-going` reports every failing group rather
   # than stopping at the first.
+  #
+  # The per-system config is passed in rather than read here: inside `perSystem`
+  # `config` is that scope's config, and the `flake` group needs it -- the
+  # devshell's environment and the per-system package set live nowhere else.
   mkUnitChecks =
-    pkgs: system:
+    pkgs: system: perSystemConfig:
     let
       groups = import ../../tests/unit {
         inherit
           lib
           machines
           clan
+          system
+          flake
           ;
         inherit (flake) clanInternals;
         inherit (config) systems;
         topology = flake.topology.${system}.config;
+        perSystem = perSystemConfig;
       };
     in
     lib.mapAttrs (
@@ -69,7 +76,7 @@ let
       if failures == [ ] then
         pkgs.runCommand "unit-${group}" { } "touch $out"
       else
-        lib.throwTestFailures { inherit failures; }
+        lib.debug.throwTestFailures { inherit failures; }
     ) groups;
 
   # `clanTest` resolves `clan-core` from a module argument, so it is supplied
@@ -87,10 +94,16 @@ let
 in
 {
   perSystem =
-    { pkgs, system, ... }:
     {
-      checks = (mkUnitChecks pkgs system) // {
+      config,
+      pkgs,
+      system,
+      ...
+    }:
+    {
+      checks = (mkUnitChecks pkgs system config) // {
         e2e-base-system = mkE2eCheck pkgs (import ../../tests/e2e/base-system);
+        e2e-home = mkE2eCheck pkgs (import ../../tests/e2e/home { inherit inputs; });
         e2e-ports = mkE2eCheck pkgs (import ../../tests/e2e/ports { inherit lib; });
       };
     };

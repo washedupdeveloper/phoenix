@@ -10,13 +10,20 @@
 # so a change that silently alters the system fails the gate in milliseconds.
 #
 # Naming: `lib.runTests` only runs an attribute whose name starts with `test`.
+#
+# The `flake` and `home` groups live in their own files: they read the flake's
+# per-system wiring and the home-manager configuration rather than a machine's
+# system config, and they are merged in at the bottom.
 {
   lib,
   machines,
   systems,
+  system,
   topology,
   clan,
   clanInternals,
+  flake,
+  perSystem,
 }:
 let
   named = lib.mapAttrsToList (name: cfg: {
@@ -370,3 +377,16 @@ in
     };
   };
 }
+// import ./flake.nix {
+  inherit
+    lib
+    machines
+    systems
+    system
+    clan
+    clanInternals
+    flake
+    perSystem
+    ;
+}
+// import ./home.nix { inherit lib machines; }
