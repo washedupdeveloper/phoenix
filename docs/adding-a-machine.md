@@ -71,21 +71,69 @@ error: Neither nixpkgs.hostPlatform nor the legacy option nixpkgs.system has bee
 
 which reads like a missing setting rather than an untracked file.
 
-## 4. Give it a state version, through the vars store
-
-`system.stateVersion` on every machine comes from clan's `state-version` var
-generator, not from this repository — the generator's value is committed under
-`vars/`. A new machine has no value yet, so it silently takes nixpkgs' default
-(the current release) instead of the fleet's pinned one:
+## 4. Generate its vars — this one blocks the build
 
 ```console
-clan vars generate <name>      # writes vars/per-machine/<name>/state-version
+clan vars generate <name>
 git add vars/
 ```
 
-Left undone, the machine is on `26.11` while the rest of the fleet is on `26.05`,
-and `stateVersion` is the one setting that must never move on an existing
-machine. `test_state_version_is_pinned` fails the gate in exactly that case.
+**This is not optional and it is not only the state version.** The `sshd-with-certs`
+instance gives every machine an SSH host key, and the `users` instance gives it a
+password hash; both live in the vars store, and the machine's **toplevel will not
+build** without them. Measured on a new machine before running it:
+
+```text
+error: File 'ssh.id_ed25519.pub' at 'per-machine/pi/openssh' does not exist.
+       Try running 'clan vars generate' first.
+```
+
+The gate reports exactly that, at `checks.x86_64-linux.nixos-<name>`, so the
+failure is legible rather than mysterious.
+
+What a machine ends up with — 11 files, five generators, from `workstation`:
+
+| generator | files | why |
+| --- | --- | --- |
+| `state-version` | `version/value` | pins `system.stateVersion` to the fleet's value |
+| `openssh` | `ssh.id_ed25519.pub/value`, `ssh.id_ed25519/secret` | the host key sshd presents |
+| `openssh-cert` | `ssh.id_ed25519-cert.pub/value`, `.validation-hash` | the cert `sshd-with-certs` signs it with |
+| `user-password-root`, `user-password-nixolotl` | `user-password/secret`, `user-password-hash/secret` | the account's password, hashed |
+| per-service (workstation: `mosquitto-plant-monitor`) | secret + hash | only if that machine runs the service |
+
+The secrets are **sops/age-encrypted at rest** — the files start
+`{"data": "ENC[AES256_GCM,...` — so committing `vars/` is correct and is what clan
+expects. Do not try to hand-write these: `state-version` can be emulated, the key
+material cannot.
+
+Skipping `state-version` alone is the quieter failure: the machine silently takes
+nixpkgs' current release (`26.11`) instead of the fleet's `26.05`, and
+`stateVersion` is the one setting that must never move on an existing machine.
+`test_state_version_is_pinned` catches that case.
+
+## 4a. Declare it in `inventory.machines` too — the gate requires it
+
+Clan does **not** require this: `modules/clan/module.nix` builds
+`machines.<name> = { }` for every directory under `machines/`, and derives
+`inventory.machines` from that, so a directory plus a `machines.<name>` entry
+alone gives a machine that evaluates, has the account, has its home, and carries
+`[ "all" "nixos" ]`. Verified in a scratch copy.
+
+This repository requires the explicit entry anyway, and the reason is the same one
+that governs every other assertion here: a test against clan's *derived* inventory
+can never fail, so `test_every_machine_is_in_the_inventory` reads the inventory
+**as declared in `clan.nix`**. State it, and put anything machine-specific there —
+extra tags, `description`, and the deploy target:
+
+```nix
+inventory.machines.<name> = {
+  tags = [ "<name>" ];                  # clan adds `all` and `nixos` itself
+  description = "Raspberry Pi 5, plant monitor host";
+  deploy.targetHost = "192.168.68.110"; # only if you deploy to it remotely
+};
+```
+
+If you read clan's source and "simplify" this entry away, the gate tells you.
 
 ## 5. Give it a place in the topology
 
