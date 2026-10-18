@@ -253,8 +253,8 @@ of input that ships fixes. Recommended: keep floating.
 ### 3.4 `nix fmt` is wired; consider failing on drift in a pre-push hook
 
 `treefmt` provides `formatter` and `checks.treefmt`, and the pre-commit hook
-runs it on staged files. Verified: `nix flake check` reports
-`checks.x86_64-linux` as `[ nixos-workstation pre-commit topology treefmt ]`, so
+runs it on staged files. Verified: `checks.x86_64-linux` carries a `treefmt`
+entry, so
 formatting *is*
 covered by the check -- treefmt-nix names that check `treefmt`, not
 `formatting`. A pre-push hook running `nix fmt -- --fail-on-change` would still

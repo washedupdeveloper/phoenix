@@ -81,6 +81,13 @@ Each of these is a trap that yields a plausible-looking wrong result.
   whether the unit is even running. This behaviour is set by the **nixos-wsl
   pin in `flake.lock`**, not by anything here, so a `nix flake update` can
   change it silently.
+- **A new machine is a tag, not a list.** `user-nixolotl` and `home-manager` are
+  assigned to clan's reserved `all` tag, which every machine carries
+  automatically. Enumerating machines on those instances instead produces a
+  machine that builds, boots, and has no account or no dotfiles — and nothing
+  says so, because every other check reads a value that exists either way.
+  `docs/adding-a-machine.md` has the full procedure and the assertion that
+  catches each omission.
 - **The cache lists exist twice** — `flake.nix`'s `nixConfig` (for other
   evaluators) and `base-system`'s `nix.settings` (for this machine). They are
   not required to match, but a cache added to one and not the other is inert on

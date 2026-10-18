@@ -97,34 +97,49 @@ in
   # What the system is. A drift here is silent and changes the machine.
   # --------------------------------------------------------------------------
   system = {
+    # Fleet-shaped, not one-machine-shaped. The earlier spelling was
+    # `lib.unique (map ...)` compared against `[ "26.05" ]`, which asserted
+    # "exactly one machine, and it is pinned" -- so the second machine failed the
+    # gate for existing rather than for being wrong. These read as "every machine
+    # does X", which is the property that actually matters and holds for any
+    # number of machines.
     test_state_version_is_pinned = {
-      expr = lib.unique (lib.map (m: m.config.system.stateVersion) named);
-      expected = [ "26.05" ];
+      expr = lib.all (m: m.config.system.stateVersion == "26.05") named;
+      expected = true;
     };
 
-    test_host_name_is_declared = {
-      expr = lib.unique (lib.map (m: m.config.networking.hostName) named);
-      expected = [ "workstation" ];
+    # Stronger than a literal list: a machine whose hostName disagrees with its
+    # name in `clan.machines` is a machine you will ssh to at the wrong address.
+    test_host_name_matches_the_machine_name = {
+      expr = lib.all (m: m.config.networking.hostName == m.name) named;
+      expected = true;
     };
 
     test_time_zone_is_declared = {
-      expr = lib.unique (lib.map (m: m.config.time.timeZone) named);
-      expected = [ "Europe/Copenhagen" ];
+      expr = lib.all (m: m.config.time.timeZone == "Europe/Copenhagen") named;
+      expected = true;
     };
 
     test_locale_and_keymap_are_declared = {
-      expr = lib.unique (lib.map (m: "${m.config.i18n.defaultLocale}:${m.config.console.keyMap}") named);
-      expected = [ "en_DK.UTF-8:dk-latin1" ];
+      expr = lib.all (
+        m: "${m.config.i18n.defaultLocale}:${m.config.console.keyMap}" == "en_DK.UTF-8:dk-latin1"
+      ) named;
+      expected = true;
     };
 
-    test_every_machine_is_x86_64_linux = {
-      expr = lib.unique (lib.map (m: m.config.nixpkgs.hostPlatform.system) named);
-      expected = [ "x86_64-linux" ];
-    };
-
-    # The flake builds for exactly the systems it declares.
+    # Every machine's architecture must be one the flake declares, or
+    # `nix flake check` cannot build it and `clan machines update` cannot deploy
+    # it. `systems` is the build contract (docs/adding-a-machine.md).
     test_every_machine_runs_on_a_declared_system = {
       expr = lib.all (m: lib.elem m.config.nixpkgs.hostPlatform.system systems) named;
+      expected = true;
+    };
+
+    # The account is assigned by the `all` tag, not by a machine list, so a new
+    # machine gets it by construction. This is the assertion that catches the
+    # machine that is tagged wrongly: it builds, it boots, and nobody can log in.
+    test_every_machine_carries_the_account = {
+      expr = lib.all (m: m.config.users.users ? nixolotl) named;
       expected = true;
     };
   };

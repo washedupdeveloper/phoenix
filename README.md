@@ -8,6 +8,7 @@
 | [`experimental-features.md`](./docs/experimental-features.md) | Which Nix experimental features are enabled and why, the `\|>` semantics, and the constraints on enabling them. |
 | [`recommendations.md`](./docs/recommendations.md) | Outstanding work, ordered Clan.lol -> flake-parts -> Nix3. |
 | [`testing.md`](./docs/testing.md) | The three test tiers — unit, build, e2e — why the tier is chosen by what the assertion needs, the groups, and the environment requirements the VM tests depend on. |
+| [`adding-a-machine.md`](./docs/adding-a-machine.md) | The seven steps that actually matter when a second machine joins, the failure each one prevents, and why the assertions are fleet-shaped. |
 
 ## Priority order
 

@@ -47,7 +47,7 @@ Each group is its own check, so `nix flake check --keep-going` reports every
 failing group rather than stopping at the first, and a failure names the test
 and both values.
 
-Eight groups, 54 assertions:
+Eight groups, 55 assertions:
 
 | Group | What it pins |
 | --- | --- |
