@@ -138,8 +138,15 @@ in
     # The account is assigned by the `all` tag, not by a machine list, so a new
     # machine gets it by construction. This is the assertion that catches the
     # machine that is tagged wrongly: it builds, it boots, and nobody can log in.
-    test_every_machine_carries_the_account = {
-      expr = lib.all (m: m.config.users.users ? nixolotl) named;
+    #
+    # `isNormalUser`, not `users.users ? nixolotl`. The first spelling was
+    # vacuous and a mutation proved it: `base-system` assigns
+    # `users.users.${username}.shell`, so the attribute exists on every machine
+    # whether or not the account was ever created -- and a machine with only that
+    # has a shell setting and no login. `isNormalUser = true` is what the users
+    # module sets and nothing else does.
+    test_every_machine_carries_a_normal_user = {
+      expr = lib.all (m: (m.config.users.users.nixolotl or { }).isNormalUser or false) named;
       expected = true;
     };
   };

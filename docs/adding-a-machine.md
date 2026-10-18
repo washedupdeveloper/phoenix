@@ -126,7 +126,7 @@ in the order they fire:
 | --- | --- |
 | `test_every_machine_is_in_the_inventory` | declared in `machines` but not in `inventory.machines` |
 | `test_every_inventory_machine_carries_a_tag` | in the inventory with no tags, so no service reaches it |
-| `test_every_machine_carries_the_account` | no `users.users.nixolotl` — the machine boots and cannot be logged into |
+| `test_every_machine_carries_a_normal_user` | the account exists only as a shell stub — `base-system` sets `users.users.<user>.shell` on every machine, so "the attribute exists" is not evidence the account was created |
 | `test_there_is_one_home_per_machine` | no home-manager importer, so no dotfiles, git identity or signing key |
 | `test_state_version_is_pinned` | step 4 skipped |
 | `test_host_name_matches_the_machine_name` | `networking.hostName` disagrees with the machine's name |
