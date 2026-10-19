@@ -38,21 +38,12 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-    # ── Hermes Agent, patched by overlay rather than by editing its source ──
-    #
-    # `nixpkgs.follows` is DELIBERATELY absent. Following would rebuild Hermes
-    # against this repo's nixpkgs — a full uv2nix venv build — and could also
-    # disagree with the version the agent's own lock was tested against. Without
-    # it, this input resolves to the same derivation the profile already has, so
-    # the patch costs a wrapper, not a rebuild.
-    #
-    # Pinned to a rev rather than a branch for the same reason every other pin in
-    # this repo is: a branch would silently change what the machine runs.
+    # Pinned to a rev: a branch would silently change what the machine runs.
+    # `nixpkgs.follows` is deliberately absent -- following would rebuild the uv2nix
+    # venv against this repo's nixpkgs instead of reusing the cached derivation.
     hermes-agent.url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
 
-    # The overlay source: `overlays.wrapper` in this repo wraps an existing
-    # hermes-agent with a plugin on PYTHONPATH, so the agent's source tree and its
-    # store path stay untouched. See plugins/README.md there.
+    # Supplies the overlay and `packages.harness-audit`.
     hermes-skills.url = "github:washedupdeveloper/hermes-skills";
   };
 
@@ -125,25 +116,12 @@
 
           clan.pkgs = pkgs;
 
-          # The patched agent, as an installable output:
+          # Install with: nix profile install ~/projects/phoenix#hermes-agent
           #
-          #   nix profile install ~/projects/phoenix#hermes-agent
-          #
-          # This is the CLEAN route, and it is two lines of mechanism: upstream's own
-          # documented seam, `hermes-agent.override { extraPythonPackages = [...]; }`.
-          # Upstream's build then generates the wrapper's PYTHONPATH itself, runs its
-          # plugin/core collision check over the extra packages, and the result is an
-          # ordinary derivation — no `wrapProgram` postBuild, no seeded pkgs, no overlay
-          # indirection.
-          #
-          # The plugin is built with HERMES' OWN nixpkgs, not this repo's. Those are
-          # different revisions (python 3.14.6 there, 3.14.7 here), and
-          # `extraPythonPackages` is resolved by `requiredPythonModules` inside upstream's
-          # build — against upstream's interpreter. Building the plugin with the consumer's
-          # python would put a second interpreter's site-packages on the same PYTHONPATH.
-          #
-          # Only the final wrapper derivation rebuilds: `extraPythonPackages` feeds the
-          # wrapper, not the uv2nix venv, so the expensive part comes from the cache.
+          # Upstream's own seam. `extraPythonPackages` feeds the wrapper, not the
+          # uv2nix venv, so only the final derivation rebuilds. The plugin is built
+          # with Hermes' OWN nixpkgs (3.14.6, vs 3.14.7 here) because upstream
+          # resolves it against its interpreter via `requiredPythonModules`.
           packages.hermes-agent =
             let
               hermesPkgs = import inputs.hermes-agent.inputs.nixpkgs { inherit system; };
@@ -159,15 +137,12 @@
         };
     };
 
-  # For callers that accept the flake config. `extra-experimental-features`
-  # enables `|>` for this repo's imported modules -- but not for `flake.nix`
-  # itself, which nix parses before it reads `nixConfig`, so a bare `nix` with
-  # no config still needs the feature in nix.conf. See
-  # docs/experimental-features.md.
+  # Must stay literal: nix reads nixConfig before evaluating anything else, and
+  # rejects a `let`-bound value with "expected a set but got a thunk".
   #
-  # The two lists must stay literal: nix reads a flake's `nixConfig` before
-  # evaluating anything else and rejects a `let`-bound one with "expected a set
-  # but got a thunk". Keep each substituter adjacent to its key.
+  # `extra-experimental-features` enables `|>` for imported modules but not for
+  # flake.nix itself, which is parsed before nixConfig is read -- a bare `nix` with
+  # no config still needs the feature in nix.conf (docs/experimental-features.md).
   nixConfig = {
     extra-experimental-features = [ "pipe-operators" ];
     extra-substituters = [

@@ -1,27 +1,15 @@
-# E2E: the real `base-system` module, applied to a bootable machine.
+# E2E: the real `base-system` module on a bootable machine.
 #
-# The unit tests assert what the configuration *says*. This asserts what the
-# running system *does*: the settings are rendered into the files and units that
-# consume them, and the daemons agree. `sshd -T` is the point of the exercise --
-# it is sshd's own parse of the config it will serve, so it cannot be satisfied
-# by an option that never reached a file.
+# Asserts what the running system does, not what the config says. `sshd -T` is
+# sshd's own parse of the config it serves, so it cannot be satisfied by an option
+# that never reached a file.
 #
-# The machine this repository deploys is a NixOS-WSL guest and cannot be the
-# target: `system.build.installBootLoader` is `${pkgs.coreutils}/bin/true`
-# because the WSL kernel boots it, so there is no bootloader for QEMU to start.
-# The same module is applied to a test machine instead.
+# Not `workstation`: a WSL guest has no bootloader for QEMU to start.
 #
-# `useContainers = false` (a VM, not an nspawn container) is deliberate. A
-# container test additionally requires nix's `uid-range` system feature, which
-# is advertised only when the builder sets `auto-allocate-uids`; nixpkgs'
-# default `system-features` is `[ "nixos-test" "benchmark" "big-parallel" "kvm" ]`
-# and this machine does not add it, so `nix flake check` would fail on a
-# container test with "missing system features". A VM needs only `kvm` and
-# `nixos-test`. Flip this to `true` and rename `nodes` to `containers` once
-# `nix.settings.auto-allocate-uids = true` is set on the builders.
+# `useContainers = false` (VM, not nspawn) because a container test needs nix's
+# `uid-range` feature, advertised only when builders set `auto-allocate-uids`.
 #
-# This is the test module body. `modules/flake/tests.nix` supplies `imports`,
-# `hostPkgs` and the `clan-core` argument, which are the same for every e2e test.
+# `modules/flake/tests.nix` supplies `imports`, `hostPkgs` and `clan-core`.
 {
   name = "base-system";
 
@@ -44,8 +32,8 @@
   };
 
   nodes.node1 = {
-    # The module's user-facing half is conditional on this argument, which the
-    # clan machine definition supplies in the real repository.
+    # The module's user half is gated on this argument, supplied in the real repo
+    # by the clan machine definition.
     _module.args.username = "nixolotl";
     users.users.nixolotl = {
       isNormalUser = true;

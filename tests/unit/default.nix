@@ -1,19 +1,7 @@
-# Core unit tests: assertions about the *evaluated* system configuration.
+# Assertions about the *evaluated* system config: no build, no VM, milliseconds.
+# Scope is the system itself; a service's own expectations belong with its module.
 #
-# Scope is the system itself -- what it is, what it exposes, and what it must
-# never become. Service-specific expectations (a broker's port, a server's
-# credentials) do not belong here: they are properties of a module, and they
-# move with that module into its own test when it becomes its own module.
-#
-# These are not VM tests and they build nothing. Each one reads a value out of a
-# machine's evaluated config and compares it with what this repository intends,
-# so a change that silently alters the system fails the gate in milliseconds.
-#
-# Naming: `lib.runTests` only runs an attribute whose name starts with `test`.
-#
-# The `flake` and `home` groups live in their own files: they read the flake's
-# per-system wiring and the home-manager configuration rather than a machine's
-# system config, and they are merged in at the bottom.
+# `lib.runTests` only runs attributes whose name starts with `test`.
 {
   lib,
   machines,
@@ -35,9 +23,8 @@ let
   # Helpers
   # --------------------------------------------------------------------------
 
-  # A clan role is assigned to machines three ways -- `tags = [ "x" ]`,
-  # `tags.x = { }`, or `machines.<name> = { }` -- and clan accepts all three.
-  # Normalise so a check does not depend on which spelling was used.
+  # clan accepts three tag spellings -- `[ "x" ]`, `tags.x = { }`,
+  # `machines.<name> = { }` -- so normalise before checking.
   tagNames =
     tags:
     if builtins.isList tags then
@@ -70,14 +57,11 @@ let
   machineNames = builtins.attrNames clan.machines;
 
   # --------------------------------------------------------------------------
-  # Ports. The point of this group is the word "only": the set of ports this
-  # system declares as reachable is enumerated here, in full, so a new service
-  # cannot open one without this list being edited on purpose.
+  # Ports. The word "only" is the point: the reachable set is enumerated in full,
+  # so a service cannot open a port without this list being edited.
   #
-  # `networking.firewall.*` is inert on a WSL guest (nixos-wsl disables the
-  # unit), so this is a declaration of intent rather than a filter. The e2e
-  # ports test is what checks the running system; this checks the intent, and
-  # the two must agree.
+  # `networking.firewall.*` is inert on a WSL guest, so this is a declaration of
+  # intent; e2e/ports checks the running system and the two must agree.
   # --------------------------------------------------------------------------
   declaredTcp = lib.unique (
     lib.concatMap (m: m.config.networking.firewall.allowedTCPPorts or [ ]) named
@@ -94,22 +78,18 @@ let
 in
 {
   # --------------------------------------------------------------------------
-  # What the system is. A drift here is silent and changes the machine.
+  # What the system is. Drift here is silent and changes the machine.
   # --------------------------------------------------------------------------
   system = {
-    # Fleet-shaped, not one-machine-shaped. The earlier spelling was
-    # `lib.unique (map ...)` compared against `[ "26.05" ]`, which asserted
-    # "exactly one machine, and it is pinned" -- so the second machine failed the
-    # gate for existing rather than for being wrong. These read as "every machine
-    # does X", which is the property that actually matters and holds for any
-    # number of machines.
+    # Fleet-shaped, not one-machine-shaped: reads as "every machine does X", so a
+    # second machine does not fail the gate for existing.
     test_state_version_is_pinned = {
       expr = lib.all (m: m.config.system.stateVersion == "26.05") named;
       expected = true;
     };
 
-    # Stronger than a literal list: a machine whose hostName disagrees with its
-    # name in `clan.machines` is a machine you will ssh to at the wrong address.
+    # A hostName that disagrees with the clan machine name means sshing to the
+    # wrong address.
     test_host_name_matches_the_machine_name = {
       expr = lib.all (m: m.config.networking.hostName == m.name) named;
       expected = true;
@@ -127,24 +107,17 @@ in
       expected = true;
     };
 
-    # Every machine's architecture must be one the flake declares, or
-    # `nix flake check` cannot build it and `clan machines update` cannot deploy
-    # it. `systems` is the build contract (docs/adding-a-machine.md).
+    # An undeclared architecture cannot be built by `nix flake check` or deployed
+    # by `clan machines update` (docs/adding-a-machine.md).
     test_every_machine_runs_on_a_declared_system = {
       expr = lib.all (m: lib.elem m.config.nixpkgs.hostPlatform.system systems) named;
       expected = true;
     };
 
-    # The account is assigned by the `all` tag, not by a machine list, so a new
-    # machine gets it by construction. This is the assertion that catches the
-    # machine that is tagged wrongly: it builds, it boots, and nobody can log in.
-    #
-    # `isNormalUser`, not `users.users ? nixolotl`. The first spelling was
-    # vacuous and a mutation proved it: `base-system` assigns
-    # `users.users.${username}.shell`, so the attribute exists on every machine
-    # whether or not the account was ever created -- and a machine with only that
-    # has a shell setting and no login. `isNormalUser = true` is what the users
-    # module sets and nothing else does.
+    # The account comes from the `all` tag, so a new machine gets it by
+    # construction. `isNormalUser`, not `users.users ? nixolotl`: base-system sets
+    # `.shell`, so that attribute exists without the account, and a mutation proved
+    # the weaker spelling vacuous.
     test_every_machine_carries_a_normal_user = {
       expr = lib.all (m: (m.config.users.users.nixolotl or { }).isNormalUser or false) named;
       expected = true;
@@ -152,34 +125,29 @@ in
   };
 
   # --------------------------------------------------------------------------
-  # What the system exposes. See the note above the `ports` group: this is the
-  # "and nothing else" half of the suite.
+  # What the system exposes: the "and nothing else" half of the suite.
   # --------------------------------------------------------------------------
   ports = {
     test_only_the_declared_tcp_ports_are_reachable = {
       expr = declaredTcp;
-      # 22 -- sshd. Declared by `services.openssh.openFirewall`.
+      # 22 -- sshd, via `services.openssh.openFirewall`.
       expected = [ 22 ];
     };
 
     test_only_the_declared_udp_ports_are_reachable = {
       expr = declaredUdp;
-      # 5353 -- mDNS, declared by clan-core's own networking module for its
-      # local discovery. Not this repository's doing, and not something to
-      # remove without checking clan's networking guide first.
+      # 5353 -- mDNS, from clan-core's own networking module, not this repo.
       expected = [ 5353 ];
     };
 
-    # The firewall entry and the listener must not drift apart: a port declared
-    # open that nothing listens on is a stale rule, and a listener with no rule
-    # is an accident waiting for the firewall to be switched on.
+    # A declared port with no listener is a stale rule; a listener with no rule is
+    # an accident waiting for the firewall to be switched on.
     test_sshd_listens_on_exactly_its_declared_port = {
       expr = sshdPorts;
       expected = [ 22 ];
     };
 
-    # Nothing in this repository may open a bare port beyond sshd. A service
-    # that needs one gets an interface-scoped rule instead.
+    # A service needing a port gets an interface-scoped rule, not a bare one.
     test_the_only_bare_tcp_port_is_sshd = {
       expr = lib.subtractLists sshdPorts declaredTcp;
       expected = [ ];
@@ -187,7 +155,7 @@ in
   };
 
   # --------------------------------------------------------------------------
-  # Security posture. These are the settings a change can quietly relax.
+  # Security posture: the settings a change can quietly relax.
   # --------------------------------------------------------------------------
   security = {
     test_sshd_refuses_password_authentication = {
@@ -208,9 +176,8 @@ in
       expected = true;
     };
 
-    # Every account whose password is set must get it from the vars store. A
-    # literal `initialPassword` would put a hash in the repository, and a plain
-    # `hashedPassword` would put it in the store.
+    # A literal `initialPassword` would put a hash in the repo, a plain
+    # `hashedPassword` in the store.
     test_every_password_hash_comes_from_the_vars_store = {
       expr = lib.all (
         m:
@@ -226,8 +193,7 @@ in
       expected = true;
     };
 
-    # No account may be created without a password and without being locked:
-    # an empty password is a login, not a missing one.
+    # An empty password is a login, not a missing one.
     test_no_account_has_an_empty_password = {
       expr = lib.all (
         m:
@@ -239,8 +205,7 @@ in
           let
             pw = u.hashedPassword or null;
           in
-          # `null` means no password set (fine if the account is locked or has
-          # a file); an empty string is a password that is the empty string.
+          # `null` means no password set (fine if locked or file-backed).
           pw == null || pw != ""
         ) (lib.attrValues users)
       ) named;
@@ -262,8 +227,7 @@ in
       expected = true;
     };
 
-    # No unfree or known-insecure package may be admitted without this list
-    # being edited.
+    # Admitting one requires editing this list on purpose.
     test_no_insecure_packages_are_permitted = {
       expr = lib.all (m: (m.config.nixpkgs.config.permittedInsecurePackages or [ ]) == [ ]) named;
       expected = true;
@@ -272,12 +236,11 @@ in
 
   # --------------------------------------------------------------------------
   # Integrity. nixpkgs ships ~1500 assertions and a warning channel; both are
-  # free sanity checks that this repository's own changes can trip.
+  # free checks that this repository's changes can trip.
   # --------------------------------------------------------------------------
   integrity = {
-    # A failed assertion is nixpkgs saying the configuration is internally
-    # inconsistent. The build would fail too, but the message here is the
-    # assertion's own.
+    # A failed assertion means nixpkgs considers the config inconsistent. The
+    # build would fail too, but this message is the assertion's own.
     test_no_nixpkgs_assertion_fails = {
       expr = lib.concatMap (
         m:
@@ -286,15 +249,14 @@ in
       expected = [ ];
     };
 
-    # Warnings do not fail a build, so nothing else in the gate would catch
-    # them. Deprecations and misconfigurations surface here.
+    # Warnings do not fail a build, so nothing else in the gate would catch them.
     test_no_nixpkgs_warning_is_emitted = {
       expr = lib.concatMap (m: map (w: "${m.name}: ${w}") (m.config.warnings or [ ])) named;
       expected = [ ];
     };
 
-    # The firewall must be asked for, even though nixos-wsl disables the unit.
-    # Turning it off entirely would make the declaration above meaningless.
+    # Must be asked for even though nixos-wsl disables the unit, or the port
+    # declarations above mean nothing.
     test_the_firewall_is_declared_on = {
       expr = lib.all (m: m.config.networking.firewall.enable == true) named;
       expected = true;
@@ -302,7 +264,7 @@ in
   };
 
   # --------------------------------------------------------------------------
-  # Structural invariants. AGENTS.md calls these the traps: each yields a
+  # Structural invariants: the traps AGENTS.md names -- each yields a
   # plausible-looking wrong result rather than an error.
   # --------------------------------------------------------------------------
   structure = {
@@ -336,27 +298,24 @@ in
   };
 
   # --------------------------------------------------------------------------
-  # clan deployability. What `clan machines update` needs to be true before it
-  # can deploy anything: the machine is a clan machine, it builds as one, and
-  # every service in the inventory is actually assigned to it.
+  # clan deployability: what `clan machines update` needs before it can deploy.
   # --------------------------------------------------------------------------
   clan = {
-    # The artifact `clan machines build` produces. If clan cannot see the
-    # machine, there is nothing to deploy.
+    # If clan cannot see the machine, there is no build artifact to deploy.
     test_every_machine_is_a_clan_machine_with_a_build_artifact = {
       expr = lib.subtractLists deployableMachines machineNames;
       expected = [ ];
     };
 
-    # AGENTS.md's trap: a null input resolves to clan-core, so a local service
-    # silently loads the wrong module. Every instance must name its source.
+    # A null input resolves to clan-core, so a local service silently loads the
+    # wrong module.
     test_every_instance_names_its_module_source = {
       expr = lib.filter (r: r.input == null) roles;
       expected = [ ];
     };
 
-    # A local (`self`) instance must name a module this repository defines;
-    # otherwise clan resolves it to clan-core and fails at build time.
+    # A `self` instance must name a module this repo defines, or clan resolves it
+    # to clan-core and fails at build time.
     test_every_self_instance_names_a_local_module = {
       expr = lib.filter (
         r: r.input == "self" && !(lib.elem r.module (builtins.attrNames clan.modules))
@@ -364,35 +323,31 @@ in
       expected = [ ];
     };
 
-    # A role assigned to nothing never applies, and nothing says so. Each role
-    # must be reachable by tag or by machine name.
+    # A role assigned to nothing never applies, and nothing says so.
     test_every_role_is_assigned_to_something = {
       expr = lib.filter (r: r.tags == [ ] && r.machines == [ ]) roles;
       expected = [ ];
     };
 
-    # A role tagged with a tag no machine carries is the same silent failure
-    # spelled differently.
+    # A tag no machine carries is the same silent failure, spelled differently.
     test_every_role_tag_is_carried_by_a_machine = {
       expr = lib.unique (lib.concatMap (r: lib.subtractLists machineTags r.tags) roles);
       expected = [ ];
     };
 
-    # A role naming a machine that does not exist is a typo that would deploy
-    # nothing.
+    # A machine that does not exist is a typo that would deploy nothing.
     test_every_role_machine_exists = {
       expr = lib.unique (lib.concatMap (r: lib.subtractLists machineNames r.machines) roles);
       expected = [ ];
     };
 
-    # Every declared machine must be in the inventory, or `clan machines
-    # update` will not know where to reach it.
+    # An undeclared machine leaves `clan machines update` without a target.
     test_every_machine_is_in_the_inventory = {
       expr = lib.subtractLists (builtins.attrNames clan.inventory.machines) machineNames;
       expected = [ ];
     };
 
-    # ...and every inventory machine must be tagged, or no role can target it.
+    # An untagged inventory machine cannot be targeted by any role.
     test_every_inventory_machine_carries_a_tag = {
       expr = lib.filter (m: tagNames (m.tags or [ ]) == [ ]) (lib.attrValues clan.inventory.machines);
       expected = [ ];

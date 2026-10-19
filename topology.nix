@@ -27,12 +27,9 @@ in
       };
     };
 
-    # Not a NixOS machine, so nothing about it can be derived. Values taken from
-    # the host's `ipconfig /all`.
-    #
-    # No Hyper-V switch is modelled: `networkingMode=mirrored` in the host's
-    # `.wslconfig` puts the guest's NIC straight onto the LAN rather than behind
-    # a NAT, so there is no second segment to draw. See docs/adr/0002.
+    # Not a NixOS machine, so nothing is derivable; values from `ipconfig /all`.
+    # No Hyper-V switch modelled: mirrored networking puts the guest NIC straight
+    # onto the LAN rather than behind a NAT (docs/adr/0002).
     windows-host = mkDevice "Desktop-Storm" {
       info = "Windows 11 host - Ryzen 9 9900X3D / Radeon RX 9070 XT";
       connections.eth = mkConnection "home-router" "lan";

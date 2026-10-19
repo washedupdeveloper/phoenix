@@ -1,16 +1,11 @@
 # E2E: nothing listens that the configuration did not declare.
 #
-# This is the running-system half of the `ports` unit group. The unit test
-# asserts what the configuration *intends* to expose; this asserts what the
-# kernel is actually listening on. They are different claims, and the second is
-# the one that catches a service opening a socket no option mentions.
+# The running-system half of the `ports` unit group: intent versus what the kernel
+# is bound to, which catches a service opening a socket no option mentions.
 #
-# /proc/net is read rather than `ss` because iproute2 is not part of a minimal
-# system, and the test must not depend on a diagnostic tool being installed.
+# /proc/net rather than `ss`, because iproute2 is not part of a minimal system.
 #
-# The machine is a plain test machine, not the WSL guest: `workstation` has no
-# bootloader (the WSL kernel boots it), so it cannot be a nixosTest target. The
-# modules under test are applied here unchanged.
+# Not `workstation`: a WSL guest has no bootloader for QEMU to start.
 { lib, ... }:
 {
   name = "ports";
@@ -32,11 +27,8 @@
   };
 
   nodes.node1 = {
-    # base-system's user half is gated on this argument. It cannot simply be
-    # omitted: `username ? null` in the module's function pattern is bypassed by
-    # the module system, which resolves the formal from `_module.args` and
-    # errors when it is absent -- so the `lib.mkIf (username != null)` guard is
-    # unreachable and a machine must always supply it.
+    # Cannot be omitted: the module system resolves `username` from `_module.args`
+    # and errors when absent, so the `mkIf (username != null)` guard is unreachable.
     _module.args.username = "nixolotl";
     users.users.nixolotl = {
       isNormalUser = true;
@@ -45,12 +37,9 @@
     };
     users.groups.nixolotl = { };
 
-    # Mirrors `modules/clanServices/wsl`, which forces this off. clan-core's own
-    # networking module turns systemd-resolved on (it is what provides the mDNS
-    # on 5353 that clan advertises in the firewall), and resolved then also
-    # takes the LLMNR port 5355 and the loopback DNS stub on 53. The WSL module
-    # disables it because WSL supplies its own resolver; a machine that did not
-    # would show three listeners nothing in this repository declared.
+    # Mirrors modules/clanServices/wsl. clan-core's networking module turns
+    # resolved on -- it provides the mDNS on 5353 -- and resolved also takes 5355
+    # and the :53 stub, three listeners nothing here declares.
     services.resolved.enable = lib.mkForce false;
   };
 

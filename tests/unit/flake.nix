@@ -1,16 +1,10 @@
-# Flake-level assertions: the wiring in `flake.nix` and its `perSystem` block
-# that no single machine's configuration shows.
+# Flake-level assertions: the wiring in `flake.nix` and its `perSystem` block that
+# no machine's configuration shows. Built inside `perSystem`, because what they
+# read -- devshell env, per-system packages, the output set -- exists only there.
 #
-# These are built inside `perSystem` in `modules/flake/tests.nix`, because what
-# they read -- the devshell's environment, the per-system package set, the
-# output set itself -- exists only in that scope.
-#
-# `nixConfig` is deliberately not tested. It sits outside the flake's outputs,
-# so `builtins.getFlake` has no `nixConfig` attribute and `nix flake metadata
-# --json` omits it; the only way to read it would be to parse `flake.nix` as
-# text. The cache invariant it belongs to is asserted from the machine side
-# instead -- see the `substituters` tests below, and docs/flake-internals.md for
-# why the two lists are allowed to differ by `cache.clan.lol`.
+# `nixConfig` is not tested: it sits outside the flake's outputs, so
+# `builtins.getFlake` has no such attribute and `metadata --json` omits it. The
+# cache invariant is asserted from the machine side instead.
 {
   lib,
   machines,
@@ -27,8 +21,7 @@ let
     inherit (cfg) config;
   }) machines;
 
-  # nix's own output names, plus clan's two: `nix flake check` knows neither
-  # `clan` nor `clanInternals`, and there is nothing to pair them with.
+  # nix's own output names, plus clan's two -- `nix flake check` knows neither.
   knownOutputs = [
     "apps"
     "checks"
@@ -53,10 +46,8 @@ let
 
   customOutputs = lib.subtractLists knownOutputs (builtins.attrNames flake);
 
-  # The devshell's NIX_CONFIG, split into the features it enables. The variable
-  # holds `key = value` lines; `experimental-features` must name the same
-  # features `base-system` puts in `nix.settings.experimental-features`, or the
-  # devshell and the machine disagree about what the flake may parse.
+  # The devshell's NIX_CONFIG, split into the features it enables. Must name the
+  # same features `base-system` sets in `nix.settings.experimental-features`.
   devshellEnv = perSystem.devshells.default.env;
 
   devshellNixConfig = lib.findFirst (e: e.name == "NIX_CONFIG") { value = ""; } devshellEnv;
@@ -77,8 +68,8 @@ let
     lib.unique (lib.concatMap (m: m.config.nix.settings.experimental-features) named)
   );
 
-  # nixpkgs normalises substituter URLs and appends a trailing slash to some of
-  # them, so compare hosts rather than URLs.
+  # nixpkgs normalises substituter URLs and appends a trailing slash to some, so
+  # compare hosts rather than URLs.
   asHost = url: lib.removeSuffix "/" (lib.removePrefix "https://" url);
 
   substituters = lib.unique (

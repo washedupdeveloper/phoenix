@@ -44,13 +44,9 @@
             exec ${usbipAutoAttachBin} "$ip" --busid "$busid" --usbip-path "${pkgs.linuxPackages.usbip}/bin/usbip"
           '';
 
-          # WSL exposes binfmt_misc with a read-only status file, so systemd's
-          # binfmt service can never apply binfmt.d rules and fails at boot. It
-          # is disabled for that reason, not for lack of rules: the `wsl` block
-          # below sets `interop.register = true`, which does declare
-          # `boot.binfmt.registrations.WSLInterop`. The declaration is inert --
-          # WSL registers the format itself and systemd-binfmt is masked -- so
-          # interop works without the unit.
+          # binfmt_misc's status file is read-only under WSL, so systemd-binfmt
+          # cannot apply binfmt.d rules and fails at boot. WSL registers the interop
+          # format itself, so `interop.register` below is inert but harmless.
           systemd.services.systemd-binfmt.enable = false;
 
           wsl = {
@@ -70,11 +66,8 @@
 
           services.resolved.enable = lib.mkForce false;
 
-          # nixos-wsl enables this for WSLg's GPU acceleration. Nothing on this
-          # machine runs a graphical program, and the stack it drags in -- mesa,
-          # its llvm-lib, mesa-libgbm, vulkan-loader -- is ~0.8 GiB of the
-          # closure. Forced off; delete this line to get it back, which a GUI
-          # app running under WSLg would need.
+          # nixos-wsl enables this for WSLg's GPU acceleration. Nothing here runs a
+          # GUI program and the stack is ~0.8 GiB of the closure. Delete to restore.
           hardware.graphics.enable = lib.mkForce false;
         };
     };

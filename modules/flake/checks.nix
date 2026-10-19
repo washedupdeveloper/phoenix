@@ -1,12 +1,8 @@
-# `nix flake check` BUILDS the `checks` output and only EVALUATES
-# `nixosConfigurations` -- the machine's toplevel is listed under the command's
-# "evaluation checks", not among the checks it builds. So without this, a machine
-# that evaluates but fails to BUILD passes the gate, which is the one failure a
-# config repository most needs caught.
+# `nix flake check` BUILDS `checks` but only EVALUATES `nixosConfigurations`, so
+# without this a machine that evaluates and fails to build would pass the gate.
 #
-# The list is derived from the configurations rather than maintained beside them:
-# a machine's own `nixpkgs.hostPlatform` decides which system it lands under, so
-# there is no second machine list to keep in step with `clan.inventory.machines`.
+# Derived from the configurations rather than listed beside them: each machine's
+# `nixpkgs.hostPlatform` decides its system, so there is no second machine list.
 { config, lib, ... }:
 {
   flake.checks = lib.genAttrs config.systems (

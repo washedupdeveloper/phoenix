@@ -6,8 +6,8 @@
     description = "My ever-changing immutable homelab";
   };
 
-  # Locally-authored clan.service modules. `module.input = "self"` is required:
-  # a null input resolves to clan-core, not to local modules.
+  # Locally-authored modules. `module.input = "self"` is required: a null input
+  # resolves to clan-core, not to local modules.
   modules."base-system" = ./modules/clanServices/base-system;
   modules."wsl" = ./modules/clanServices/wsl;
 
@@ -66,11 +66,9 @@
     user-nixolotl = {
       module.name = "users";
       module.input = "clan-core";
-      # Tag-driven, not a machine list. A new machine tagged `all` gets the
-      # account automatically; enumerating machines here meant a machine could be
-      # added everywhere else and still have no user, which builds and boots and
-      # cannot be logged into. `tests/unit/default.nix` now asserts every machine
-      # carries the account, so the two cannot drift apart silently.
+      # Tag-driven: a machine tagged `all` gets the account automatically, so it
+      # cannot be added everywhere else and still have no login. Asserted in
+      # tests/unit/default.nix.
       roles.default.tags.all = { };
       roles.default.settings = {
         user = "nixolotl";
@@ -85,12 +83,8 @@
       };
     };
 
-    # Spelled out rather than abbreviated: instance names surface in `clan
-    # vars`, in deployment output and in every settings path.
-    #
-    # Also tag-driven, for the same reason: a machine without home-manager has a
-    # login shell and no dotfiles, git identity or signing key -- the state a
-    # second machine reached before this was a tag.
+    # Spelled out because instance names appear in `clan vars` paths and deploy
+    # output. Tag-driven so no machine is left without dotfiles or a git identity.
     home-manager = {
       module.name = "importer";
       module.input = "clan-core";

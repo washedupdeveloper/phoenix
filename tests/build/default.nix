@@ -1,20 +1,11 @@
 # Build-tier assertions: what the configuration RENDERS.
 #
-# This is the tier between the unit tests (what an option says) and the VM tests
-# (what a running machine does). Every assertion here is about a file the
-# configuration produced, so it needs no kernel, no QEMU and no Python: the
-# artifact is built and inspected.
+# Between the unit tests (what an option says) and the VM tests (what a running
+# machine does). No kernel, no QEMU, no Python: the artifact is built and inspected.
 #
-# The rule for what belongs here rather than in a `testScript` is what the
-# assertion needs, not what is convenient. A generated file is evidence on its
-# own -- its content, its symlink target. A daemon parsing that file, a socket
-# being open, a command succeeding: those need the machine, and only those
-# belong in a VM.
-#
-# Both sources are read from the evaluated configuration rather than restated:
-# `system.build.etc` is the merged /etc the activation installs, and
-# `home.file.<path>.source` is the exact file home-manager links into the
-# account's home.
+# Both sources are read from the evaluated config rather than restated:
+# `system.build.etc` is the merged /etc activation installs, and
+# `home.file.<path>.source` is the file home-manager links into the home.
 {
   pkgs,
   lib,

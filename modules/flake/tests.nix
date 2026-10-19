@@ -1,40 +1,20 @@
-# Core tests for the system, wired into the gate.
+# Three tiers, chosen by what the assertion needs:
 #
-# `nix flake check` builds everything in `checks`, so everything below runs with
-# the rest of the gate rather than when a human remembers to ask.
+#   unit-<group>   an option's value -- `lib.runTests` over the evaluated config,
+#                  no build, milliseconds, and a failure names both values.
+#   build-<group>  a generated file -- `runCommand` over `system.build.etc` and the
+#                  home-manager `home.file` sources. A rendered file is evidence.
+#   e2e-<name>     what a running machine does -- `testers.runNixOSTest` with a
+#                  Python `testScript`, the only tier that needs one.
 #
-# Three tiers, and the tier is chosen by what the assertion needs:
+# Rule: Python is the price of the third tier and nothing else. An assertion that
+# can be made against a rendered file must not boot a machine to make it.
 #
-# - `unit-<group>` -- the *value* of an option. `lib.runTests` over the
-#   evaluated configuration: no build, no VM, milliseconds, and a failure names
-#   the test with both values.
-# - `build-<group>` -- the *file* the option produced. `runCommand` over
-#   `system.build.etc` and the home-manager `home.file` sources: no kernel, no
-#   QEMU, no Python. Anything that is a property of a generated file belongs
-#   here, because a rendered file is evidence on its own.
-# - `e2e-<name>` -- what a running machine *does* with it: a daemon parsing its
-#   own config, a socket being open, a command succeeding. `testers.runNixOSTest`
-#   with a Python `testScript`, which is the only tier that needs one.
+# e2e tests target a test machine, not `workstation`: a WSL guest resolves
+# `system.build.installBootLoader` to `true`, so QEMU has nothing to start.
 #
-# The rule this exists to enforce: Python is the price of the third tier and
-# nothing else. An assertion that can be made against a rendered file must not
-# be made by booting a machine to look at it.
-#
-# Scope is the system itself. Expectations that belong to one service -- a
-# broker's port, a server's credential -- are not here: they move with that
-# service into its own module and its own test.
-#
-# What the e2e tests deliberately do *not* target is the machine this repository
-# deploys. `workstation` is a NixOS-WSL guest: `system.build.installBootLoader`
-# resolves to `${pkgs.coreutils}/bin/true` because the WSL kernel boots it, so
-# there is no bootloader and nothing for QEMU to start. The e2e tests apply the
-# same modules to a test machine instead, which is the closest bootable thing.
-#
-# clan-core's own `clan.nixosTests` option is not used: it lives in clan-core's
-# `testModule` flake module, which drags in clan-core's whole check suite. The
-# test module itself, `modules.nixosTest.clanTest`, is exposed directly and
-# imported into a plain `testers.runNixOSTest`, which is the same machinery the
-# nix.dev tutorial documents.
+# clan-core's `clan.nixosTests` is avoided -- it drags in clan-core's whole check
+# suite. `modules.nixosTest.clanTest` is imported into a plain `runNixOSTest`.
 {
   config,
   inputs,
@@ -42,25 +22,18 @@
   ...
 }:
 let
-  # Captured at flake level: inside `perSystem` the `config` argument is the
-  # per-system config, which does not carry `nixosConfigurations` or the clan
-  # outputs.
+  # Captured at flake level: inside `perSystem` the `config` argument is that
+  # scope's config, which carries neither `nixosConfigurations` nor clan's outputs.
   inherit (config) flake;
 
   machines = flake.nixosConfigurations;
 
-  # The repository's own declaration of its clan: machines, modules and
-  # inventory. Imported directly rather than read back out of clan's internals,
-  # so the deployability checks assert on what this repo says, not on clan's
-  # interpretation of it.
+  # The repo's own declaration of its clan, imported directly so the deployability
+  # checks assert on what this repo says, not on clan's interpretation of it.
   clan = import ../../clan.nix { inherit inputs; };
 
-  # One check per group, so `--keep-going` reports every failing group rather
-  # than stopping at the first.
-  #
-  # The per-system config is passed in rather than read here: inside `perSystem`
-  # `config` is that scope's config, and the `flake` group needs it -- the
-  # devshell's environment and the per-system package set live nowhere else.
+  # One check per group, so `--keep-going` reports every failing group. The
+  # per-system config is passed in because the `flake` group needs it.
   mkUnitChecks =
     pkgs: system: perSystemConfig:
     let
@@ -89,9 +62,8 @@ let
         lib.debug.throwTestFailures { inherit failures; }
     ) groups;
 
-  # `testers.runNixOSTest` is `nixos.runTest` with `hostPkgs` and the node pkgs
-  # already supplied, so neither is repeated here. `clanTest` resolves
-  # `clan-core` from a module argument, supplied once for every e2e test.
+  # `runNixOSTest` already supplies `hostPkgs` and node pkgs; `clanTest` resolves
+  # `clan-core` from a module argument, supplied once here for every e2e test.
   mkE2eCheck =
     pkgs: body:
     pkgs.testers.runNixOSTest (

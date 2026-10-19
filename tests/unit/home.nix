@@ -1,20 +1,9 @@
-# The user half: what `modules/home/*` renders for the account, read out of the
-# evaluated home-manager configuration.
+# The user half: what `modules/home/*` renders, read from the evaluated
+# home-manager config. System-level facts about the same account -- login shell,
+# sudo, sshd -- live in the `security` and `system` groups.
 #
-# The system-level half of the same account -- the login shell, sudo, sshd --
-# belongs to the `security` and `system` groups. This group covers what
-# home-manager owns, and the wiring that makes one identity reach both git and
-# jj: AGENTS.md records that the two copies drifted while each tool carried its
-# own.
-#
-# Every assertion here is FLEET-shaped: it says "all of them", not "the one".
-# The earlier spelling compared a per-machine map against a literal
-# `{ workstation = [ "nixolotl" ]; }` and a per-user list against `[ [ ... ] ]`,
-# which asserted that the fleet has exactly one machine and exactly one home.
-# A second machine therefore failed the gate for existing rather than for being
-# wrong, and the fix a reader would reach for is to add a second row -- which
-# disables the assertion for the machine they just added. `docs/adding-a-machine.md`
-# records the shape and why it is this one.
+# Every assertion is fleet-shaped -- "all of them", not "the one" -- so a second
+# machine does not fail the gate for existing (docs/adding-a-machine.md).
 {
   lib,
   machines,
@@ -26,8 +15,7 @@ let
   }) machines;
 
   # Every home-manager user on every machine, flattened. A machine without the
-  # importer instance contributes nothing, which is what
-  # `test_there_is_one_home_per_machine` is there to notice.
+  # importer contributes nothing, which `test_there_is_one_home_per_machine` notices.
   hmUsers = lib.concatMap (
     m:
     lib.mapAttrsToList (user: hm: {
@@ -43,17 +31,14 @@ let
 in
 {
   home = {
-    # Every machine carries this account, whatever its name. A machine that lost
-    # home-manager contributes no home, and the two tests below catch it: this
-    # one sees an empty list, the next one sees a length mismatch.
+    # A machine that lost home-manager contributes no home; the pair below catches
+    # it -- this one sees an empty list, the next a length mismatch.
     test_every_machine_carries_the_account = {
       expr = lib.mapAttrs (_n: m: builtins.attrNames (m.config.home-manager.users or { })) machines;
       expected = lib.genAttrs (builtins.attrNames machines) (_: [ "nixolotl" ]);
     };
 
-    # One home per machine: none contributes two, none contributes zero.
-    # `hmUsers` is flattened across the fleet, so a count mismatch is the only
-    # way this file can see a missing importer.
+    # None contributes two homes, none contributes zero.
     test_there_is_one_home_per_machine = {
       expr = builtins.length hmUsers == builtins.length named;
       expected = true;
@@ -67,8 +52,8 @@ in
       expected = true;
     };
 
-    # home-manager's state version is not the system's, but it is derived from
-    # it here so the two cannot be bumped apart.
+    # home-manager's state version is not the system's, but it is derived from it
+    # here so the two cannot be bumped apart.
     test_the_home_state_version_follows_the_system = {
       expr = lib.all (u: u.hm.home.stateVersion == u.systemStateVersion) hmUsers;
       expected = true;
@@ -79,8 +64,7 @@ in
       expected = true;
     };
 
-    # The invariant: one identity, two tools. A change that edits one copy is
-    # the drift this pair exists to catch.
+    # One identity, two tools: a change editing one copy is the drift this catches.
     test_git_and_jj_share_one_identity = {
       expr = lib.all (
         u:
@@ -127,8 +111,7 @@ in
       expected = true;
     };
 
-    # jj has no `user.signingkey` -- its signing is `signing.backend` plus
-    # `signing.key` -- so the shared identity must stay out of git's extra key.
+    # jj has no `user.signingkey` -- it signs via `signing.backend` + `signing.key`.
     test_jj_does_not_inherit_gits_signing_key = {
       expr = lib.all (u: !(u.hm.programs.jujutsu.settings.user ? signingkey)) hmUsers;
       expected = true;
@@ -154,8 +137,7 @@ in
       expected = true;
     };
 
-    # Every integration in modules/home/shell.nix targets fish. One left
-    # without its fish hook is installed and inert.
+    # An integration left without its fish hook is installed and inert.
     test_every_fish_integration_is_enabled = {
       expr = lib.all (
         u:
@@ -180,15 +162,14 @@ in
       expected = true;
     };
 
-    # ...and the shell those hooks are written into has to be the login shell,
-    # or none of them is read. See docs/shell-integrations.md.
+    # ...and that shell has to be the login shell, or none of the hooks is read.
     test_the_login_shell_is_the_shell_the_integrations_target = {
       expr = lib.all (u: lib.hasInfix "fish" (toString (u.users.users.${u.user}.shell or ""))) hmUsers;
       expected = true;
     };
 
-    # The identity reaches the tool modules through `extraSpecialArgs`, not
-    # through a second definition inside one of them.
+    # The identity reaches the tool modules through `extraSpecialArgs`, not a
+    # second definition inside one of them.
     test_the_identity_reaches_the_modules_through_extra_special_args = {
       expr = lib.all (
         u:

@@ -73,11 +73,8 @@
 
             environment = {
               variables.EDITOR = lib.mkDefault settings.editor;
-              # The nix tooling (nixd, deadnix, statix, nixfmt,
-              # nix-output-monitor) lives in the flake's devshell, and direnv
-              # comes from home-manager's `programs.direnv`. Installing them
-              # here as well put a second copy -- and, via nixd, a second nix --
-              # into every machine's system closure.
+              # nix tooling lives in the devshell; installing it here would put a
+              # second copy -- and, via nixd, a second nix -- in every closure.
             };
 
             programs.fish = {
@@ -92,20 +89,15 @@
               '';
             };
 
-            # fish is the shell every integration in modules/home/shell.nix
-            # targets; without this the login shell stays bash, where none of
-            # them -- the direnv hook included -- is installed. See
-            # docs/shell-integrations.md.
+            # fish is the target of every integration in modules/home/shell.nix;
+            # without this the login shell stays bash and none of them load.
             users.users = lib.mkIf (username != null) {
               ${username}.shell = pkgs.fish;
             };
 
-            # Host keys belong to clan's `sshd` service -- the `sshd-with-certs`
-            # instance in clan.nix -- which keeps them in the vars store. See
-            # ADR-0001 decision 2. Declaring `hostKeys` here as well does not
-            # override clan's list, it concatenates onto it, leaving the machine
-            # serving a second, unmanaged key that no `clan vars` run can
-            # reproduce.
+            # Host keys belong to clan's `sshd` service, which keeps them in the vars
+            # store (ADR-0001 decision 2). Declaring `hostKeys` here concatenates onto
+            # clan's list rather than replacing it, leaving an unmanaged second key.
             services.openssh = {
               enable = true;
               settings = {
@@ -115,14 +107,10 @@
             };
 
             users.mutableUsers = lib.mkDefault false;
-            # Accepted risk, recorded rather than left implicit: this is a
-            # single-user WSL guest. Both of its accounts are clan-managed and
-            # vars-backed -- `nixolotl` and `root` -- and SSH is key-only:
-            # PasswordAuthentication and KbdInteractiveAuthentication are both
-            # off above. `nixolotl` is in `@wheel`, which is also a nix
-            # trusted-user. A sudo password would not add a boundary nothing
-            # else crosses. Flip this to `true` if the machine ever gains a
-            # second human user.
+            # Accepted: single-user WSL guest, both accounts clan-managed and
+            # vars-backed, SSH key-only, and `nixolotl` is in @wheel, itself a nix
+            # trusted-user -- a sudo password would add no boundary. Set to true if a
+            # second human ever gets an account here.
             security.sudo.wheelNeedsPassword = lib.mkDefault false;
             security.sudo.execWheelOnly = lib.mkDefault true;
 
@@ -135,29 +123,20 @@
               };
 
               settings = {
-                # clan-core already sets ["nix-command" "flakes"], and a plain
-                # list definition concatenates onto it -- which is why this
-                # contributes only the extra feature rather than repeating the
-                # two. `lib.mkDefault` here would lose to clan's normal-priority
-                # definition and silently drop `pipe-operators`. Must stay in
-                # step with the devshell's NIX_CONFIG in flake.nix; see
-                # docs/experimental-features.md.
+                # clan-core already sets ["nix-command" "flakes"] and a plain list
+                # definition concatenates, so this only adds the extra feature.
+                # `mkDefault` would lose to clan's definition and silently drop it.
+                # Keep in step with the devshell's NIX_CONFIG in flake.nix.
                 experimental-features = [ "pipe-operators" ];
                 auto-optimise-store = lib.mkDefault true;
-                # `accept-flake-config` is deliberately left at nix's default
-                # (`false`): accepting a flake's config means trusting its
-                # substituters and its public keys, and that should not happen
-                # silently for every flake this machine ever evaluates. Nothing
-                # here needs it -- the caches, keys and `pipe-operators` that
-                # flake.nix's `nixConfig` asks for are set below at system level,
-                # except `cache.clan.lol`, which flake.nix declares for other
-                # evaluators and this machine does not substitute from.
+                # `accept-flake-config` stays at nix's default (false): accepting a
+                # flake's config trusts its substituters and keys, which should not
+                # happen silently for every flake evaluated here. Nothing needs it --
+                # the caches and keys are set below, except `cache.clan.lol`, which
+                # flake.nix declares for other evaluators.
                 #
-                # nix's default is `root` alone; `@wheel` is added here
-                # deliberately, and that is a widening: every @wheel account may
-                # then set restricted options. Kept as a deliberate choice --
-                # narrow it to the default if that is not wanted. The explicit
-                # `root` duplicates the default, harmlessly.
+                # `trusted-users` widens nix's default (`root` alone) to @wheel: every
+                # wheel account may then set restricted options. Deliberate.
                 trusted-users = [
                   "root"
                   "@wheel"

@@ -1,24 +1,16 @@
 # E2E: the user's home-manager configuration, on a booted machine.
 #
-# The `home` unit group asserts what the evaluated home-manager config says.
-# This asserts what it does: activation renders the files, git signs a real
-# commit with the key it was configured with, jj reads the same identity, and
-# the fish hooks fire -- which is the behaviour docs/shell-integrations.md
-# records as inert while the login shell was bash.
+# The `home` unit group asserts what the config says; this asserts what it does:
+# activation renders the files, git signs a real commit, jj reads the same
+# identity, and the fish hooks fire.
 #
-# The three per-tool modules are the real ones from `modules/home/`. What is
-# restated here is only the composition `modules/home/default.nix` performs, and
-# it has to be: a clanTest builds its nodes out of `clanInternals.nixosModules`,
-# which are bare module sets, while `clan.specialArgs` -- how the repository
-# hands `homeManagerModule` to that module -- is applied only when clan builds
-# `nixosConfigurations` (`modules/clan/module.nix`). Supplying the argument
-# through `_module.args` instead recurses, because the module imports it. The
-# composition itself, and the identity wiring through `extraSpecialArgs`, are
-# pinned by the `home` unit group, which reads the real machine's evaluated
-# configuration.
+# The three per-tool modules are the real ones. What is restated is only the
+# composition `modules/home/default.nix` performs, and it has to be: a clanTest
+# builds nodes from `clanInternals.nixosModules`, while `clan.specialArgs` is
+# applied only when clan builds `nixosConfigurations`. Supplying the argument via
+# `_module.args` instead recurses, because the module imports it.
 #
-# The machine is a plain test machine, not `workstation`: a NixOS-WSL guest has
-# no bootloader, so it cannot be a nixosTest target.
+# Not `workstation`: a WSL guest has no bootloader for QEMU to start.
 { inputs, ... }:
 {
   name = "home";
