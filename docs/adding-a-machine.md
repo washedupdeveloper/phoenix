@@ -1,195 +1,98 @@
 # Adding a machine
 
-The steps below are the ones that actually matter, each written after watching a
-second machine fail for that reason. They are ordered so that a mistake is caught
-by `nix flake check` rather than by a machine that boots and cannot be used.
+Every failure below still **evaluates** — no account, a wrong `stateVersion`, a node
+attached to nothing — so only the gate's assertions turn them into errors.
 
-**The rule this file exists for:** every failure below produces a machine that
-*evaluates*. A missing tag gives you a machine with no account; a missing
-`stateVersion` gives you a machine silently on a newer state version than the
-rest of the fleet; a missing topology entry gives you a diagram that does not
-show a machine you own. Only the gate's assertions turn those into errors.
-
-## 1. The machine's configuration
+**1. Configuration.** `machines/<name>/configuration.nix`, found by convention once
+`clan.nix` declares the machine; there is no import list:
 
 ```nix
-# machines/<name>/configuration.nix
-{ username, ... }:
-{
+{ username, ... }: {
   networking.hostName = "<name>";       # must equal <name>; a test asserts it
   nixpkgs.hostPlatform = "x86_64-linux";
 }
 ```
 
-Clan discovers this file by convention once the machine is declared in
-`clan.nix` — there is no import list to edit.
-
-## 2. Declare it in `clan.nix`, in two places
+**2. Declare it in `clan.nix`, in two places.** `machines.<name>` supplies module
+args; `inventory.machines.<name>` is what the gate reads:
 
 ```nix
-machines.<name> = {
-  _module.args.username = "nixolotl";   # modules/home/default.nix requires it
-};
-
+machines.<name>._module.args.username = "nixolotl";  # modules/home/default.nix requires it
 inventory.machines.<name> = {
   tags = [ "<name>" ];                  # clan adds `all` and `nixos` itself
-};
-```
-
-**`all` is reserved.** Clan tags every machine `all` and `nixos` automatically —
-`tags = [ "pi" ]` reads back as `[ "pi" "all" "nixos" ]`. `user-nixolotl` and
-`home-manager` are assigned to `tags.all` rather than to a machine list, so every
-machine gets the account and its home with no per-machine edit and no tag to
-remember. Writing `"all"` in the tag list is redundant; it is harmless, and the
-workstation's list keeps it as documentation.
-
-Do not add a machine to those instances by name. That is the shape that produced
-a machine which builds, boots, and has no account or no dotfiles — and
-`test_there_is_one_home_per_machine` is what fails when it happens.
-
-A machine that is not on the LAN, or that you deploy to rather than run `switch`
-on locally, also needs a target:
-
-```nix
-inventory.machines.<name> = {
-  tags = [ "all" "<name>" ];
-  deploy.targetHost = "192.168.68.110";  # where `clan machines update` reaches it
-};
-```
-
-`workstation` has no `deploy` block on purpose: it is self-managed, and it is
-where you run the command from.
-
-## 3. `git add` the new directory
-
-Nix only sees files git tracks. A new `machines/<name>/configuration.nix` that is
-untracked evaluates as if it did not exist, and the machine fails with
-
-```text
-error: Neither nixpkgs.hostPlatform nor the legacy option nixpkgs.system has been set.
-```
-
-which reads like a missing setting rather than an untracked file.
-
-## 4. Generate its vars — this one blocks the build
-
-```console
-clan vars generate <name>
-git add vars/
-```
-
-**This is not optional and it is not only the state version.** The `sshd-with-certs`
-instance gives every machine an SSH host key, and the `users` instance gives it a
-password hash; both live in the vars store, and the machine's **toplevel will not
-build** without them. Measured on a new machine before running it:
-
-```text
-error: File 'ssh.id_ed25519.pub' at 'per-machine/pi/openssh' does not exist.
-       Try running 'clan vars generate' first.
-```
-
-The gate reports exactly that, at `checks.x86_64-linux.nixos-<name>`, so the
-failure is legible rather than mysterious.
-
-What a machine ends up with — 11 files, five generators, from `workstation`:
-
-| generator | files | why |
-| --- | --- | --- |
-| `state-version` | `version/value` | pins `system.stateVersion` to the fleet's value |
-| `openssh` | `ssh.id_ed25519.pub/value`, `ssh.id_ed25519/secret` | the host key sshd presents |
-| `openssh-cert` | `ssh.id_ed25519-cert.pub/value`, `.validation-hash` | the cert `sshd-with-certs` signs it with |
-| `user-password-root`, `user-password-nixolotl` | `user-password/secret`, `user-password-hash/secret` | the account's password, hashed |
-| per-service (workstation: `mosquitto-plant-monitor`) | secret + hash | only if that machine runs the service |
-
-The secrets are **sops/age-encrypted at rest** — the files start
-`{"data": "ENC[AES256_GCM,...` — so committing `vars/` is correct and is what clan
-expects. Do not try to hand-write these: `state-version` can be emulated, the key
-material cannot.
-
-Skipping `state-version` alone is the quieter failure: the machine silently takes
-nixpkgs' current release (`26.11`) instead of the fleet's `26.05`, and
-`stateVersion` is the one setting that must never move on an existing machine.
-`test_state_version_is_pinned` catches that case.
-
-## 4a. Declare it in `inventory.machines` too — the gate requires it
-
-Clan does **not** require this: `modules/clan/module.nix` builds
-`machines.<name> = { }` for every directory under `machines/`, and derives
-`inventory.machines` from that, so a directory plus a `machines.<name>` entry
-alone gives a machine that evaluates, has the account, has its home, and carries
-`[ "all" "nixos" ]`. Verified in a scratch copy.
-
-This repository requires the explicit entry anyway, and the reason is the same one
-that governs every other assertion here: a test against clan's *derived* inventory
-can never fail, so `test_every_machine_is_in_the_inventory` reads the inventory
-**as declared in `clan.nix`**. State it, and put anything machine-specific there —
-extra tags, `description`, and the deploy target:
-
-```nix
-inventory.machines.<name> = {
-  tags = [ "<name>" ];                  # clan adds `all` and `nixos` itself
-  description = "Raspberry Pi 5, plant monitor host";
   deploy.targetHost = "192.168.68.110"; # only if you deploy to it remotely
 };
 ```
 
-If you read clan's source and "simplify" this entry away, the gate tells you.
+`deploy.targetHost` is where `clan machines update` reaches a machine that is not on
+the LAN, or one you deploy to rather than `switch` on locally; `workstation` has no
+`deploy` block, being self-managed. **`all` is reserved**: clan adds `all` and `nixos`
+to every machine, so `tags = [ "pi" ]` reads back `[ "pi" "all" "nixos" ]`.
+`user-nixolotl` and `home-manager` are on `tags.all`, so every machine gets the account
+and home. Do not enumerate machines by name on those instances — that builds, boots,
+and has no account or dotfiles; `test_there_is_one_home_per_machine` fails.
 
-## 5. Give it a place in the topology
+**3. `git add` the new directory.** Nix only sees tracked files: an untracked
+`machines/<name>/configuration.nix` evaluates as absent and fails with `error:
+Neither nixpkgs.hostPlatform nor the legacy option nixpkgs.system has been set.` —
+which reads like a missing setting, not an untracked file.
 
-A machine does **not** go in `topology.nix` — that file holds the non-NixOS
-devices (the router, the Windows host, the uplink). Machines are derived from
-their own config, so the block goes in `machines/<name>/configuration.nix`:
+**4. Generate its vars — this blocks the build.** `clan vars generate <name>`, then
+`git add vars/`. Not optional, and not only the state version: `sshd-with-certs`
+gives the machine an SSH host key and `users` a password hash, and the toplevel will
+not build without them — the gate reports `error: File 'ssh.id_ed25519.pub' at
+'per-machine/pi/openssh' does not exist.` at `checks.x86_64-linux.nixos-<name>`.
+
+Vars hold 11 files from five generators: `state-version` (`version/value`), `openssh`
+(`ssh.id_ed25519.pub/value`, `ssh.id_ed25519/secret`), `openssh-cert`
+(`ssh.id_ed25519-cert.pub/value`, `.validation-hash`), `user-password-root` /
+`user-password-nixolotl` (`user-password/secret`, `user-password-hash/secret`), and
+per-service secrets (`mosquitto-plant-monitor` on `workstation`) only where the
+service runs. They are **sops/age-encrypted at rest**, so committing `vars/` is
+correct; do not hand-write them — `state-version` can be emulated, the key material
+cannot. It pins `system.stateVersion` to the fleet's value; skipping it is the quieter
+failure: the machine takes nixpkgs' current release (`26.11`) instead of the fleet's
+`26.05`, and `stateVersion` must never move on an existing machine.
+
+**4a. Declare it in `inventory.machines` too.** Clan does not need it —
+`modules/clan/module.nix` derives the inventory from the `machines/` directory, so a
+directory plus `machines.<name>` already evaluates with the account, home and
+`[ "all" "nixos" ]` — but `test_every_machine_is_in_the_inventory` reads the
+inventory **as declared in `clan.nix`**, and a derived test could never fail.
+
+**5. Give it a place in the topology.** Not in `topology.nix`, which holds the
+non-NixOS devices (router, Windows host, uplink); machines are derived from their own
+config, so this goes in `machines/<name>/configuration.nix`:
 
 ```nix
 topology.self = {
   parent = "home-router";                # required; the gate asserts it exists
-  interfaces.eth0 = {
-    network = "lan";                     # must be a network topology.nix defines
-    addresses = [ "192.168.68.110/24" ];
-  };
+  interfaces.eth0.network = "lan";       # must be a network topology.nix defines
+  interfaces.eth0.addresses = [ "192.168.68.110/24" ];
 };
 ```
 
-Without it the machine still builds and still renders a node — an empty one,
-attached to nothing — and `test_every_machine_declares_its_guest_relationship`
-is what fails.
+Without it the machine still builds and renders a node — empty, attached to nothing
+— and `test_every_machine_declares_its_guest_relationship` fails.
 
-## 6. Add its architecture to `systems` if it is new
+**6. Add its architecture to `systems` if new.** A build contract: every `perSystem`
+output must build under `nix flake check --all-systems`; a Pi is `aarch64-linux`.
 
-`systems` is the build contract, not a wish list: every `perSystem` output is
-expected to evaluate for each entry, and `nix flake check --all-systems` builds
-them. A Pi is `aarch64-linux`, so add it there when the Pi exists.
-
-## 7. Run the gate
-
-```console
-nix flake check --keep-going
-```
-
-Expect it to fail the first time. The assertions that catch a half-added machine,
-in the order they fire:
+**7. Run the gate:** `nix flake check --keep-going`. Expect a first failure; these
+assertions catch a half-added machine, in firing order:
 
 | assertion | what it caught |
 | --- | --- |
 | `test_every_machine_is_in_the_inventory` | declared in `machines` but not in `inventory.machines` |
 | `test_every_inventory_machine_carries_a_tag` | in the inventory with no tags, so no service reaches it |
-| `test_every_machine_carries_a_normal_user` | the account exists only as a shell stub — `base-system` sets `users.users.<user>.shell` on every machine, so "the attribute exists" is not evidence the account was created |
+| `test_every_machine_carries_a_normal_user` | the account is only a shell stub — `base-system` sets `users.users.<user>.shell` everywhere, so the attribute existing is no evidence |
 | `test_there_is_one_home_per_machine` | no home-manager importer, so no dotfiles, git identity or signing key |
 | `test_state_version_is_pinned` | step 4 skipped |
 | `test_host_name_matches_the_machine_name` | `networking.hostName` disagrees with the machine's name |
-| `test_every_machine_declares_its_guest_relationship` | step 5 skipped — no `topology.self`, so the machine renders as a node attached to nothing |
+| `test_every_machine_declares_its_guest_relationship` | step 5 skipped — no `topology.self`, so the machine is a node attached to nothing |
 | `test_every_machine_runs_on_a_declared_system` | architecture missing from `systems` |
 
-## Why the assertions are fleet-shaped
-
-`tests/unit/*.nix` reads as "every machine does X", not "the one machine is X".
-The earlier spelling compared a per-machine map against a literal list, so the
-second machine failed the gate *for existing*, and the natural fix — adding a row
-to the expectation — disables the assertion for the machine just added.
-
-When you add an assertion here, write it over `named` (every machine) or
-`hmUsers` (every home) with `expected = true`, or as a `subtractLists` against
-the declared set with `expected = [ ]`. If an assertion cannot be written that
-way, the thing it checks is a per-machine fact and belongs in that machine's own
-configuration.
+Assertions in `tests/unit/*.nix` go over `named` (every machine) or `hmUsers` (every
+home) with `expected = true`, or as a `subtractLists` against the declared set with
+`expected = [ ]` — never against a literal list, which fails the next machine *for
+existing* and whose obvious fix disables the assertion for the machine just added.

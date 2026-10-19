@@ -6,125 +6,74 @@
 
 ## Context
 
-The existing `phoenix` flake already used Clan + flake-parts, but had drifted:
-a `git-hooks.nix` module was never actually wired into the flake (and had a
-bug even if it had been), a `nil` pre-commit hook pointed at the wrong
-package, a `modules/lib.nix` helper was imported but never used, and shared
-machine config (`baseSystem.nix`, `wsl.nix`) was plumbed in through Clan's
-generic `importer` service rather than typed, reusable `clanService` modules.
-Separately, `vars/` contained a `user-password-root` tree with no matching
-`inventory.instances` entry, and an older `root-password/` tree that predates
-the current `users` service naming.
+The flake already used Clan + flake-parts but had drifted: a `git-hooks.nix` module
+was never wired in, a `nil` hook pointed at the wrong package, a `modules/lib.nix`
+helper was imported but unused, and shared machine config was plumbed through Clan's
+generic `importer` instead of typed `clanService` modules. `vars/` carried a
+`user-password-root` tree with no matching instance, plus a stale `root-password/`.
 
-The rebuild's goals: current Clan (26.05) and flake-parts idioms, structured
-for eventual multi-architecture machines (a Raspberry Pi on `aarch64-linux`,
-a ThinkPad on bare-metal `x86_64-linux`), while only the NixOS-WSL
-`workstation` machine is actually implemented today.
+Goals: current Clan (26.05) and flake-parts idioms, structured for eventual
+multi-architecture machines (a Pi on `aarch64-linux`, a ThinkPad on bare-metal
+`x86_64-linux`), with only the WSL `workstation` implemented today.
 
 ## Decision
 
-1. **Deployment model:** `workstation` is both the Clan CLI host and a
-   managed machine (self-managed). It has no `deploy.targetHost` — it is
-   updated in place with `nixos-rebuild switch --flake .#workstation`.
-   Future machines (Pi, ThinkPad) get `deploy.targetHost = "root@<ip>"` and
-   are managed *from* workstation over SSH.
-2. **User/SSH-key management:** stays on Clan's inventory services — `sshd`
-   for host keys, certs, and root's `authorizedKeys`; `users` for account +
-   password management (vars-backed). No hardcoded
-   `users.users.<name>.openssh.authorizedKeys.keys` in machine configs.
-3. **Module authoring:** `base-system` and `wsl` are authored as real
-   `clan.service` modules, registered locally via `clan.modules` and
-   referenced by name/tag like official clan-core services. Only
-   `base-system` exposes typed `interface.options`
-   (`timeZone`/`locale`/`keyMap`/`editor`/`extraLocale`); `wsl` declares no
-   interface and ignores per-instance settings, since the single WSL machine
-   is its only consumer — it earns one when a second, differently-configured
-   machine needs it. `home-manager` wiring stays on the generic `importer`
-   service — it's bespoke to this flake, not reused elsewhere, and a full
-   `clan.service` wrapper would add ceremony with no payoff.
+1. **Deployment.** `workstation` is both the Clan CLI host and a managed machine
+   (self-managed): no `deploy.targetHost`, updated in place with
+   `nixos-rebuild switch --flake .#workstation`. Future machines get
+   `deploy.targetHost = "root@<ip>"` and are managed from workstation over SSH.
+2. **Users and SSH keys** stay on Clan's inventory services — `sshd` for host keys,
+   certs and root's `authorizedKeys`; `users` for accounts and passwords
+   (vars-backed). No hardcoded `openssh.authorizedKeys.keys` in machine configs.
+3. **Module authoring.** `base-system` and `wsl` are real `clan.service` modules,
+   registered via `clan.modules` and referenced by name/tag like official services.
+   Only `base-system` exposes typed `interface.options`
+   (`timeZone`/`locale`/`keyMap`/`editor`/`extraLocale`); `wsl` declares none and
+   ignores per-instance settings, since the single WSL machine is its only consumer
+   — it earns an interface when a second, differently-configured machine needs one.
+   `home-manager` wiring stays on the generic `importer`: bespoke to this flake, so
+   a `clan.service` wrapper would add ceremony with no payoff.
 
 ## Options Considered
 
-### Option A: `importer` + plain NixOS modules
+| | `importer` + plain NixOS modules | real `clan.service` modules |
+| --- | --- | --- |
+| Complexity | low | medium — manifest, interface, perInstance |
+| Reuse | low — settings hardcoded per module | high — typed settings per instance |
+| Consistency with clan-core | low | high |
 
-| Dimension | Assessment |
-| --- | --- |
-| Complexity | Low |
-| Reusability for future machines | Low — settings hardcoded per module |
-| Consistency with clan-core's services | Low |
-
-**Pros:** least code, fastest to write.
-
-**Cons:** the moment the Pi wants a different timezone or the ThinkPad has
-no WSL bind-mount, you're back to editing the shared module instead of
-setting an option.
-
-### Option B: real `clan.service` modules (chosen for base-system/wsl)
-
-| Dimension | Assessment |
-| --- | --- |
-| Complexity | Medium — manifest + interface + perInstance boilerplate |
-| Reusability for future machines | High — typed settings per instance |
-| Consistency with clan-core's services | High — same shape as official services |
-
-**Pros:** matches the "the clan way" mandate; settings are discoverable and
-type-checked; scales cleanly to more machines.
-
-**Cons:** more boilerplate than `importer` for config that's genuinely
-one-off.
-
-## Trade-off Analysis
-
-Applying Option B everywhere (including home-manager wiring) would be
-overkill: it's not reused, not shared with other machines, and the typed
-`interface.options` mechanism only pays for itself when a *second* consumer
-with *different* settings shows up. Applying Option A everywhere would mean
-redoing this exercise again the moment the Pi/ThinkPad land. Splitting per
-service — B for genuinely shared/cross-machine baseline and hardware
-concerns, A for single-machine glue — gets the reusability where it matters
-without the ceremony where it doesn't.
+Chosen: split per service. `clan.service` for the shared baseline and hardware
+concerns, `importer` for single-machine glue. Applying the typed form everywhere
+would be overkill — `interface.options` only pays for itself once a second consumer
+with different settings exists. Applying the plain form everywhere means redoing
+this the moment the Pi and ThinkPad land.
 
 ## Consequences
 
-- Adding a machine on a new architecture: add the system to `flake.nix`'s
-  `systems`, add `machines/<name>/configuration.nix`
-  (+ `hardware-configuration.nix`), tag it `all` (and `wsl` only if
-  applicable), and give it `deploy.targetHost`.
-- Overriding base-system settings per machine is now a one-line
+- Adding a machine on a new architecture: add the system to `systems`, add
+  `machines/<name>/configuration.nix` (+ `hardware-configuration.nix`), tag it
+  `all` (and `wsl` if applicable), give it `deploy.targetHost`.
+- Overriding a base-system setting per machine is a one-line
   `roles.default.settings.<option>` in `clan.nix`, not a module edit.
-- `git-hooks.nix` pre-commit checks are now actually active — expect the
-  first `git commit` to reformat/relint the tree.
+- Pre-commit checks are active: the first `git commit` reformats and relints.
 
 ## Action Items
 
-1. [x] `nix flake check` passes. (`direnv reload` is a local convenience and is
-   not part of the check.)
-2. [ ] `clan vars generate workstation` — should be a no-op except for
-   confirming `user-root` picks up the existing `user-password-root` vars.
-   Not run as part of this work: it needs the machine, not a sandbox.
-3. [ ] `sudo nixos-rebuild switch --flake .#workstation` (or via `nom` for
-   nicer output) to apply.
-4. [x] `vars/` audited. Neither the `root-password/` tree nor the `mycelium/`
-   tree this ADR flagged as possibly stale exists in the tree any more, and
-   neither was ever tracked by git, so there is nothing to remove. The
-   `hermes/` tree that survived that audit turned out to have no generator
-   behind it — no `clan.core.vars.generators` entry could reproduce it — and
-   was removed. The remaining per-machine trees are
-   `mosquitto-plant-monitor/`, `openssh/`, `openssh-cert/`,
-   `state-version/`, `user-password-nixolotl/` and `user-password-root/`.
-5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`,
-   scaffold `machines/<name>/`, decide `deploy.targetHost`.
+1. [x] `nix flake check` passes.
+2. [ ] `clan vars generate workstation` — should be a no-op except confirming
+   `user-root` picks up the existing `user-password-root` vars. Needs the machine.
+3. [ ] `sudo nixos-rebuild switch --flake .#workstation`.
+4. [x] `vars/` audited: `root-password/` and `mycelium/` no longer exist and were
+   never tracked; `hermes/` had no generator behind it and was removed. Remaining
+   per-machine trees: `mosquitto-plant-monitor/`, `openssh/`, `openssh-cert/`,
+   `state-version/`, `user-password-nixolotl/`, `user-password-root/`.
+5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`, scaffold
+   `machines/<name>/`, decide `deploy.targetHost`.
 
-## Follow-up work
+## Follow-up
 
-The `topology` output this ADR's tree carried was not evaluated by
-`nix flake check` and had been broken since it was written; see
-[ADR-0002](./0002-topology-modelling.md). The general shape of the flake was
-reviewed against the Clan, flake-parts and Nix3 documentation afterwards, and
-the outstanding items are listed in [`../recommendations.md`](../recommendations.md).
-
-The mechanisms behind the decisions taken in that review -- `nixConfig`, the two
-pkgs wirings, the input `follows` and the topology check -- are written up in
-[`../flake-internals.md`](../flake-internals.md). Inline comments in the Nix
-files are deliberately short pointers into these documents; the convention is
-stated in [`../../README.md`](../../README.md).
+The `topology` output was broken and unchecked; see
+[ADR-0002](./0002-topology-modelling.md). Outstanding review items are in
+[`../recommendations.md`](../recommendations.md); the mechanisms behind them —
+`nixConfig`, the two pkgs wirings, input `follows`, the topology check — are in
+[`../flake-internals.md`](../flake-internals.md).
