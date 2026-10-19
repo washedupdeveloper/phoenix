@@ -37,6 +37,23 @@
       inputs.nixpkgs.follows = "clan-core/nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
+
+    # ── Hermes Agent, patched by overlay rather than by editing its source ──
+    #
+    # `nixpkgs.follows` is DELIBERATELY absent. Following would rebuild Hermes
+    # against this repo's nixpkgs — a full uv2nix venv build — and could also
+    # disagree with the version the agent's own lock was tested against. Without
+    # it, this input resolves to the same derivation the profile already has, so
+    # the patch costs a wrapper, not a rebuild.
+    #
+    # Pinned to a rev rather than a branch for the same reason every other pin in
+    # this repo is: a branch would silently change what the machine runs.
+    hermes-agent.url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
+
+    # The overlay source: `overlays.wrapper` in this repo wraps an existing
+    # hermes-agent with a plugin on PYTHONPATH, so the agent's source tree and its
+    # store path stay untouched. See plugins/README.md there.
+    hermes-skills.url = "github:washedupdeveloper/hermes-skills";
   };
 
   outputs =
@@ -107,6 +124,27 @@
           };
 
           clan.pkgs = pkgs;
+
+          # The patched agent, as an installable output:
+          #
+          #   nix profile install ~/projects/phoenix#hermes-agent
+          #
+          # Three steps, and the middle one is the point. `seeded` puts the upstream
+          # package into pkgs under the name the overlay expects — this repo's nixpkgs
+          # does not carry hermes-agent, so without it the overlay is a silent no-op.
+          # Then `overlays.wrapper` adds the plugin's site-packages to the wrapper's
+          # PYTHONPATH. The agent's own derivation is reused unchanged, so no Hermes
+          # source is patched and no venv is rebuilt.
+          packages.hermes-agent =
+            let
+              base = inputs.hermes-agent.packages.${system}.minimal;
+              seeded = pkgs.extend (_final: _prev: { hermes-agent = base; });
+            in
+            (seeded.extend inputs.hermes-skills.overlays.wrapper).hermes-agent;
+
+          # The plugin on its own, for a machine that wants the package without the
+          # wrapped agent (e.g. to put it on PYTHONPATH by hand).
+          packages.hermes-harness-audit = inputs.hermes-skills.packages.${system}.harness-audit;
         };
     };
 
