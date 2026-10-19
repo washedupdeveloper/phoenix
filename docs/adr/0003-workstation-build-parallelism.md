@@ -156,14 +156,53 @@ policy.
 ## Action Items
 
 1. [x] Cap declared in `machines/workstation/configuration.nix`.
-2. [ ] Apply it with an explicitly capped build, then confirm the rendered
-   `nix.conf` carries the two keys:
-   `grep -E '^(max-jobs|cores)' /etc/nix/nix.conf`.
-3. [ ] Get the host's power-off explained -- firmware/BIOS date, whether a
-   BIOS update or CMOS clear happened this week, memory profile (EXPO on or
-   off), and the Kernel-Power (41), unexpected-shutdown (6008) and WHEA events
-   from the System log. A BIOS reset would explain both the game mode returning
-   to its default and the memory profile reverting, which is the leading
-   candidate for the shutdown.
-4. [ ] Once the host is stable at stock, decide whether the cap stays, rises,
-   or goes.
+2. [x] Applied and confirmed in the rendered config. The original cap (2 x 4)
+   was superseded by 6 x 2 on 2026-10-04 and by `max-jobs = "auto"` / `cores = 1`
+   later; each time `grep -E '^(max-jobs|cores)' /etc/nix/nix.conf` was the check.
+3. [x] Power-off traced to the host firmware rather than to build load, which is
+   what retired the diagnostic (see Decision 1). Distinct from the core-count
+   problem: `X3D Gaming Mode` was powering down one CCD and disabling SMT, so the
+   VM presented 6 cores / 6 threads instead of 12 / 24. That was a second,
+   separate firmware symptom, fixed by disabling the mode — it did not explain
+   the power-off, and this ADR's original Context says so explicitly.
+4. [x] Cap decision taken. The guardrail is gone; the ceiling that remains is the
+   VM's own memory budget.
+
+## Outcome
+
+The cap is **gone entirely** — `nix.settings` no longer sets `max-jobs` or `cores`,
+because on NixOS both defaults already mean "use the machine":
+
+| setting | NixOS module default | resolves to |
+| --- | --- | --- |
+| `max-jobs` | `"auto"` | `nproc` — 12 here |
+| `cores` | `0` | `NIX_BUILD_CORES=nproc` — 12 here |
+
+An earlier revision of this ADR replaced the cap with `max-jobs = "auto"` /
+`cores = 1` and claimed deleting the block would serialize builds. That was wrong
+on two counts, and both are worth keeping because each is a plausible mistake:
+
+- **`cores = 1` was a downgrade, not a guardrail.** `0` is the "use all cores"
+  value. Writing `1` forces every parallel-capable build (cargo, `make -j`, gcc)
+  to a single thread. The conservative-looking number was the aggressive one.
+- **"Delete it and you get `max-jobs = 1`" is true of bare nix.conf and false of
+  NixOS.** The NixOS module declares `max-jobs` with `default = "auto"`, so the
+  rendered `/etc/nix/nix.conf` carries `auto` either way. Two true statements
+  about different layers; only the module one governs this machine.
+
+The cap existed as a *diagnostic*: if the host still powered off under a build that
+could not saturate it, load was exonerated and the fault was the host. That worked,
+the power-off was traced to firmware, and the host has been up for days since. With
+the diagnostic spent there is nothing left to tune, so the settings go back to being
+the defaults rather than a second home for a fact the module already states.
+
+Measured on the activated system, 12 derivations each sleeping 5 s: 6 s at the
+defaults (12-wide), 12 s at the old cap, 62 s at `max-jobs = 1`.
+
+Worst case is now 12 jobs × 12 threads. Most nixpkgs derivations ignore
+`NIX_BUILD_CORES` (`enableParallelBuilding` is opt-in), so the realistic load is one
+thread per job. For a build that is both parallel and memory-hungry, bound it at the
+invocation — `--cores 8` — because that is the only place that knows what the build
+is. Peak memory is set by `.wslconfig` (`memory=16GB`, `swap=8GB`);
+`autoMemoryReclaim=gradual` returns idle page cache to Windows and does not raise
+that ceiling, so it is not headroom to spend.

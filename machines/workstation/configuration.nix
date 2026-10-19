@@ -25,18 +25,48 @@
   nix.gc.automatic = false;
 
   # These are per-host facts, not clan baseline: how much headroom a host has,
-  # and how fast its link is, are properties of that host. Build parallelism was
-  # raised from the original guardrail (max-jobs 2 / cores 4) to 6 x 2 = 12
-  # threads, half of the host's 24 -- see docs/adr/0003.
+  # and how fast its link is, are properties of that host.
+  #
+  # Build parallelism is left entirely to the defaults, because on NixOS the
+  # defaults already mean "use the machine":
+  #
+  #   nix.settings.max-jobs  module default = "auto"  -> nproc (12 here)
+  #   nix.settings.cores     module default = 0       -> NIX_BUILD_CORES=nproc
+  #
+  # Setting either one restates a default, and the previous hardcoded pair was
+  # actively wrong in the second field: `cores = 1` is a DOWNGRADE from 0, forcing
+  # every parallel-capable build (cargo, make -j, gcc) to one thread. `cores = 0`
+  # is the "use all cores" value, not the conservative one.
+  #
+  # The trap worth recording, because it is where a careful reader goes wrong: the
+  # bare nix.conf default for max-jobs is 1, so "delete the setting" looks like it
+  # would serialize builds. On NixOS it does not -- the module injects "auto". Both
+  # statements are true and they are about different layers; only the module one
+  # governs this machine.
+  #
+  # Worst case is therefore 12 jobs x 12 threads. Most nixpkgs derivations ignore
+  # NIX_BUILD_CORES (enableParallelBuilding is opt-in), so the realistic load is
+  # one thread per job. For a build that is both parallel and memory-hungry
+  # (Electron, rust), bound it at the invocation, which is the only place that
+  # knows: `--cores 8`. Peak memory is still capped by `.wslconfig`
+  # (memory=16GB, swap=8GB); `autoMemoryReclaim=gradual` returns idle page cache
+  # to Windows, it does not raise that ceiling, so it is not headroom to spend.
+  #
+  # The history matters more than the number: this was `2 x 4`, then `6 x 2`, as a
+  # DIAGNOSTIC guardrail while the host was powering off under load. The power-off
+  # was traced to host firmware rather than to build load, and the host has been up
+  # for days since, so the guardrail's reason has expired. Do not confuse that with
+  # the separate core-count fault: `X3D Gaming Mode` was powering down a CCD and
+  # disabling SMT, which is why the VM once presented 6 cores / 6 threads. That was
+  # a different symptom, fixed by disabling the mode -- see docs/adr/0003, whose
+  # Context says so explicitly.
+  #
+  # What remains is the memory ceiling above, which is a fact about the VM.
   #
   # `download-buffer-size` is deliberately NOT set. Nix 2.33 fixed the root
   # cause of the "download buffer is full" warning with libcurl write pausing
   # and lowered the default to 1 MiB, stating it is no longer recommended to
   # raise it. The pinned Nix is 2.35.2.
-  nix.settings = {
-    max-jobs = 6;
-    cores = 2;
-  };
 
   programs.nh = {
     enable = true;
