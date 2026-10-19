@@ -129,21 +129,32 @@
           #
           #   nix profile install ~/projects/phoenix#hermes-agent
           #
-          # Three steps, and the middle one is the point. `seeded` puts the upstream
-          # package into pkgs under the name the overlay expects — this repo's nixpkgs
-          # does not carry hermes-agent, so without it the overlay is a silent no-op.
-          # Then `overlays.wrapper` adds the plugin's site-packages to the wrapper's
-          # PYTHONPATH. The agent's own derivation is reused unchanged, so no Hermes
-          # source is patched and no venv is rebuilt.
+          # This is the CLEAN route, and it is two lines of mechanism: upstream's own
+          # documented seam, `hermes-agent.override { extraPythonPackages = [...]; }`.
+          # Upstream's build then generates the wrapper's PYTHONPATH itself, runs its
+          # plugin/core collision check over the extra packages, and the result is an
+          # ordinary derivation — no `wrapProgram` postBuild, no seeded pkgs, no overlay
+          # indirection.
+          #
+          # The plugin is built with HERMES' OWN nixpkgs, not this repo's. Those are
+          # different revisions (python 3.14.6 there, 3.14.7 here), and
+          # `extraPythonPackages` is resolved by `requiredPythonModules` inside upstream's
+          # build — against upstream's interpreter. Building the plugin with the consumer's
+          # python would put a second interpreter's site-packages on the same PYTHONPATH.
+          #
+          # Only the final wrapper derivation rebuilds: `extraPythonPackages` feeds the
+          # wrapper, not the uv2nix venv, so the expensive part comes from the cache.
           packages.hermes-agent =
             let
-              base = inputs.hermes-agent.packages.${system}.minimal;
-              seeded = pkgs.extend (_final: _prev: { hermes-agent = base; });
+              hermesPkgs = import inputs.hermes-agent.inputs.nixpkgs { inherit system; };
+              plugin = hermesPkgs.callPackage (inputs.hermes-skills.outPath + "/nix/plugin.nix") { };
             in
-            (seeded.extend inputs.hermes-skills.overlays.wrapper).hermes-agent;
+            inputs.hermes-agent.packages.${system}.minimal.override {
+              extraPythonPackages = [ plugin ];
+            };
 
-          # The plugin on its own, for a machine that wants the package without the
-          # wrapped agent (e.g. to put it on PYTHONPATH by hand).
+          # The plugin on its own, built by this repo's nixpkgs. Useful for inspecting it
+          # or for a machine that is not running a Nix-built agent.
           packages.hermes-harness-audit = inputs.hermes-skills.packages.${system}.harness-audit;
         };
     };
