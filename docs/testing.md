@@ -137,6 +137,8 @@ The last row is the one to know: touching a module the VM tests apply rebuilds t
 
 The lint hooks run twice per commit — once directly, once inside the gate; seconds and idempotent, so deliberate rather than worth unpicking. They live in `.pre-commit-config.yaml`, a symlink into the store, which only moves when the flake is re-evaluated and the install script re-run, as `nix develop` does: a hook added to `git-hooks.nix` without re-entering the devshell is written down and never installed — that is how the `nix flake check` hook sat inert in `modules/flake/git-hooks.nix` while the installed config predated it.
 
+**`--no-build` is not a fast path, in either direction.** It has always been able to report `all checks passed!` while the real gate is red, because it evaluates without building. Since the vars store landed it can also fail while the real gate passes: a machine's secret is a store path, and evaluating a consumer calls `pathExists` on it — under `--no-build` nix refuses to realise it (`error: path '/nix/store/…-per-machine-<machine>-<generator>_key' is not valid`) and the evaluation dies for a store path it was not allowed to build. Measured on the mycelium key. Run the real command; use `--no-build` only to check evaluation of something with no secrets in it.
+
 ## Running them
 
 ```console

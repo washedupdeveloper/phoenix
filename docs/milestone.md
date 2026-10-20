@@ -100,7 +100,26 @@ Verified against the CLI (`clan machines --help`, `install --help`,
 - **A disk layout for the Pi** is only needed for the SSH route: the image route carries
   its own partitioning.
 
-### 2. CI, before the fleet grows — no hardware needed
+### 2. The overlay — reached 2026-10-20
+
+- The instance is live in `clan.nix`: clan-core's `mycelium` service, its single `peer`
+  role assigned to the tag `all`, so a new machine joins the overlay by construction
+  rather than by remembering a tag. `openFirewall` and `addHostedPublicNodes` keep their
+  defaults.
+- Its generator mints three vars per machine — `key/secret`, and the public `ip/value`
+  and `pubkey/value` — and the 14-file/six-generator count in
+  [`adding-a-machine.md`](./adding-a-machine.md) follows from that.
+- Verified on `workstation`: the service is active, listens on 9651, reports the address
+  in `vars/per-machine/workstation/mycelium/ip/value`
+  (`5db:53c6:9758:1b11:bd26:854c:c651:5039`), and connects to public peers over TCP and
+  QUIC with routes acquired. Being reachable *by another machine* needs a second peer,
+  which is what the Pi will be.
+- The price of an overlay is exposure, and the gate said so: mycelium opens TCP 9651 and
+  UDP 9650/9651, so the `ports` unit group failed until the expected set was edited
+  deliberately — which is the assertion working, not an obstacle. `test_the_only_bare_tcp_ports_have_a_reason`
+  now names both bare ports and why each cannot be interface-scoped.
+
+### 3. CI, before the fleet grows — no hardware needed
 
 - `.github/workflows/gate.yml`, with the gate as the job. The runner is
   `services.github-runners.<name>` on `workstation`, its `tokenFile` a new sops var, its
@@ -112,28 +131,30 @@ Verified against the CLI (`clan machines --help`, `install --help`,
 - `origin/main` is 12 commits behind this tree, so nothing can be a pull request until
   those land. Pushing is the owner's call, not a side effect of this plan.
 
-### 3. The Pi — when the board is in hand
+### 4. The Pi — when the board is in hand
 
-- New input `nixos-raspberrypi` (`github:nvmd/nixos-raspberrypi/main`, plus its cachix),
-  and it arrives as a **module**, not as a system builder: clan owns the
-  `nixpkgs.lib.nixosSystem` call, so board support goes in through
-  `clan.specialArgs.nixos-raspberrypi` plus
-  `imports = [ nixos-raspberrypi.nixosModules.raspberry-pi-4.base ]` in the machine. That
-  flake's RPi-optimised overlays are applied globally only by its own `lib.nixosSystemFull`
-  helper, which this call site cannot use, so what the base module takes from the flake
-  has to be read rather than assumed.
-- mycelium as a service instance, in the same `module.name` / `module.input = "clan-core"`
-  form the `sshd` instance already proves, with its `peer` role assigned by tag. Its vars
-  come from its own generator: `key` is a secret, `ip` and `pubkey` are public, and the
-  service exports every peer's address.
+Ready: the input is in place, the template exists, and the overlay joins by tag. What is
+left belongs to the board.
+
+- **Done:** the `nixos-raspberrypi` input, reached as a module through
+  `clan.specialArgs.nixos-raspberrypi` (clan owns the `nixpkgs.lib.nixosSystem` call, so
+  that flake's own helper is not reachable at this seam), and
+  `clan machines create pi --template raspberry-pi-4` writes the skeleton that imports
+  `nixos-raspberrypi.nixosModules.raspberry-pi-4.base`. Evaluated against clan's nixpkgs:
+  kernel `linux_rpi-bcm2711-6.18.34`, bootloader `uboot`, firmware at `/boot/firmware`.
+- **Done:** the overlay — `mycelium` is on the tag `all` (section 2), so the Pi joins it
+  by construction and its address comes from its own generator.
 - `deploy.targetHost`: the LAN address first. The overlay address would be better and is
-  only known after `clan vars generate pi`; whether that public var is readable at
-  evaluation time is unverified, so start with what is knowable.
+  only known after `clan vars generate pi`, and whether a public var is readable at
+  evaluation time is still unverified — start with what is knowable, and add the overlay
+  address once it has been measured.
 - Boot: `boot.loader.raspberry-pi` comes from the flake, and the firmware partition is
   written on activation. Declarative disk layout (disko) against a hand-installed card is
   a hardware-time decision, made deliberately.
+- Flash route: `installerImages.rpi4` from the input, then
+  `clan machines install pi --target-host root@<ip>` (section 1a).
 
-### 4. The ThinkPad — when the hardware is in hand
+### 5. The ThinkPad — when the hardware is in hand
 
 - The bootloader module follows the disk decision, and the hardware config is generated on
   the machine, because the model decides the GPU and the fingerprint specifics and nothing
@@ -144,7 +165,7 @@ Verified against the CLI (`clan machines --help`, `install --help`,
 - `deploy.targetHost` must be the overlay address here, not a LAN name: the machine roams,
   so a LAN address is wrong the first time it leaves the house.
 
-### 5. Services become clan services
+### 6. Services become clan services
 
 - `mosquitto` first, and it keeps running on `workstation`: the instance declares where it
   runs and its password becomes a generator's file instead of a hand-run command. The two

@@ -69,12 +69,15 @@ gives the machine an SSH host key and `users` a password hash, and the toplevel 
 not build without them — the gate reports `error: File 'ssh.id_ed25519.pub' at
 'per-machine/pi/openssh' does not exist.` at `checks.x86_64-linux.nixos-<name>`.
 
-Vars hold 11 files from five generators: `state-version` (`version/value`), `openssh`
+Vars hold 14 files from six generators: `state-version` (`version/value`), `openssh`
 (`ssh.id_ed25519.pub/value`, `ssh.id_ed25519/secret`), `openssh-cert`
 (`ssh.id_ed25519-cert.pub/value`, `.validation-hash`), `user-password-root` /
-`user-password-nixolotl` (`user-password/secret`, `user-password-hash/secret`), and
-per-service secrets (`mosquitto-plant-monitor` on `workstation`) only where the
-service runs. They are **sops/age-encrypted at rest**, so committing `vars/` is correct; do
+`user-password-nixolotl` (`user-password/secret`, `user-password-hash/secret`),
+`mycelium` (`key/secret` for the overlay key, `ip/value` and `pubkey/value` for the
+address and public key — those two are public on purpose, so the machine's address is
+readable without a key), and per-service secrets (`mosquitto-plant-monitor` on
+`workstation`, two files) only where the service runs. They are **sops/age-encrypted at
+rest**, so committing `vars/` is correct; do
 not hand-write them — `state-version` can be emulated, the key material cannot. At rest means
 **for the repository**: on a machine without disk encryption the machine's own age key sits at
 `/var/lib/sops-nix/key.txt`, so the store protects your Git host and your backups, not a

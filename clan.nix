@@ -129,10 +129,22 @@
       roles.default.extraModules = [ inputs.nix-topology.nixosModules.default ];
     };
 
-    # Parked: not deployed yet.
-    # mycelium = {
-    #   roles.peer.tags = [ "all" ];
-    # };
+    # Docs: https://clan.lol/docs/26.05/services/official/mycelium
+    #
+    # The overlay. Every machine gets an address derived from a key this generator
+    # mints for it, so machines are reachable by that address and nothing has to be
+    # exposed to the internet to make it work. `peer` is the only role, assigned to
+    # `all`: a new machine joins the overlay by construction rather than by
+    # remembering a tag, which is the property the Pi depends on (docs/milestone.md).
+    #
+    # `openFirewall` and `addHostedPublicNodes` keep their defaults (both true).
+    # The open firewall is the reason the `ports` unit group changes when this lands:
+    # TCP 9651 and UDP 9650/9651 become declared, and the test says so out loud.
+    mycelium = {
+      module.name = "mycelium";
+      module.input = "clan-core";
+      roles.peer.tags.all = { };
+    };
 
     # Docs: https://clan.lol/docs/26.05/services/official/zerotier
     # Requires a controller machine deployed first.

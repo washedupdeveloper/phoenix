@@ -67,7 +67,10 @@ let
   # so a service cannot open a port without this list being edited.
   #
   # `networking.firewall.*` is inert on a WSL guest, so this is a declaration of
-  # intent; e2e/ports checks the running system and the two must agree.
+  # intent; e2e/ports asserts the running system for its OWN node — a minimal clan
+  # built from `base-system` alone — so it does not see the inventory-driven services
+  # (mycelium) that a fleet machine carries. The two agree about everything the e2e
+  # fixture applies; they are no longer the same set.
   # --------------------------------------------------------------------------
   declaredTcp = lib.unique (
     lib.concatMap (m: m.config.networking.firewall.allowedTCPPorts or [ ]) named
@@ -76,6 +79,12 @@ let
     lib.concatMap (m: m.config.networking.firewall.allowedUDPPorts or [ ]) named
   );
   sshdPorts = lib.unique (lib.concatMap (m: m.config.services.openssh.ports or [ ]) named);
+
+  # nixpkgs' mycelium module writes these straight into `networking.firewall` rather
+  # than exposing them as options, so they are restated here — the alternative is an
+  # assertion that cannot see the port at all. 9651 is the peering port, 9650 UDP
+  # discovery; the same numbers are commented on the tests that use them.
+  myceliumTcpPorts = [ 9651 ];
 
   # --------------------------------------------------------------------------
   # clan deployability helpers
@@ -148,14 +157,24 @@ in
   ports = {
     test_only_the_declared_tcp_ports_are_reachable = {
       expr = declaredTcp;
-      # 22 -- sshd, via `services.openssh.openFirewall`.
-      expected = [ 22 ];
+      # 22   -- sshd, via `services.openssh.openFirewall`.
+      # 9651 -- mycelium's peering port, opened by `services.mycelium.openFirewall`,
+      #         which clan-core's instance leaves at its default.
+      expected = [
+        22
+        9651
+      ];
     };
 
     test_only_the_declared_udp_ports_are_reachable = {
       expr = declaredUdp;
-      # 5353 -- mDNS, from clan-core's own networking module, not this repo.
-      expected = [ 5353 ];
+      # 5353      -- mDNS, from clan-core's own networking module, not this repo.
+      # 9650/9651 -- mycelium: discovery and its QUIC listener.
+      expected = [
+        5353
+        9650
+        9651
+      ];
     };
 
     # A declared port with no listener is a stale rule; a listener with no rule is
@@ -165,9 +184,13 @@ in
       expected = [ 22 ];
     };
 
-    # A service needing a port gets an interface-scoped rule, not a bare one.
-    test_the_only_bare_tcp_port_is_sshd = {
-      expr = lib.subtractLists sshdPorts declaredTcp;
+    # A bare port -- open on every interface -- is a decision worth failing over, not a
+    # default. sshd accepts key-authenticated logins from anywhere, and mycelium's 9651
+    # is where peers dial in from outside the LAN; both are `openFirewall` on a service
+    # whose listener cannot be scoped to one interface. Anything else must scope its
+    # rule (`networking.firewall.interfaces.<if>`) or be added here with its reason.
+    test_the_only_bare_tcp_ports_have_a_reason = {
+      expr = lib.subtractLists (sshdPorts ++ myceliumTcpPorts) declaredTcp;
       expected = [ ];
     };
   };
