@@ -15,7 +15,7 @@ reachable over SSH with their own secrets:
 | --- | --- | --- |
 | `workstation` | `x86_64-linux` | Already exists: a WSL guest on the Windows host, self-managed, no `deploy` block. It keeps the services it has today. |
 | `pi` | `aarch64-linux` | A Raspberry Pi 4 Model B. Bare minimum on purpose: it boots, it joins the overlay, and it runs nothing else. It is the always-on overlay peer, so a machine that is not at home can still reach the machines that are. |
-| `thinkpad` | `x86_64-linux` | A bare-metal laptop, switched locally, LUKS full-disk, secrets in sops on disk. It carries mycelium, power and suspend settings, fingerprint login, file sync and the devshell toolchain — not just boot, an account and dotfiles. |
+| `thinkpad` | `x86_64-linux` | A bare-metal laptop, switched locally, secrets in sops on disk. It carries mycelium, power and suspend settings, fingerprint login, file sync and the devshell toolchain — not just boot, an account and dotfiles. Disk encryption is deliberately not in the first install; that decision is the owner's and is deferred, below. |
 
 Decisions taken with the target. Each one is a constraint on the work below, not a
 preference to re-litigate:
@@ -33,6 +33,10 @@ preference to re-litigate:
   requests with that job required before merge.
 - **A service that needs a secret becomes a clan service with its own vars generator**,
   declared per machine. `mosquitto` is the first one that has to move.
+- **Disk encryption is an open decision, not a settled one.** It is deliberately absent
+  from the first install, and the deferred entry below carries the consequence it leaves
+  behind and the shape it will take when the owner decides. Nothing here should be read as
+  a promise that a machine's disk is protected.
 
 ## What is already in place
 
@@ -98,9 +102,10 @@ which is `[ "x86_64-linux" ]`:
 
 ### 4. The ThinkPad — when the hardware is in hand
 
-- LUKS and the bootloader module follow the same disk decision; the hardware config is
-  generated on the machine, because the model decides the GPU and the fingerprint
-  specifics and nothing here can guess them.
+- The bootloader module follows the disk decision, and the hardware config is generated on
+  the machine, because the model decides the GPU and the fingerprint specifics and nothing
+  here can guess them. Encryption is not part of the first install — it is the deferred item
+  below, with its shape fixed there.
 - mycelium peer — reachable through the Pi when away from home — power and suspend
   settings, fingerprint login, file sync, and the devshell toolchain.
 - `deploy.targetHost` must be the overlay address here, not a LAN name: the machine roams,
@@ -120,6 +125,21 @@ which is `[ "x86_64-linux" ]`:
 ## Deferred on purpose
 
 - **Disk layout** — disko against hand-installed, for both machines, at hardware time.
+- **Disk encryption, LUKS2 — deferred, not dropped.** The decision is the owner's, and it is
+  deliberately absent from the first install; the consequence is accepted with its size
+  named rather than implied. `sops.age.keyFile` is `/var/lib/sops-nix/key.txt`, so a machine's
+  own age key sits in plaintext on an unencrypted disk beside the ciphertexts in the
+  checkout: a powered-off disk yields the SSH host key, both password hashes, and whatever a
+  later generator adds. The sops store protects the repository and the backups, not a stolen
+  disk. The shape when it lands is fixed by the unlock story rather than by taste — **LUKS2**,
+  because `systemd-cryptenroll` supports only LUKS2 volumes (it stores token metadata in the
+  format's JSON area), with `argon2id` key derivation, 4096-byte sectors on an SSD, a TPM2
+  enrollment bound to PCR 7 so an unattended reboot stays reachable, and a recovery key kept
+  in the sops store. Remember the cost: a firmware update changes PCR 7 and breaks the
+  auto-unlock until it is re-enrolled with that key. Adding it later needs no reinstall —
+  cryptsetup re-encrypts in place — though a rebuild is the cleaner path for a machine that is
+  reproducible from this flake. `pi` is a different answer: no TPM to seal to and no console
+  to type at, so a passphrase gate there would lose to unattended operation.
 - **Backups.** Offered as the Pi's first job and not chosen: the Pi is a peer first.
 - **The Pi's growth path.** The stated intention is that it eventually manages the home
   network (DNS and its neighbours). Building for that now would be a guess, and the

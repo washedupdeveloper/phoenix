@@ -48,11 +48,14 @@ Vars hold 11 files from five generators: `state-version` (`version/value`), `ope
 (`ssh.id_ed25519-cert.pub/value`, `.validation-hash`), `user-password-root` /
 `user-password-nixolotl` (`user-password/secret`, `user-password-hash/secret`), and
 per-service secrets (`mosquitto-plant-monitor` on `workstation`) only where the
-service runs. They are **sops/age-encrypted at rest**, so committing `vars/` is
-correct; do not hand-write them — `state-version` can be emulated, the key material
-cannot. It pins `system.stateVersion` to the fleet's value; skipping it is the quieter
-failure: the machine takes nixpkgs' current release (`26.11`) instead of the fleet's
-`26.05`, and `stateVersion` must never move on an existing machine.
+service runs. They are **sops/age-encrypted at rest**, so committing `vars/` is correct; do
+not hand-write them — `state-version` can be emulated, the key material cannot. At rest means
+**for the repository**: on a machine without disk encryption the machine's own age key sits at
+`/var/lib/sops-nix/key.txt`, so the store protects your Git host and your backups, not a
+stolen disk — see [`milestone.md`](./milestone.md) for the accepted consequence.
+The `state-version` generator pins `system.stateVersion` to the fleet's value; skipping it is
+the quieter failure: the machine takes nixpkgs' current release (`26.11`) instead of the
+fleet's `26.05`, and `stateVersion` must never move on an existing machine.
 
 **4a. Declare it in `inventory.machines` too.** Clan does not need it —
 `modules/clan/module.nix` derives the inventory from the `machines/` directory, so a
