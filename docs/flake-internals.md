@@ -43,8 +43,21 @@ package built against its own nixpkgs, so each can follow the pinned copies:
 `nixpkgs` and `flake-parts`; `clan-core` follows `flake-parts` and `treefmt-nix`.
 Every followed node was at the *same revision*, so no input's evaluation changed.
 clan-core documents the treefmt-nix case: `inputs.clan-core.inputs.treefmt-nix.follows`
-must name a non-empty input that exports no flakeModule. `flake-compat` is the one
-remaining duplicate — two different upstreams, nothing to follow.
+must name a non-empty input that exports no flakeModule. `hermes-skills` is the one
+remaining duplicate nixpkgs: it is consumed as a package tree, not as a module, and only
+`packages.hermes-harness-audit` builds anything from its own pkgs.
+
+`hermes-agent` is the exception to that framing: it *is* a package, and its `nixpkgs` is
+followed deliberately. Upstream's own overlay (`hermes-agent.overlays.default`) is a pure
+alias for the package its own nixpkgs built, so no overlay can move it onto another
+nixpkgs — the only seam that does is the input's `nixpkgs`. clan-core's nixpkgs input is
+the `nixpkgs-unstable` channel, so following it builds the agent, its uv2nix venv and its
+runtime tools with the machine's own nixpkgs: one nixpkgs, one Python, one glibc.
+
+The cost is real and it is why the follow was absent before: the derivation stops matching
+anything in the binary cache, so the venv is rebuilt locally (157 derivations, ~70 MiB
+fetched, on the first build). `nix flake update clan-core` moves it forward with the rest
+of the machine; there is no separate nixpkgs to keep current.
 
 ## Why the topology output is also a check
 

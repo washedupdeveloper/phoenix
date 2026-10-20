@@ -39,9 +39,17 @@
     };
 
     # Pinned to a rev: a branch would silently change what the machine runs.
-    # `nixpkgs.follows` is deliberately absent -- following would rebuild the uv2nix
-    # venv against this repo's nixpkgs instead of reusing the cached derivation.
-    hermes-agent.url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
+    #
+    # `nixpkgs` is followed deliberately. clan-core's nixpkgs input IS the
+    # nixpkgs-unstable channel, so following it builds the agent, its uv2nix venv and
+    # its runtime tools (python, ripgrep, ffmpeg) with the machine's own nixpkgs instead
+    # of the snapshot this rev happened to lock. Cost: the venv is rebuilt, because the
+    # derivation no longer matches anything in the binary cache. See
+    # docs/flake-internals.md.
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Supplies the overlay and `packages.harness-audit`.
     hermes-skills.url = "github:washedupdeveloper/hermes-skills";
@@ -119,13 +127,12 @@
           # Install with: nix profile install ~/projects/phoenix#hermes-agent
           #
           # Upstream's own seam. `extraPythonPackages` feeds the wrapper, not the
-          # uv2nix venv, so only the final derivation rebuilds. The plugin is built
-          # with Hermes' OWN nixpkgs (3.14.6, vs 3.14.7 here) because upstream
-          # resolves it against its interpreter via `requiredPythonModules`.
+          # uv2nix venv, so only the final derivation rebuilds. The plugin is built from
+          # this repo's `pkgs` because `hermes-agent` follows `nixpkgs`: that is the
+          # interpreter whose site-packages the wrapper's PYTHONPATH has to reach.
           packages.hermes-agent =
             let
-              hermesPkgs = import inputs.hermes-agent.inputs.nixpkgs { inherit system; };
-              plugin = hermesPkgs.callPackage (inputs.hermes-skills.outPath + "/nix/plugin.nix") { };
+              plugin = pkgs.callPackage (inputs.hermes-skills.outPath + "/nix/plugin.nix") { };
             in
             inputs.hermes-agent.packages.${system}.minimal.override {
               extraPythonPackages = [ plugin ];
