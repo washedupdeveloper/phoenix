@@ -83,10 +83,15 @@ in
       ...
     }:
     {
+      # The VM tier is x86_64-only, by decision: `runNixOSTest` boots a QEMU guest of
+      # THIS system, so on the emulated aarch64 leg it would be qemu-user running
+      # qemu-system-aarch64 -- nested emulation, minutes per test, and no claim about
+      # the Pi. Unit and build checks are per-system and run on every declared
+      # platform; the tier that needs a kernel stays where a kernel is native.
       checks =
         (mkUnitChecks pkgs system config)
         // (import ../../tests/build { inherit pkgs lib machines; })
-        // {
+        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isx86_64 {
           e2e-base-system = mkE2eCheck pkgs (import ../../tests/e2e/base-system);
           e2e-home = mkE2eCheck pkgs (import ../../tests/e2e/home { inherit inputs; });
           e2e-ports = mkE2eCheck pkgs (import ../../tests/e2e/ports { inherit lib; });

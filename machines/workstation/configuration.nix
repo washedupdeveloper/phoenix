@@ -27,6 +27,16 @@
   #
   # `download-buffer-size` is likewise unset: Nix 2.33 fixed the warning at source.
 
+  # `aarch64-linux` is in the flake's `systems`, so the gate has to BUILD aarch64
+  # derivations on this host -- without a builder for that platform nix refuses with
+  # "a 'aarch64-linux' ... is required to build ... but I am a 'x86_64-linux'".
+  # qemu-user through the kernel's binfmt_misc, registered by systemd-binfmt on
+  # activation; the module also adds the platform to `nix.settings.extra-platforms`.
+  # Measured: the same rebuilt check takes 8.6s against 8.3s native (the aarch64 leg is
+  # evaluation and trivial builders, so emulation is not what it costs); see
+  # docs/testing.md for the tier split that keeps a compiled kernel off it.
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
   programs.nh = {
     enable = true;
     clean.enable = true;

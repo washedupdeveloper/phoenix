@@ -11,12 +11,30 @@
   modules."base-system" = ./modules/clanServices/base-system;
   modules."wsl" = ./modules/clanServices/wsl;
 
-  machines = {
-    workstation = {
-      _module.args.username = "nixolotl";
+  # Machine skeletons, read by clan from `clan.templates.machine`:
+  #
+  #   clan machines create <name> --template bare-metal-x86
+  #   clan templates apply machine raspberry-pi-4 pi      # the same command, aliased
+  #
+  # A machine template is a plain directory copy -- clan substitutes nothing in one
+  # (only disk templates take `{{placeholders}}`) -- so the skeletons derive what they
+  # can from the machine's own name and state the rest. Copying the wrong one is the
+  # failure they exist to prevent: the platform line and the topology stub are exactly
+  # what a hand-copied file forgets.
+  templates.machine = {
+    bare-metal-x86 = {
+      description = "x86_64 bare metal: platform, systemd-boot, hostname from the machine name, topology stub.";
+      path = ./templates/machine/bare-metal-x86;
+    };
+    raspberry-pi-4 = {
+      description = "Raspberry Pi 4 Model B (aarch64-linux) with the vendor kernel and firmware from nixos-raspberrypi.";
+      path = ./templates/machine/raspberry-pi-4;
     };
   };
 
+  # Tags are the targeting mechanism: `all` carries the account, the dotfiles,
+  # sshd-with-certs, base-system and the topology importer, so a machine with no tags
+  # gets none of them. Asserted in tests/unit/default.nix.
   inventory.machines = {
     workstation = {
       tags = [

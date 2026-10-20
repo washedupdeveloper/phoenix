@@ -55,6 +55,16 @@
 
     # Supplies the overlay and `packages.harness-audit`.
     hermes-skills.url = "github:washedupdeveloper/hermes-skills";
+
+    # Board support for the Pi: kernel, firmware and the `/boot/firmware` plumbing.
+    # `main` is the branch its README tells you to track, so `nix flake update
+    # nixos-raspberrypi` is the whole upgrade, and the lock still pins a commit.
+    #
+    # `nixpkgs` is deliberately NOT followed here, unlike every other input above:
+    # its kernel patches and firmware pairing are tested against the nixpkgs it locks,
+    # and ours moves. The cost is a second nixpkgs in the store; their own cachix
+    # covers most of it. Revisit if the vendor kernel ever fails to build.
+    nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
   };
 
   outputs =
@@ -72,13 +82,29 @@
         ./modules/flake/atomvm.nix
       ];
 
-      systems = [ "x86_64-linux" ];
+      # `aarch64-linux` is here for the Pi: a machine's platform must appear in
+      # `systems` before it can be declared (`test_every_machine_runs_on_a_declared_system`),
+      # and `checks.nixos-<name>` is generated from this list. It is a build contract,
+      # not a second devshell -- see docs/testing.md for what runs per system.
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
 
       clan = {
         imports = [ (import ./clan.nix { inherit inputs; }) ];
         specialArgs = {
+          # Global, not per machine: one account exists, every machine carries it, and
+          # `base-system` plus the home-manager importer both read it. A per-machine
+          # `machines.<name>._module.args.username` would be a second home for one fact
+          # -- and one more line to write when a machine is added.
+          username = "nixolotl";
           homeManagerModule = inputs.home-manager.nixosModules.home-manager;
           nixosWslModule = inputs.nixos-wsl.nixosModules.default;
+          # The Pi's board support: a machine template imports from it, and clan makes
+          # the `nixpkgs.lib.nixosSystem` call, so this is the only seam that reaches
+          # that flake's modules.
+          inherit (inputs) nixos-raspberrypi;
         };
       };
 

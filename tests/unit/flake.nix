@@ -21,6 +21,11 @@ let
     inherit (cfg) config;
   }) machines;
 
+  # The machine templates on disk, read from the tree rather than listed: a template
+  # added to `templates/machine/` joins the `systems` assertion below without anyone
+  # remembering to add it there.
+  templateNames = builtins.attrNames (builtins.readDir ../../templates/machine);
+
   # nix's own output names, plus clan's two -- `nix flake check` knows neither.
   knownOutputs = [
     "apps"
@@ -127,12 +132,20 @@ in
     };
 
     # The other direction of `test_every_machine_runs_on_a_declared_system` in
-    # the `system` group: a declared system with no machine behind it is
-    # surface nothing exercises.
+    # the `system` group: a declared system that nothing in the repository aims at
+    # is surface nothing exercises. `systems` may legitimately lead the machines --
+    # the Pi's `aarch64-linux` is declared, and its checks leg built by CI, while the
+    # machine itself is still one `clan machines create` away -- so a machine
+    # TEMPLATE counts as aiming at a system. The template's platform is read from the
+    # same `platform.nix` the template's own `nixpkgs.hostPlatform` comes from, not
+    # restated here: a second copy would drift, and drifting is what this catches.
     test_the_declared_systems_are_the_systems_the_machines_run_on = {
       expr = lib.sort builtins.lessThan systems;
       expected = lib.sort builtins.lessThan (
-        lib.unique (lib.map (m: m.config.nixpkgs.hostPlatform.system) named)
+        lib.unique (
+          (lib.map (m: m.config.nixpkgs.hostPlatform.system) named)
+          ++ (lib.map (t: import (../../templates/machine + "/${t}/platform.nix")) templateNames)
+        )
       );
     };
 

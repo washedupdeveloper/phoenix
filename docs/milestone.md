@@ -8,6 +8,13 @@ document holds the target and the order, and nothing else.
 
 ## The target
 
+**Readiness, not installation** (owner's statement, 2026-10-20): the test of this
+milestone is that adding either new machine is *mechanical*. From a clone: create
+`machines/<name>/configuration.nix` from a template, declare it once in `clan.nix`,
+generate its vars, run the gate, deploy — nothing else touched, nothing researched, and
+no step that works only because someone remembered it. The machines below are the test
+of that readiness, not the work itself.
+
 Three machines, all declared in this flake, all built by `nix flake check`, and all
 reachable over SSH with their own secrets:
 
@@ -49,23 +56,49 @@ of needing new ones. The fleet is not a rewrite.
 
 ## The gaps, in order
 
-### 1. The build contract — no hardware needed
+### 1. The build contract — reached 2026-10-20
 
-A Pi cannot even be declared before this. `test_every_machine_runs_on_a_declared_system`
-compares each machine's `nixpkgs.hostPlatform.system` against `systems` in `flake.nix`,
-which is `[ "x86_64-linux" ]`:
+- **Both platforms declared.** `systems` is `[ "x86_64-linux" "aarch64-linux" ]`, and the
+  aarch64 leg builds on `workstation` through `boot.binfmt.emulatedSystems` — qemu-user
+  under binfmt_misc, registered by `systemd-binfmt` from `/etc/binfmt.d/nixos.conf`. This
+  repository had disabled that service on a claim measurement disproved; the comment in
+  `modules/clanServices/wsl/default.nix` records what was measured. Cost of the leg:
+  8.6 s against 8.3 s for the same rebuilt check, because it is evaluation and trivial
+  builders. The VM tier is skipped there by `modules/flake/tests.nix` — nested emulation
+  proves nothing about a Pi.
+- **Machine templates exist**, read by clan from `clan.templates.machine` in `clan.nix`:
+  `clan machines create <name> --template bare-metal-x86` and `... --template
+  raspberry-pi-4`. Each template carries a `platform.nix` that both its skeleton and the
+  `systems` assertion read, so a declared system may lead the machine that will use it.
+- **One less declaration per machine.** `username` is a global `clan.specialArgs` entry
+  now, so a new machine needs the inventory block and nothing else in `clan.nix` — the
+  per-machine `_module.args.username` line and the `machines` block are gone.
+- **The Pi's board support is wired.** `nixos-raspberrypi` is an input whose modules reach
+  machines through `clan.specialArgs`; the board module evaluates against clan's nixpkgs
+  (checked: kernel `linux_rpi-bcm2711-6.18.34`, bootloader `uboot`, firmware at
+  `/boot/firmware`). Its `nixpkgs` is deliberately not followed — its kernel patches are
+  tested against the snapshot it locks, and clan's moves.
 
-- add `aarch64-linux` to `systems` ([`adding-a-machine.md`](./adding-a-machine.md) step 6);
-- decide how an `aarch64-linux` toplevel gets built on an `x86_64-linux` host, because
-  the gate builds what it asserts. `boot.binfmt.emulatedSystems = [ "aarch64-linux" ]` on
-  `workstation` keeps the gate self-contained — the property CI depends on — and the part
-  to verify is the binfmt registration, not the emulation, since the kernel underneath
-  the WSL guest is Windows'. The alternative, registering the Pi as a remote builder, is
-  faster and makes the gate depend on a machine that is not always up;
-- `clan.templates` for the machine skeleton (`recommendations.md` 1.7), before the second
-  machine is written by hand;
-- per-machine `description` and `icon` (1.5), and `deploy.targetHost` for the machines
-  that need one (1.6).
+### 1a. How each machine gets onto its disk — the part "deploy" hides
+
+Verified against the CLI (`clan machines --help`, `install --help`,
+`init-hardware-config --help`), so the commands below are the real ones:
+
+- **ThinkPad, x86_64.** `clan machines init-hardware-config thinkpad --target-host
+  root@<ip>` writes the hardware report (nixos-facter by default) into the machine
+  directory, then `clan machines install thinkpad --target-host root@<ip>` overwrites the
+  target's disk. Both need the target reachable over SSH, which means booting something
+  first — a NixOS installer image or the vendor's own OS. The disk layout itself is the
+  deferred decision below; `clan templates apply disk ext4-single-disk thinkpad --set
+  mainDisk <by-id>` is the one-liner once a layout is chosen.
+- **Pi 4, aarch64.** No kexec on this board, so the SSH-install path starts from a
+  flashed card: the input ships `installerImages.rpi4` (and `nixosModules.sd-image` for a
+  ready system image). Flashing the installer image and running the same `clan machines
+  install pi --target-host root@<pi>` is the documented route; building the machine
+  *as* an SD image is the alternative, and it costs one flake output that imports
+  `nixosModules.sd-image` — worth doing once `machines/pi/` exists, not before.
+- **A disk layout for the Pi** is only needed for the SSH route: the image route carries
+  its own partitioning.
 
 ### 2. CI, before the fleet grows — no hardware needed
 

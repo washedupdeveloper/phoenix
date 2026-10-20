@@ -54,7 +54,13 @@ let
     lib.concatMap (m: tagNames (m.tags or [ ])) (builtins.attrValues clan.inventory.machines)
   );
 
-  machineNames = builtins.attrNames clan.machines;
+  # The machines that EXIST -- one `machines/<name>/configuration.nix` each -- not the
+  # ones `clan.nix` lists module args for: `username` moved to `clan.specialArgs`, so a
+  # machine is no longer listed there at all. Every inventory assertion compares this
+  # against what `clan.nix` declares, which is what keeps them falsifiable: a new
+  # machine joins `machines/` first and the declaration is a separate step it can be
+  # missing from.
+  machineNames = builtins.attrNames machines;
 
   # --------------------------------------------------------------------------
   # Ports. The word "only" is the point: the reachable set is enumerated in full,

@@ -3,26 +3,52 @@
 Every failure below still **evaluates** — no account, a wrong `stateVersion`, a node
 attached to nothing — so only the gate's assertions turn them into errors.
 
-**1. Configuration.** `machines/<name>/configuration.nix`, found by convention once
-`clan.nix` declares the machine; there is no import list:
+**0. Create it from a template.** The skeleton exists so that the two lines a
+hand-copied file forgets — the platform and the topology stub — are already right:
+
+```console
+clan machines create thinkpad --template bare-metal-x86    # x86_64, systemd-boot
+clan machines create pi --template raspberry-pi-4          # aarch64, vendor kernel
+clan templates list                                        # what else is on offer
+```
+
+The aliased spelling `clan templates apply machine bare-metal-x86 thinkpad` runs the
+same command; `nix develop` first, because `clan` lives in the devshell. The template
+is a plain directory copy, so nothing in it knows the machine's name: the hostname is
+therefore `config.clan.core.settings.machine.name` rather than a second spelling of it.
+
+**1. What the template leaves you.** `machines/<name>/configuration.nix` — found by
+convention once the machine exists, there is no import list:
 
 ```nix
-{ username, ... }: {
-  networking.hostName = "<name>";       # must equal <name>; a test asserts it
-  nixpkgs.hostPlatform = "x86_64-linux";
+{ config, lib, pkgs, ... }:            # the Pi's template also takes `nixos-raspberrypi`
+{
+  nixpkgs.hostPlatform = import ./platform.nix;   # the template's platform, as data
+  networking.hostName = config.clan.core.settings.machine.name;
+  topology.self = { parent = "home-router"; interfaces.eth0.network = "lan"; };
 }
 ```
 
-**2. Declare it in `clan.nix`, in two places.** `machines.<name>` supplies module
-args; `inventory.machines.<name>` is what the gate reads:
+Edit what only this machine knows — an interface name, a second disk, a service — and
+leave the derived lines alone. A laptop that reaches the network only over wifi wants
+`interfaces.wlan0` instead of `eth0`; the name is descriptive, and the gate asserts
+only that the *network* exists.
+
+**2. Declare it in `clan.nix`.** One block: `inventory.machines` is what the gate reads.
+Module args are no longer per machine — `username` is a global `clan.specialArgs`
+entry — so there is nothing else to add there:
 
 ```nix
-machines.<name>._module.args.username = "nixolotl";  # modules/home/default.nix requires it
 inventory.machines.<name> = {
   tags = [ "<name>" ];                  # clan adds `all` and `nixos` itself
   deploy.targetHost = "192.168.68.110"; # only if you deploy to it remotely
 };
 ```
+
+`clan machines create` also writes an `inventory.json` for what it makes; this
+repository declares machines in `clan.nix` and the gate reads that, so the block above
+is not optional — `test_every_machine_is_in_the_inventory` fails without it. If both
+exist clan merges them, and the file speaks for the keys it carries.
 
 `deploy.targetHost` is where `clan machines update` reaches a machine that is not on
 the LAN, or one you deploy to rather than `switch` on locally; `workstation` has no
@@ -79,10 +105,17 @@ Without it the machine still builds and renders a node — empty, attached to no
 — and `test_every_machine_declares_its_guest_relationship` fails.
 
 **6. Add its architecture to `systems` if new.** A build contract: every `perSystem`
-output must build under `nix flake check --all-systems`; a Pi is `aarch64-linux`.
+output must build under `nix flake check --all-systems`; a Pi is `aarch64-linux`, and
+`aarch64-linux` is already declared. The aarch64 leg builds on the WSL guest through
+`boot.binfmt.emulatedSystems` (qemu-user under binfmt_misc): measured at 8.6s against
+8.3s for the same rebuilt check, since that leg is evaluation and trivial builders. The
+VM tier is skipped there by decision — `modules/flake/tests.nix` gates it — because a
+QEMU guest of an emulated system is nested emulation, and `docs/testing.md` says why.
 
-**7. Run the gate:** `nix flake check --keep-going`. Expect a first failure; these
-assertions catch a half-added machine, in firing order:
+**7. Run the gate, both legs:** `nix flake check --all-systems --keep-going`. Without
+`--all-systems` it builds only the machine you are on, so the Pi's leg is exactly what
+it would skip. Expect a first failure; these assertions catch a half-added machine, in
+firing order:
 
 | assertion | what it caught |
 | --- | --- |

@@ -44,10 +44,15 @@
             exec ${usbipAutoAttachBin} "$ip" --busid "$busid" --usbip-path "${pkgs.linuxPackages.usbip}/bin/usbip"
           '';
 
-          # binfmt_misc's status file is read-only under WSL, so systemd-binfmt
-          # cannot apply binfmt.d rules and fails at boot. WSL registers the interop
-          # format itself, so `interop.register` below is inert but harmless.
-          systemd.services.systemd-binfmt.enable = false;
+          # systemd-binfmt was disabled here on the claim that binfmt_misc's status
+          # file is read-only under WSL, so it could not apply binfmt.d rules.
+          # Measured 2026-10-20: it applies them and exits 0 -- flushing the
+          # pre-existing rules fails with EROFS, which systemd treats as a warning --
+          # and the `aarch64-linux` entry it registers is what makes
+          # `boot.binfmt.emulatedSystems` work on this guest. `interop.register` above
+          # stops being inert with it: WSLInterop has to stay declared in binfmt.d or
+          # `.exe` execution is at the mercy of that same flush (verified working
+          # after the switch that enabled this service).
 
           wsl = {
             enable = true;
