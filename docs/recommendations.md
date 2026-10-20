@@ -16,6 +16,7 @@ under "Considered and rejected".
 | 5 | Stopped tracking the generated `.pre-commit-config.yaml`; ignored `result-*`. |
 | 6 | Collapsed duplicate inputs (34 → 24 lock nodes) and added `checks.<system>.topology`. |
 | 7 | Dropped the hand-copied DHCP addresses from the topology and renamed the guest interface `wsl0` → `eth0`: the lease is 3 h and mirrored networking gives the guest the host's address, so both values were stale or duplicated. See [ADR-0002](./adr/0002-topology-modelling.md). |
+| 8 | Worked around nix-topology's mosquitto extractor (`l.address or "[::]"` never fires on a `null` default) by rebuilding the rendered `details` null-safely under `mkForce`, and asserted the result in `checks.unit-structure`. `toString null` would have rendered `:1883`, so the null case is named rather than coerced. See [ADR-0002](./adr/0002-topology-modelling.md) decision D. |
 
 Row 6 makes `nixos-wsl`, `devshell`, `git-hooks`, `nix-topology`, clan-core's `flake-parts` and `treefmt-nix`
 follow the pinned `nixpkgs`; each followed node sat at the same revision, so nothing changed about what any
@@ -105,73 +106,7 @@ input evaluates with. The one remaining duplicate, `flake-compat`, is two differ
 
 ## 4. Upstream issues worth filing
 
-- **4.1 nix-topology: the mosquitto extractor cannot handle a null address.** `nixos/extractors/services.nix`
-  builds `address = l.address or "[::]"`, but `or` fires only when the attribute is absent, while nixpkgs
-  declares `services.mosquitto.listeners.*.address` as `nullOr str` defaulting to `null` — so interpolation
-  dies with `cannot coerce null to a string` (nixpkgs uses `lib.toString`, not at fault). Fix upstream:
-  `"${toString address}:${toString l.port}"`; this repo overrides the derived service instead, so listening
-  behaviour is unchanged. Still unfixed at `nix-topology` `e61876f` and **not yet filed**
-  (searched `repo:oddlama/nix-topology mosquitto` and `coerce null`: zero results; the repo
-  accepts issues and is active).
-
-  **Reproduced, not inferred.** A NixOS eval of `config.topology.nodes.<host>.services.mosquitto`
-  with `services.mosquitto.enable = true` and one listener that sets no address fails with
-  `error: cannot coerce null to a string: null` (trace points into `nixos/module.nix`).
-  Setting `address = "0.0.0.0"` on that listener makes the same expression evaluate to
-  `listen[0] = "0.0.0.0:1883"`, which isolates the null. Applying
-  `address = if l.address == null then "[::]" else l.address;` to a copy of the extractor makes
-  the unset case evaluate to `listen[0] = "[::]:1883"` — the intended display value.
-
-  Filing needs a `gh` token. None exists on this machine and the browser backend here cannot
-  reach GitHub, so this is a handover: paste the block below into `--body-file -`.
-
-  ```sh
-  nix run nixpkgs#gh -- issue create -R oddlama/nix-topology --body-file - \
-    --title 'mosquitto extractor throws `cannot coerce null to a string` for a listener without an address'
-  ```
-
-  > **Mosquitto extractor throws `cannot coerce null to a string` on a default listener**
-  >
-  > `nixos/extractors/services.nix` reads `address = l.address or "[::]"`, but `or` only fires when the
-  > attribute is *absent*. nixpkgs declares `services.mosquitto.listeners.*.address` as `nullOr str` with
-  > `default = null`, so a listener that never sets `address` (the documented default — "listen on
-  > `0.0.0.0`/`::`") interpolates `null` into `"${address}:${toString l.port}"` and evaluation dies with
-  > `cannot coerce null to a string`. `toString` handles `null`; interpolation does not, which is why
-  > nixpkgs' own `listener ${toString listener.port} ${toString listener.address}` is unaffected.
-  >
-  > ```nix
-  > # repro.nix — nix eval --impure --json --file repro.nix
-  > let
-  >   nixpkgs = builtins.getFlake "github:NixOS/nixpkgs/nixos-unstable";
-  >   topology = builtins.getFlake "github:oddlama/nix-topology";
-  >   sys = nixpkgs.lib.nixosSystem {
-  >     system = "x86_64-linux";
-  >     modules = [
-  >       topology.nixosModules.default
-  >       ({ ... }: {
-  >         networking.hostName = "repro";
-  >         services.mosquitto.enable = true;
-  >         services.mosquitto.listeners = [ { } ];   # address left at its default
-  >       })
-  >     ];
-  >   };
-  > in
-  > sys.config.topology.nodes.repro.services.mosquitto
-  > ```
-  >
-  > `error: cannot coerce null to a string: null`, trace pointing into `nixos/module.nix`. Setting
-  > `address = "0.0.0.0"` on that listener makes the same expression evaluate, which isolates the null.
-  >
-  > Fix, verified on a patched copy of the extractor — the unset case then evaluates to
-  > `listen[0] = "[::]:1883"`:
-  >
-  > ```nix
-  > address = if l.address == null then "[::]" else l.address;
-  > ```
-  >
-  > `toString` on both sides works equally. Seen at nix-topology `e61876f` (2026-06-22) with nixpkgs
-  > `b6c8664` (26.11pre).
-- **4.2 nix-topology: document that the per-machine half is automatic.** The installation page, where a reader
+- **4.1 nix-topology: document that the per-machine half is automatic.** The installation page, where a reader
   learns about `topology.modules`, never says `topology.nixosConfigurations` already defaults to every
   `nixosConfiguration` carrying a `topology` option — the gap that produced
   `topology.modules = [ config.nixosConfigurations ]`, redundant and an eval error `nix flake check` misses.
@@ -185,6 +120,7 @@ input evaluates with. The one remaining duplicate, `flake-compat`, is two differ
 | Add `aarch64-linux` now | No machine for it; `systems` is a build contract, not a wish list. |
 | `inputs.nix-systems` for `systems` | Pulls ~11 systems including darwin for a homelab. |
 | Replace clan-core's channel-tarball nixpkgs with `github:NixOS/nixpkgs/nixos-unstable` | Clan's published guidance is to follow clan-core; see 3.7. |
+| File the nix-topology mosquitto bug upstream | Fixed locally instead: the workaround is eight lines under `mkForce` and `checks.unit-structure` pins it, so an upstream fix buys a deletion rather than a capability. Reproduce it in one `nix eval` if it ever needs reporting. |
 | Collapse `flake-compat` | Two different upstream repositories (`NixOS/flake-compat`, `edolstra/flake-compat`), so there is nothing to follow. |
 | Re-add `typos` to the pre-commit hooks | The existing block was `enable = false` with empty settings. If wanted, enable it properly and expect to build a word list. |
 | Replace `nil` with `nixd` in the pre-commit hooks | git-hooks.nix ships a `nil` hook and no `nixd` hook; `nixd` is in the devshell, but a custom hook buys a lint `statix` and `deadnix` largely cover. |

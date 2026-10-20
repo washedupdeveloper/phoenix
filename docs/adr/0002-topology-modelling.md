@@ -68,8 +68,19 @@ nix-topology's extractor interpolates with `l.address or "[::]"`, a fallback tha
 only fires when the attribute is absent, while nixpkgs declares it `nullOr str`
 defaulting to `null` — so the build died with `cannot coerce null to a string`.
 `address = "0.0.0.0"` would bind IPv4 only, silently narrowing how the broker
-listens. Rejected: service behaviour is not a rendering decision. The override
-lives in the machine's `topology.self` block instead.
+listens. Rejected: service behaviour is not a rendering decision.
+
+**D — override the rendered `details`, null-safely, and assert the result (chosen,
+2026-10-20).** The machine's `topology.self` sets `services.mosquitto.details` with
+`lib.mkForce`, rebuilt from `config.services.mosquitto.listeners` with the null case
+named (`if l.address == null then "[::]"`) — the value the extractor *intended*, for
+every listener rather than a hardcoded first one. `mkForce` on `details` alone stops
+the extractor's own thunk from being evaluated, so its `name`, `icon` and `id` still
+come from upstream; forcing the whole service (the first attempt) restated them and
+lost the rest. `checks.unit-structure` asserts the rendered text, so the workaround
+cannot silently regress: measured failures for a hardcoded `1883`, for `toString null`
+(which renders `:1883`), and for removing the override (the original
+`cannot coerce null to a string`).
 
 ## Consequences
 
@@ -81,7 +92,8 @@ lives in the machine's `topology.self` block instead.
 - An upstream fix to the mosquitto extractor makes the `lib.mkForce` override
   redundant. It can be deleted then; until it is, it keeps winning. Verified against the
   pinned revision (2026-10-20): the extractor still reads `l.address or "[::]"`, so the
-  override is still load-bearing.
+  override is still load-bearing — and the override is now the *only* thing standing
+  between this repo and a broken diagram, which is what `checks.unit-structure` pins.
 - The model carries no DHCP address (amendment above). A new NIC still makes the
   diagram wrong until edited, but the MAC — the part that does not move — is what it
   records, so the drift is now a hardware change rather than an ordinary lease renewal.
@@ -111,10 +123,8 @@ DHCP reservation on the router, which is the router's configuration, not this fl
 1. [x] `nix build .#topology.x86_64-linux.config.output` succeeds; `main.svg` shows
    Internet → Home router → Desktop-Storm with the guest on the LAN.
 2. [x] `nix flake check` passes and lists `checks.x86_64-linux.topology`.
-3. [ ] File the mosquitto extractor bug upstream — a publication to someone else's tracker,
-   so it needs your word and a `gh` token (there is none on this machine). The report is
-   complete and verified, not drafted: repro, isolated cause, and a fix confirmed against a
-   patched extractor. [`../recommendations.md`](../recommendations.md) 4.1 carries it and the
-   one command that files it.
+3. [x] Mosquitto extractor: fixed locally instead of filed upstream — decision D above,
+   asserted by `checks.unit-structure`. Not filed: the fix is one line in a repo this
+   repository does not own, and the local override costs nothing to keep.
 4. [x] Addresses: resolved by the amendment above — the volatile values were removed
    rather than re-recorded.

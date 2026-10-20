@@ -75,6 +75,18 @@ let
   # clan deployability helpers
   # --------------------------------------------------------------------------
   deployableMachines = builtins.attrNames (clanInternals.machines.${builtins.head systems} or { });
+
+  # Every machine that enables mosquitto, with the service nix-topology renders for
+  # it -- read from the evaluated topology so the assertion sees what the diagram
+  # sees, not what the machine config says.
+  mosquitto = lib.concatMap (
+    m:
+    lib.optional (m.config.services.mosquitto.enable or false) {
+      inherit (m) name;
+      listeners = m.config.services.mosquitto.listeners or [ ];
+      rendered = m.config.topology.nodes.${m.name}.services.mosquitto or { };
+    }
+  ) named;
 in
 {
   # --------------------------------------------------------------------------
@@ -293,6 +305,32 @@ in
 
     test_every_machine_appears_in_the_topology = {
       expr = lib.subtractLists (lib.attrNames topology.nodes) (lib.map (m: m.name) named);
+      expected = [ ];
+    };
+
+    # nix-topology's mosquitto extractor interpolates `l.address`, which nixpkgs
+    # declares `nullOr str` defaulting to null, so a listener that sets no address
+    # kills the whole topology evaluation ("cannot coerce null to a string", measured).
+    # The machine overrides `details` with a null-safe derivation of the *same* shape.
+    #
+    # The expected value is the contract, not a copy of the implementation: a listener
+    # with no address listens on all interfaces, which the diagram is meant to show as
+    # `[::]`. `toString null` would give `:1883`, and the first workaround hardcoded
+    # `1883` -- both fail here, which is why this is not merely an eval guard.
+    test_mosquitto_listeners_render_without_a_null_address = {
+      expr = lib.concatMap (
+        s:
+        let
+          expected = map (
+            l: "${if l.address == null then "[::]" else l.address}:${toString l.port}"
+          ) s.listeners;
+          actual = map (d: d.text) (lib.attrValues (s.rendered.details or { }));
+        in
+        lib.optional (actual != expected) {
+          inherit (s) name;
+          inherit actual expected;
+        }
+      ) mosquitto;
       expected = [ ];
     };
   };

@@ -18,7 +18,7 @@ The tier is chosen by what an assertion *needs*, not by what is convenient. **Py
 
 ### Unit — what the configuration *says*
 
-`tests/unit/default.nix`, wired as `checks.unit-<group>`: evaluation-time assertions, each comparing a value out of a machine's evaluated config with what this repository intends. They use `lib.runTests`, the helper clan-core uses for its own `eval-tests`, and each group is its own check, so `nix flake check --keep-going` reports every failing group and a failure names the test and both values. Eight groups, 55 assertions:
+`tests/unit/default.nix`, wired as `checks.unit-<group>`: evaluation-time assertions, each comparing a value out of a machine's evaluated config with what this repository intends. They use `lib.runTests`, the helper clan-core uses for its own `eval-tests`, and each group is its own check, so `nix flake check --keep-going` reports every failing group and a failure names the test and both values. Eight groups, 56 assertions:
 
 | Group | What it pins |
 | --- | --- |
@@ -26,10 +26,10 @@ The tier is chosen by what an assertion *needs*, not by what is convenient. **Py
 | `ports` (4) | the declared exposure set is exactly `tcp/22` and `udp/5353`, the sshd listener and its firewall rule agree, and sshd is the only bare TCP port |
 | `security` (8) | key-only SSH, root passwords prohibited, every password hash vars-backed, no empty passwords, `mutableUsers` off, sudo wheel-only and passwordless, no insecure packages permitted |
 | `integrity` (3) | no nixpkgs assertion fails, no nixpkgs warning is emitted, the firewall is declared on |
-| `structure` (3) | every machine declares its guest relationship, appears in the topology, and references only defined networks |
+| `structure` (4) | every machine declares its guest relationship, appears in the topology, and references only defined networks; every mosquitto listener renders an address, `[::]` included — the extractor interpolates a `nullOr str` default and dies on it, so the value is asserted rather than left to the evaluator |
 | `clan` (8) | deployability — see below |
 | `flake` (10) | the flake's own wiring — see below |
-| `home` (12) | the user's home-manager configuration — see below |
+| `home` (13) | the user's home-manager configuration — see below |
 
 **`flake` — the wiring no machine config shows.** `tests/unit/flake.nix`, built inside `perSystem` in `modules/flake/tests.nix` because it reads the per-system flake-parts config rather than a machine. Five invariants: `_module.args.pkgs` and `clan.pkgs` agree (two wirings of one set — otherwise the devshell allows unfree packages and the clan CLI does not), checked **through the consumer** `clanInternals.machines.<system>.<machine>.config.nixpkgs.pkgs`, so removing `perSystem.clan.pkgs` fails rather than passing vacuously; `NIX_CONFIG` and `nix.settings.experimental-features` declare one list, since a feature in one but not the other parses in the devshell and not in a rebuild; every declared system has a devshell and a non-empty `checks`, and the set is exactly what the machines run on; every custom output name is paired with a `checks` entry; and the cache split holds — nix-community, pre-commit-hooks and numtide trusted, no `cache.clan.lol`, flake config not accepted silently.
 

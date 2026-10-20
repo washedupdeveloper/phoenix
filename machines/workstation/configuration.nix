@@ -119,12 +119,20 @@
       gateways = [ "192.168.68.1" ];
     };
 
-    # Overrides rendered text only, working around a nix-topology mosquitto bug
-    # (docs/adr/0002). The broker's own configuration is unchanged.
-    services.mosquitto = lib.mkForce {
-      name = "Mosquitto";
-      icon = "services.mosquitto";
-      details."listen[0]".text = "1883";
-    };
+    # `details` only, recomputed null-safely for every listener. The extractor reads
+    # `l.address or "[::]"`, which falls back only when the attribute is ABSENT --
+    # nixpkgs declares it `nullOr str` defaulting to `null`, so a listener that sets
+    # no address interpolates null and the whole topology fails to evaluate
+    # (`cannot coerce null to a string`, docs/adr/0002). Overriding `details` with
+    # `mkForce` stops the extractor's own thunk from being evaluated, so `name`,
+    # `icon` and `id` still come from the extractor and only this field is ours.
+    services.mosquitto.details = lib.mkForce (
+      lib.listToAttrs (
+        lib.imap0 (i: l: {
+          name = "listen[${toString i}]";
+          value.text = "${if l.address == null then "[::]" else l.address}:${toString l.port}";
+        }) config.services.mosquitto.listeners
+      )
+    );
   };
 }
