@@ -96,3 +96,8 @@ non-obvious requirement, a workaround, or why a line is written the surprising w
 
 **No dead code.** A commented-out block is annotated with why it is kept, or deleted
 — git has it.
+
+**An ADR is deleted when its decision has left the tree, never when its action items
+are done.** `docs/adr/` records the decision, the options rejected and why, and what
+each one costs; the action list is the one part that finishes. While it is open, work
+belongs in `recommendations.md`.

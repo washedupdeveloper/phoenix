@@ -21,9 +21,9 @@
   # with a keep-policy, and running both would duplicate it.
   nix.gc.automatic = false;
 
-  # Build parallelism is deliberately unset: the NixOS defaults (`max-jobs =
-  # "auto"`, `cores = 0`) already resolve to nproc. Setting `cores = 1` would force
-  # every parallel-capable build onto a single thread.
+  # `nix.settings.max-jobs` / `cores` stay unset on purpose: the NixOS defaults
+  # mean "use the machine", and `cores = 1` is a downgrade, not a safety margin.
+  # Traps and measurement: docs/adr/0003.
   #
   # `download-buffer-size` is likewise unset: Nix 2.33 fixed the warning at source.
 
