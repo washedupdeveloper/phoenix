@@ -15,6 +15,7 @@ under "Considered and rejected".
 | 4 | Added `description` and a `nixConfig` carrying the binary caches and `pipe-operators`. |
 | 5 | Stopped tracking the generated `.pre-commit-config.yaml`; ignored `result-*`. |
 | 6 | Collapsed duplicate inputs (34 → 24 lock nodes) and added `checks.<system>.topology`. |
+| 7 | Dropped the hand-copied DHCP addresses from the topology and renamed the guest interface `wsl0` → `eth0`: the lease is 3 h and mirrored networking gives the guest the host's address, so both values were stale or duplicated. See [ADR-0002](./adr/0002-topology-modelling.md). |
 
 Row 6 makes `nixos-wsl`, `devshell`, `git-hooks`, `nix-topology`, clan-core's `flake-parts` and `treefmt-nix`
 follow the pinned `nixpkgs`; each followed node sat at the same revision, so nothing changed about what any
@@ -109,7 +110,18 @@ input evaluates with. The one remaining duplicate, `flake-compat`, is two differ
   declares `services.mosquitto.listeners.*.address` as `nullOr str` defaulting to `null` — so interpolation
   dies with `cannot coerce null to a string` (nixpkgs uses `lib.toString`, not at fault). Fix upstream:
   `"${toString address}:${toString l.port}"`; this repo overrides the derived service instead, so listening
-  behaviour is unchanged.
+  behaviour is unchanged. Still unfixed in the pinned revision and **not yet filed** (searched
+  `repo:oddlama/nix-topology mosquitto`, zero results). Draft title and body, ready to paste:
+
+  > **Mosquitto extractor throws `cannot coerce null to a string` on the default listener**
+  >
+  > `nixos/extractors/services.nix` reads `address = l.address or "[::]"`, but `or` only fires when the
+  > attribute is *absent*. nixpkgs declares `services.mosquitto.listeners.*.address` as `nullOr str` with
+  > `default = null`, so a listener that never sets `address` (the common case) interpolates `null` into
+  > `"${address}:${toString l.port}"` and the diagram build fails with `cannot coerce null to a string`.
+  > `toString` handles `null`; the interpolation does not. Suggested fix:
+  > `address = if l.address == null then "[::]" else l.address;` — or `toString` on both sides.
+  > Reproduced with a single `services.mosquitto.enable = true;` and one default listener.
 - **4.2 nix-topology: document that the per-machine half is automatic.** The installation page, where a reader
   learns about `topology.modules`, never says `topology.nixosConfigurations` already defaults to every
   `nixosConfiguration` carrying a `topology` option — the gap that produced

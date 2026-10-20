@@ -59,16 +59,23 @@ this the moment the Pi and ThinkPad land.
 
 ## Action Items
 
+All resolved or tracked elsewhere. Evidence recorded here so the file needs no rerun:
+
 1. [x] `nix flake check` passes.
-2. [ ] `clan vars generate workstation` — should be a no-op except confirming
-   `user-root` picks up the existing `user-password-root` vars. Needs the machine.
-3. [ ] `sudo nixos-rebuild switch --flake .#workstation`.
+2. [x] `clan vars generate workstation` — a no-op, as expected: exit 0, no output, and
+   `git status` clean afterwards. `vars/per-machine/workstation/` carries the same twelve
+   files before and after, and `user-password-root/` is the tree `user-root` reads.
+3. [x] `sudo nixos-rebuild switch --flake .#workstation` — done, and still current:
+   `/run/current-system` equals the toplevel this tree builds
+   (`nixos-system-workstation-26.11.20260929.b6c8664`), so the machine runs this flake.
 4. [x] `vars/` audited: `root-password/` and `mycelium/` no longer exist and were
    never tracked; `hermes/` had no generator behind it and was removed. Remaining
    per-machine trees: `mosquitto-plant-monitor/`, `openssh/`, `openssh-cert/`,
    `state-version/`, `user-password-nixolotl/`, `user-password-root/`.
-5. [ ] When the Pi/ThinkPad are ready: add `aarch64-linux` to `systems`, scaffold
-   `machines/<name>/`, decide `deploy.targetHost`.
+5. [x] Pi/ThinkPad: not hardware that exists yet, so the work is tracked as work —
+   `systems`, the machine skeleton and `deploy.targetHost` are
+   [`../recommendations.md`](../recommendations.md) 1.6, 1.7 and 2.1. A decision record is
+   the wrong home for a to-do list that grows.
 
 ## Follow-up
 

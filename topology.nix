@@ -27,19 +27,22 @@ in
       };
     };
 
-    # Not a NixOS machine, so nothing is derivable; values from `ipconfig /all`.
+    # Not a NixOS machine, so nothing is derivable; the MAC is from `ipconfig /all`.
     # No Hyper-V switch modelled: mirrored networking puts the guest NIC straight
     # onto the LAN rather than behind a NAT (docs/adr/0002).
+    #
+    # No IPv4 recorded: the lease is 3 hours and the address moves with it, so a
+    # hand-copied value is wrong within hours. The MAC is the stable part.
     windows-host = mkDevice "Desktop-Storm" {
       info = "Windows 11 host - Ryzen 9 9900X3D / Radeon RX 9070 XT";
       connections.eth = mkConnection "home-router" "lan";
       interfaces = {
-        # Realtek PCIe GbE Family Controller -- the only connected NIC.
+        # Realtek PCIe GbE Family Controller -- the only connected NIC (Wi-Fi is
+        # disconnected, the Wi-Fi Direct adapters carry no address).
         eth = {
           network = "lan";
           type = "ethernet";
           mac = "30:c5:99:26:e1:4f";
-          addresses = [ "192.168.68.107/24" ];
           gateways = [ "192.168.68.1" ];
         };
       };

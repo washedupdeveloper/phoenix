@@ -109,12 +109,13 @@
     guestType = "wsl";
     hardware.info = "NixOS-WSL (WSL2)";
 
-    # WSL assigns this address, not the guest -- hence `useDHCP = false` above.
-    interfaces.wsl0 = {
+    # Mirrored networking: the guest's eth0 presents the host's address, so there is
+    # no guest-specific address to record and the host's is a 3-hour DHCP lease
+    # (../../topology.nix). The link is what the diagram needs.
+    interfaces.eth0 = {
       network = "lan";
       virtual = true;
       type = "ethernet";
-      addresses = [ "192.168.68.108/24" ];
       gateways = [ "192.168.68.1" ];
     };
 
