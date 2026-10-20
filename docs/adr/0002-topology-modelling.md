@@ -111,8 +111,10 @@ DHCP reservation on the router, which is the router's configuration, not this fl
 1. [x] `nix build .#topology.x86_64-linux.config.output` succeeds; `main.svg` shows
    Internet → Home router → Desktop-Storm with the guest on the LAN.
 2. [x] `nix flake check` passes and lists `checks.x86_64-linux.topology`.
-3. [ ] File the mosquitto extractor bug upstream — drafted, not filed: it is a
-   publication to someone else's tracker. Tracked as
-   [`../recommendations.md`](../recommendations.md) 4.1, which carries the one-line fix.
+3. [ ] File the mosquitto extractor bug upstream — a publication to someone else's tracker,
+   so it needs your word and a `gh` token (there is none on this machine). The report is
+   complete and verified, not drafted: repro, isolated cause, and a fix confirmed against a
+   patched extractor. [`../recommendations.md`](../recommendations.md) 4.1 carries it and the
+   one command that files it.
 4. [x] Addresses: resolved by the amendment above — the volatile values were removed
    rather than re-recorded.

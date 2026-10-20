@@ -110,18 +110,67 @@ input evaluates with. The one remaining duplicate, `flake-compat`, is two differ
   declares `services.mosquitto.listeners.*.address` as `nullOr str` defaulting to `null` — so interpolation
   dies with `cannot coerce null to a string` (nixpkgs uses `lib.toString`, not at fault). Fix upstream:
   `"${toString address}:${toString l.port}"`; this repo overrides the derived service instead, so listening
-  behaviour is unchanged. Still unfixed in the pinned revision and **not yet filed** (searched
-  `repo:oddlama/nix-topology mosquitto`, zero results). Draft title and body, ready to paste:
+  behaviour is unchanged. Still unfixed at `nix-topology` `e61876f` and **not yet filed**
+  (searched `repo:oddlama/nix-topology mosquitto` and `coerce null`: zero results; the repo
+  accepts issues and is active).
 
-  > **Mosquitto extractor throws `cannot coerce null to a string` on the default listener**
+  **Reproduced, not inferred.** A NixOS eval of `config.topology.nodes.<host>.services.mosquitto`
+  with `services.mosquitto.enable = true` and one listener that sets no address fails with
+  `error: cannot coerce null to a string: null` (trace points into `nixos/module.nix`).
+  Setting `address = "0.0.0.0"` on that listener makes the same expression evaluate to
+  `listen[0] = "0.0.0.0:1883"`, which isolates the null. Applying
+  `address = if l.address == null then "[::]" else l.address;` to a copy of the extractor makes
+  the unset case evaluate to `listen[0] = "[::]:1883"` — the intended display value.
+
+  Filing needs a `gh` token. None exists on this machine and the browser backend here cannot
+  reach GitHub, so this is a handover: paste the block below into `--body-file -`.
+
+  ```sh
+  nix run nixpkgs#gh -- issue create -R oddlama/nix-topology --body-file - \
+    --title 'mosquitto extractor throws `cannot coerce null to a string` for a listener without an address'
+  ```
+
+  > **Mosquitto extractor throws `cannot coerce null to a string` on a default listener**
   >
   > `nixos/extractors/services.nix` reads `address = l.address or "[::]"`, but `or` only fires when the
   > attribute is *absent*. nixpkgs declares `services.mosquitto.listeners.*.address` as `nullOr str` with
-  > `default = null`, so a listener that never sets `address` (the common case) interpolates `null` into
-  > `"${address}:${toString l.port}"` and the diagram build fails with `cannot coerce null to a string`.
-  > `toString` handles `null`; the interpolation does not. Suggested fix:
-  > `address = if l.address == null then "[::]" else l.address;` — or `toString` on both sides.
-  > Reproduced with a single `services.mosquitto.enable = true;` and one default listener.
+  > `default = null`, so a listener that never sets `address` (the documented default — "listen on
+  > `0.0.0.0`/`::`") interpolates `null` into `"${address}:${toString l.port}"` and evaluation dies with
+  > `cannot coerce null to a string`. `toString` handles `null`; interpolation does not, which is why
+  > nixpkgs' own `listener ${toString listener.port} ${toString listener.address}` is unaffected.
+  >
+  > ```nix
+  > # repro.nix — nix eval --impure --json --file repro.nix
+  > let
+  >   nixpkgs = builtins.getFlake "github:NixOS/nixpkgs/nixos-unstable";
+  >   topology = builtins.getFlake "github:oddlama/nix-topology";
+  >   sys = nixpkgs.lib.nixosSystem {
+  >     system = "x86_64-linux";
+  >     modules = [
+  >       topology.nixosModules.default
+  >       ({ ... }: {
+  >         networking.hostName = "repro";
+  >         services.mosquitto.enable = true;
+  >         services.mosquitto.listeners = [ { } ];   # address left at its default
+  >       })
+  >     ];
+  >   };
+  > in
+  > sys.config.topology.nodes.repro.services.mosquitto
+  > ```
+  >
+  > `error: cannot coerce null to a string: null`, trace pointing into `nixos/module.nix`. Setting
+  > `address = "0.0.0.0"` on that listener makes the same expression evaluate, which isolates the null.
+  >
+  > Fix, verified on a patched copy of the extractor — the unset case then evaluates to
+  > `listen[0] = "[::]:1883"`:
+  >
+  > ```nix
+  > address = if l.address == null then "[::]" else l.address;
+  > ```
+  >
+  > `toString` on both sides works equally. Seen at nix-topology `e61876f` (2026-06-22) with nixpkgs
+  > `b6c8664` (26.11pre).
 - **4.2 nix-topology: document that the per-machine half is automatic.** The installation page, where a reader
   learns about `topology.modules`, never says `topology.nixosConfigurations` already defaults to every
   `nixosConfiguration` carrying a `topology` option — the gap that produced
