@@ -59,6 +59,35 @@ anything in the binary cache, so the venv is rebuilt locally (157 derivations, ~
 fetched, on the first build). `nix flake update clan-core` moves it forward with the rest
 of the machine; there is no separate nixpkgs to keep current.
 
+## `hermes-agent` tracks `main`; the lock decides when that matters
+
+The input names upstream's branch (`github:NousResearch/hermes-agent/main`) rather than a
+tag or a rev, so one command is the upgrade:
+
+```sh
+nix flake lock --update-input hermes-agent   # or: nix flake update hermes-agent
+nix profile upgrade hermes-agent             # the profile is a git+file:// entry
+```
+
+**A branch input is still a pinned build.** `flake.lock` records the commit the branch
+resolved to (`locked.rev`) and that is what every rebuild uses — `nixos-rebuild switch`,
+`nh os switch` and `nix build` all read the lock, so nothing changes on the machine until
+the update command runs. The branch decides *what the update moves to*, not *when*.
+
+Two consequences worth knowing before choosing a branch over a tag:
+
+- **`hermes --version` reports `v0.0.0`.** Upstream's flake takes `version ? "0.0.0"` and
+  cannot do better: Nix discards a flake ref's name after resolving it, so
+  `inputs.hermes-agent.ref` is null (measured) and the derivation never learns a tag. The
+  identity it does carry is the commit — the banner prints `upstream <sha>`, and
+  `install-stamp.json` records `commit` and `commitDate`. Pinning a release tag and reading
+  `flake.lock`'s `original.ref` back is the way to get a version string; that was tried and
+  reverted in favour of currency.
+- **`main` is unreleased.** A build from it can be ahead of the newest tag, which is what
+  "latest" means here, and it is also unversioned and untagged — `hermes update` cannot
+  reason about it, and the banner's `Update available` line compares against `main`'s tip
+  so it stays quiet only while the lock is current.
+
 ## Why the topology output is also a check
 
 `nix flake check` knows a fixed set of output names; anything else produces `warning:

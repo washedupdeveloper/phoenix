@@ -38,7 +38,9 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-    # Pinned to a rev: a branch would silently change what the machine runs.
+    # Tracks upstream `main`, so `nix flake update hermes-agent` is the whole upgrade.
+    # The lock still pins a commit — the branch moves only when that command runs — so a
+    # rebuild never picks up a new agent on its own.
     #
     # `nixpkgs` is followed deliberately. clan-core's nixpkgs input IS the
     # nixpkgs-unstable channel, so following it builds the agent, its uv2nix venv and
@@ -47,7 +49,7 @@
     # derivation no longer matches anything in the binary cache. See
     # docs/flake-internals.md.
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
+      url = "github:NousResearch/hermes-agent/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
