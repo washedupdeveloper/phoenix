@@ -38,16 +38,19 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-    # Pinned to a rev: a branch would silently change what the machine runs.
+    # Pinned to a release tag, not a bare rev: `nix flake lock` records the tag in
+    # `original.ref` and the commit it resolved to in `locked.rev`, so this is still an
+    # exact pin, and the version string is derived from the tag instead of defaulting to
+    # 0.0.0. Nix discards the ref before the derivation sees it, so `flake.lock` is the
+    # only place the tag survives — `outputs` reads it back. See docs/flake-internals.md.
     #
     # `nixpkgs` is followed deliberately. clan-core's nixpkgs input IS the
     # nixpkgs-unstable channel, so following it builds the agent, its uv2nix venv and
     # its runtime tools (python, ripgrep, ffmpeg) with the machine's own nixpkgs instead
     # of the snapshot this rev happened to lock. Cost: the venv is rebuilt, because the
-    # derivation no longer matches anything in the binary cache. See
-    # docs/flake-internals.md.
+    # derivation no longer matches anything in the binary cache.
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent/b56a10246e81e23d10bf6f49ae176c082db53ed9";
+      url = "github:NousResearch/hermes-agent/v0.22.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -57,6 +60,15 @@
 
   outputs =
     inputs@{ flake-parts, ... }:
+    let
+      # The tag in `inputs.hermes-agent.url`, as `nix flake lock` recorded it. One fact:
+      # bumping the release means editing the URL, and the version string follows.
+      lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+      hermesTag =
+        lock.nodes.hermes-agent.original.ref
+          or (throw "hermes-agent must be pinned to a release tag: flake.lock records no `ref`");
+      hermesVersion = builtins.substring 1 (builtins.stringLength hermesTag - 1) hermesTag;
+    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.clan-core.flakeModules.default
@@ -130,11 +142,15 @@
           # uv2nix venv, so only the final derivation rebuilds. The plugin is built from
           # this repo's `pkgs` because `hermes-agent` follows `nixpkgs`: that is the
           # interpreter whose site-packages the wrapper's PYTHONPATH has to reach.
+          #
+          # `version` is what `hermes --version` reports; upstream defaults it to 0.0.0
+          # because the Nix evaluator never sees a git tag.
           packages.hermes-agent =
             let
               plugin = pkgs.callPackage (inputs.hermes-skills.outPath + "/nix/plugin.nix") { };
             in
             inputs.hermes-agent.packages.${system}.minimal.override {
+              version = hermesVersion;
               extraPythonPackages = [ plugin ];
             };
 

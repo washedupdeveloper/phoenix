@@ -59,6 +59,33 @@ anything in the binary cache, so the venv is rebuilt locally (157 derivations, ~
 fetched, on the first build). `nix flake update clan-core` moves it forward with the rest
 of the machine; there is no separate nixpkgs to keep current.
 
+## `hermes-agent` is pinned to a tag, and the version comes from the lock
+
+The input names a release tag (`github:NousResearch/hermes-agent/v0.22.2`) rather than a
+bare rev. Nix resolves the tag to a commit and writes both into `flake.lock` — the tag in
+`original.ref`, the commit in `locked.rev` — so the pin is still exact, and the tag is the
+readable half of it.
+
+Upstream's flake defaults `version` to `"0.0.0"` and there is no way for it to do better:
+a flake input's `ref` is `null` after resolution (measured — `inputs.hermes-agent.ref` is
+null for a tag URL), so the derivation never learns which tag it came from. The tag
+survives in exactly one place, `flake.lock`, and `outputs` reads it back:
+
+```nix
+lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+hermesTag = lock.nodes.hermes-agent.original.ref;
+hermesVersion = builtins.substring 1 (builtins.stringLength hermesTag - 1) hermesTag;
+```
+
+That value is passed as `version` in the `minimal.override`, which is what
+`hermes --version` prints and what names the derivation (`hermes-agent-0.22.2`). Bumping
+the release is one edit — the URL — and the version follows; there is no second copy to
+forget. A missing `original.ref` throws rather than falling back to `0.0.0`, because a
+silently wrong version is the defect this exists to prevent.
+
+`distance` stays at its default of 0: a tag pin is exactly the tagged commit. A pin
+mid-release would set it, and the version then renders as `0.22.2+N.g<sha>`.
+
 ## Why the topology output is also a check
 
 `nix flake check` knows a fixed set of output names; anything else produces `warning:
