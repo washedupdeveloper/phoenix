@@ -119,15 +119,35 @@ Verified against the CLI (`clan machines --help`, `install --help`,
   deliberately — which is the assertion working, not an obstacle. `test_the_only_bare_tcp_ports_have_a_reason`
   now names both bare ports and why each cannot be interface-scoped.
 
-### 3. CI, before the fleet grows — no hardware needed
+### 3. CI — prepared 2026-10-20, one interactive step left
 
-- `.github/workflows/gate.yml`, with the gate as the job. The runner is
-  `services.github-runners.<name>` on `workstation`, its `tokenFile` a new sops var, its
-  labels `[ "self-hosted" "kvm" ]`, and its account in the `kvm` group — the e2e tier
-  needs `/dev/kvm`, and that is the only place it exists.
-- Branch protection on `main` requiring that job on pull requests.
-- The job runs `nix flake check --keep-going`, the same command as the local hook, so a
-  green PR and a green commit mean the same thing.
+- **Done:** `.github/workflows/gate.yml`, running `nix flake check --all-systems
+  --keep-going --accept-flake-config` on a self-hosted runner labelled
+  `[ "self-hosted" "linux" "kvm" ]`. `--all-systems` is in the job because the bare
+  command builds the *current* system's checks only, which would leave the Pi's leg
+  unbuilt by the one job that exists to prove it. The runner is this machine because the
+  VM tier needs `/dev/kvm` and a hosted runner would skip that tier while reporting green
+  over a smaller gate.
+- **Done:** the runner itself — `services.github-runners.gate` in the workstation's
+  configuration, with `replace = true`: a PAT outlives a single registration, so a restart
+  must replace the stale one, and a runner holds no state between jobs. Two corrections to
+  the original plan: no `kvm` group is needed (`/dev/kvm` is mode `666` here), and the
+  credential is a **prompted** var rather than a generated one.
+- **The one step left, and it is the owner's.** The token is a fine-grained PAT with
+  `Administration: read and write` on the repository. Clan's prompt needs a real terminal —
+  measured: piping a value into it *and* passing `--fake-prompts` both fail with
+  `termios.error: (25, 'Inappropriate ioctl for device')`, so it cannot be scripted:
+
+  ```console
+  clan vars generate workstation --generator github-runner-token
+  sudo nixos-rebuild switch --flake .#workstation
+  ```
+
+  Until it runs, `tokenFile` evaluates to `/no-such-path` — clan's sentinel for "not
+  generated yet", which is a normal state and not an error — and the runner fails to
+  register, visible in `journalctl -u github-runner-gate`.
+- Branch protection on `main` requiring that job: once, when a run has reported at least
+  once, because GitHub will not offer a check it has never seen.
 - `origin/main` is 12 commits behind this tree, so nothing can be a pull request until
   those land. Pushing is the owner's call, not a side effect of this plan.
 

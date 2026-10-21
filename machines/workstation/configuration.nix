@@ -145,4 +145,40 @@
       )
     );
   };
+
+  # --- CI -------------------------------------------------------------------------
+  #
+  # The gate runs here and nowhere else, because the e2e tier needs `/dev/kvm` and
+  # GitHub-hosted runners have none: they would skip the VM tests while reporting
+  # green over a smaller gate than a commit runs locally. The workflow that asks for
+  # this runner is `.github/workflows/gate.yml`, and its label is `kvm`.
+  #
+  # The token is asked for rather than written down: a fine-grained PAT with
+  # `Administration: read and write` on the repository. `persist` stores the answer as
+  # the secret var `token` -- equivalent to `cp $prompts/token $out/token`, so this
+  # generator needs no script:
+  #
+  #   clan vars generate workstation --generator github-runner-token
+  #   clan vars generate workstation --generator github-runner-token --regenerate
+  #
+  # The second form replaces a revoked token. Until a real one is generated the
+  # runner starts and fails to register, which is visible in
+  # `journalctl -u github-runner-gate` and is the only symptom.
+  clan.core.vars.generators.github-runner-token.prompts.token = {
+    description = "GitHub fine-grained PAT (Administration: read and write) for the runner";
+    type = "hidden";
+    persist = true;
+  };
+
+  services.github-runners.gate = {
+    enable = true;
+    url = "https://github.com/washedupdeveloper/phoenix";
+    name = "workstation-gate";
+    tokenFile = config.clan.core.vars.generators.github-runner-token.files.token.path;
+    extraLabels = [ "kvm" ];
+    # The PAT outlives a single registration, so an existing runner of the same name
+    # is replaced on start; without it a restart fails against the stale registration
+    # it left behind. Nothing is lost: a runner holds no state between jobs.
+    replace = true;
+  };
 }

@@ -1,0 +1,39 @@
+# The gate, on the one machine that can run all of it.
+#
+# `runs-on` names the self-hosted runner declared in
+# `machines/workstation/configuration.nix` (`services.github-runners.gate`). The
+# reason is the e2e tier: it needs `/dev/kvm`, GitHub-hosted runners have none, and CI
+# there would skip the VM tests while reporting green over a smaller gate than the one
+# a commit runs locally. A skipped tier is not a passing tier.
+#
+# `--all-systems` is not optional either: without it nix builds the checks of the
+# *current* system only, so the Pi's `aarch64-linux` leg would never be built by CI --
+# which is the one leg this job exists to prove.
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: [ self-hosted, linux, kvm ]
+    # A cold aarch64 leg is minutes; a dependency bump that rebuilds the closure is
+    # longer. This is a backstop against a hung runner, not a build budget.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # `--accept-flake-config` is deliberate here: the runner user has no
+      # `trusted-settings.json`, so without it nix ignores the flake's own
+      # substituters (`cache.clan.lol` among them) and rebuilds what the cache holds.
+      # Accepting a repository's config is a caller's trust decision, and this caller
+      # is the repository.
+      - name: nix flake check
+        run: nix flake check --all-systems --keep-going --accept-flake-config
