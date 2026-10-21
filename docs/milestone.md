@@ -122,17 +122,31 @@ Verified against the CLI (`clan machines --help`, `install --help`,
 ### 3. CI — prepared 2026-10-20, one interactive step left
 
 - **Done:** `.github/workflows/gate.yml`, running `nix flake check --all-systems
-  --keep-going --accept-flake-config` on a self-hosted runner labelled
-  `[ "self-hosted" "linux" "kvm" ]`. `--all-systems` is in the job because the bare
-  command builds the *current* system's checks only, which would leave the Pi's leg
-  unbuilt by the one job that exists to prove it. The runner is this machine because the
-  VM tier needs `/dev/kvm` and a hosted runner would skip that tier while reporting green
-  over a smaller gate.
+  --keep-going` on a self-hosted runner labelled `[ "self-hosted" "linux" "kvm" ]`.
+  `--all-systems` is in the job because the bare command builds the *current* system's
+  checks only, which would leave the Pi's leg unbuilt by the one job that exists to prove
+  it. The runner is this machine because the VM tier needs `/dev/kvm` and a hosted runner
+  would skip that tier while reporting green over a smaller gate.
+- **The trust boundary, which is what a self-hosted runner makes urgent.** The runner
+  executes the workflow file *and* the flake of whatever ref asks for it, on a WSL guest
+  with `/mnt/c` and LAN reach. So: `pull_request` is narrowed by an `if:` to branches of
+  this repository (a fork's PR is skipped, because the only GitHub-side control is a
+  repository setting a tree cannot assert); `permissions: contents: read` because the
+  default token is read/write; `actions/checkout` pinned to a commit and
+  `persist-credentials: false` so the job token is not left in the workspace; and **no
+  `--accept-flake-config`**, because that flag trusts the `nixConfig` of the tree under
+  test — a PR could add its own substituters and signing keys and land arbitrary paths in
+  this runner's persistent store. The caches the job needs are ambient in `base-system`;
+  `cache.clan.lol` buys nothing here, since clan-core is consumed for its modules only.
 - **Done:** the runner itself — `services.github-runners.gate` in the workstation's
   configuration, with `replace = true`: a PAT outlives a single registration, so a restart
-  must replace the stale one, and a runner holds no state between jobs. Two corrections to
-  the original plan: no `kvm` group is needed (`/dev/kvm` is mode `666` here), and the
-  credential is a **prompted** var rather than a generated one.
+  must replace the stale one, and a runner holds no state between jobs. `ephemeral = true`
+  for the same reason one level down: one job per registration, so no job inherits
+  another's workspace (`Restart = on-success` re-registers). The token var carries
+  `restartUnits = [ "github-runner-gate.service" ]` so regenerating a revoked PAT actually
+  reaches the service. Two corrections to the original plan: no `kvm` group is needed
+  (`/dev/kvm` is mode `666` here), and the credential is a **prompted** var rather than a
+  generated one.
 - **The one step left, and it is the owner's.** The token is a fine-grained PAT with
   `Administration: read and write` on the repository. Clan's prompt needs a real terminal —
   measured: piping a value into it *and* passing `--fake-prompts` both fail with

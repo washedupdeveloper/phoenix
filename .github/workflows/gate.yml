@@ -9,6 +9,13 @@
 # `--all-systems` is not optional either: without it nix builds the checks of the
 # *current* system only, so the Pi's `aarch64-linux` leg would never be built by CI --
 # which is the one leg this job exists to prove.
+#
+# What this job must NOT do is run untrusted code. A self-hosted runner executes the
+# workflow file AND the flake of whatever ref asks for it, on a host that is a WSL
+# guest with `/mnt/c` and LAN reach. Three things below are therefore load-bearing
+# rather than stylistic: the `if:` that narrows `pull_request` to branches of this
+# repository, the read-only `permissions:` block, and the absence of
+# `--accept-flake-config`.
 name: gate
 
 on:
@@ -21,19 +28,39 @@ concurrency:
   group: gate-${{ github.ref }}
   cancel-in-progress: true
 
+# The repository default for GITHUB_TOKEN is read/write. This job only reads, and the
+# token sits in the environment of a step that runs PR-authored builders.
+permissions:
+  contents: read
+
 jobs:
   gate:
     runs-on: [ self-hosted, linux, kvm ]
+    # A fork's `pull_request` would run attacker-authored YAML and attacker-authored
+    # nix builders on this host. The only GitHub-side control is a repository setting,
+    # which a tree cannot assert -- so the trigger is narrowed here instead.
+    # Same-repository branches (the owner's own pull requests) still run.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     # A cold aarch64 leg is minutes; a dependency bump that rebuilds the closure is
     # longer. This is a backstop against a hung runner, not a build budget.
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to a commit, not a tag: a mutable tag is a moving target that would run
+      # as the runner user on this host.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Keeps the job token out of `.git/config`, where the builders the next step
+          # runs could read it from the workspace.
+          persist-credentials: false
 
-      # `--accept-flake-config` is deliberate here: the runner user has no
-      # `trusted-settings.json`, so without it nix ignores the flake's own
-      # substituters (`cache.clan.lol` among them) and rebuilds what the cache holds.
-      # Accepting a repository's config is a caller's trust decision, and this caller
-      # is the repository.
+      # No `--accept-flake-config`. That flag makes nix trust the `nixConfig` of the
+      # tree under test, and for a pull request that tree is untrusted: a PR could add
+      # its own `extra-substituters` and `extra-trusted-public-keys` and have arbitrary
+      # paths it signed land in this runner's persistent store, poisoning later builds.
+      # The caches this job needs are already ambient on the machine
+      # (`modules/clanServices/base-system`), and clan-core is consumed here for its
+      # modules only, so `cache.clan.lol` buys nothing.
       - name: nix flake check
-        run: nix flake check --all-systems --keep-going --accept-flake-config
+        run: nix flake check --all-systems --keep-going

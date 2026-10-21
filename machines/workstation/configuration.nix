@@ -164,10 +164,16 @@
   # The second form replaces a revoked token. Until a real one is generated the
   # runner starts and fails to register, which is visible in
   # `journalctl -u github-runner-gate` and is the only symptom.
-  clan.core.vars.generators.github-runner-token.prompts.token = {
-    description = "GitHub fine-grained PAT (Administration: read and write) for the runner";
-    type = "hidden";
-    persist = true;
+  clan.core.vars.generators.github-runner-token = {
+    prompts.token = {
+      description = "GitHub fine-grained PAT (Administration: read and write) for the runner";
+      type = "hidden";
+      persist = true;
+    };
+
+    # Regenerating the token must reach the service, or the documented recovery path
+    # ("--regenerate" after a revoked PAT) leaves a runner running on the old one.
+    files.token.restartUnits = [ "github-runner-gate.service" ];
   };
 
   services.github-runners.gate = {
@@ -176,6 +182,10 @@
     name = "workstation-gate";
     tokenFile = config.clan.core.vars.generators.github-runner-token.files.token.path;
     extraLabels = [ "kvm" ];
+    # One job per registration: the runner exits after a job and systemd starts it
+    # again (`Restart = on-success`), so no job inherits another's workspace or state.
+    # The store is still shared, which is why the workflow must not run fork code.
+    ephemeral = true;
     # The PAT outlives a single registration, so an existing runner of the same name
     # is replaced on start; without it a restart fails against the stale registration
     # it left behind. Nothing is lost: a runner holds no state between jobs.
