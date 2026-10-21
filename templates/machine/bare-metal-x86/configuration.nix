@@ -1,6 +1,6 @@
 # Skeleton for a bare-metal x86_64 machine (the ThinkPad shape). Created with
 #
-#   clan machines create thinkpad --template bare-metal-x86
+#   clan machines create thinkpad --template .#bare-metal-x86
 #
 # which copies this directory to `machines/thinkpad/` and records the machine in the
 # inventory. Nothing here is derivable-from-nothing: the hostname comes from the

@@ -7,13 +7,17 @@ attached to nothing — so only the gate's assertions turn them into errors.
 hand-copied file forgets — the platform and the topology stub — are already right:
 
 ```console
-clan machines create thinkpad --template bare-metal-x86    # x86_64, systemd-boot
-clan machines create pi --template raspberry-pi-4          # aarch64, vendor kernel
-clan templates list                                        # what else is on offer
+clan machines create thinkpad --template .#bare-metal-x86    # x86_64, systemd-boot
+clan machines create pi --template .#raspberry-pi-4          # aarch64, vendor kernel
+clan templates list                                          # what else is on offer
 ```
 
-The aliased spelling `clan templates apply machine bare-metal-x86 thinkpad` runs the
-same command; `nix develop` first, because `clan` lives in the devshell. The template
+The aliased spelling `clan templates apply machine .#bare-metal-x86 thinkpad` runs the
+same command; `nix develop` first, because `clan` lives in the devshell. The selector is
+`.#<template>` and that is not cosmetic: a bare name is looked up in clan's **builtin**
+templates (`clanInternals.templates.machine`), so `--template bare-metal-x86` fails with
+`Failed to select template … via attribute path …#clanInternals.templates.machine."bare-metal-x86"`
+while `clan templates list` happily shows the template under `inputs.self`. The template
 is a plain directory copy, so nothing in it knows the machine's name: the hostname is
 therefore `config.clan.core.settings.machine.name` rather than a second spelling of it.
 

@@ -1,8 +1,8 @@
 # Skeleton for a Raspberry Pi 4 Model B. Created with
 #
-#   clan machines create pi --template raspberry-pi-4
+#   clan machines create pi --template .#raspberry-pi-4
 #
-# or the aliased `clan templates apply machine raspberry-pi-4 pi`.
+# or the aliased `clan templates apply machine .#raspberry-pi-4 pi`.
 #
 # Board support arrives as a MODULE, not through that flake's own `lib.nixosSystem`
 # helper: clan makes the `nixpkgs.lib.nixosSystem` call itself, so the input reaches

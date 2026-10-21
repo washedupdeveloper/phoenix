@@ -67,9 +67,10 @@ of needing new ones. The fleet is not a rewrite.
   builders. The VM tier is skipped there by `modules/flake/tests.nix` — nested emulation
   proves nothing about a Pi.
 - **Machine templates exist**, read by clan from `clan.templates.machine` in `clan.nix`:
-  `clan machines create <name> --template bare-metal-x86` and `... --template
-  raspberry-pi-4`. Each template carries a `platform.nix` that both its skeleton and the
-  `systems` assertion read, so a declared system may lead the machine that will use it.
+  `clan machines create <name> --template .#bare-metal-x86` and `... --template
+  .#raspberry-pi-4` (the `.#` selects this flake; a bare name selects clan's builtins).
+  Each template carries a `platform.nix` that both its skeleton and the `systems`
+  assertion read, so a declared system may lead the machine that will use it.
 - **One less declaration per machine.** `username` is a global `clan.specialArgs` entry
   now, so a new machine needs the inventory block and nothing else in `clan.nix` — the
   per-machine `_module.args.username` line and the `machines` block are gone.
@@ -173,7 +174,7 @@ left belongs to the board.
 - **Done:** the `nixos-raspberrypi` input, reached as a module through
   `clan.specialArgs.nixos-raspberrypi` (clan owns the `nixpkgs.lib.nixosSystem` call, so
   that flake's own helper is not reachable at this seam), and
-  `clan machines create pi --template raspberry-pi-4` writes the skeleton that imports
+  `clan machines create pi --template .#raspberry-pi-4` writes the skeleton that imports
   `nixos-raspberrypi.nixosModules.raspberry-pi-4.base`. Evaluated against clan's nixpkgs:
   kernel `linux_rpi-bcm2711-6.18.34`, bootloader `uboot`, firmware at `/boot/firmware`.
 - **Done:** the overlay — `mycelium` is on the tag `all` (section 2), so the Pi joins it

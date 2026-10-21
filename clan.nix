@@ -13,8 +13,12 @@
 
   # Machine skeletons, read by clan from `clan.templates.machine`:
   #
-  #   clan machines create <name> --template bare-metal-x86
-  #   clan templates apply machine raspberry-pi-4 pi      # the same command, aliased
+  #   clan machines create <name> --template .#bare-metal-x86
+  #   clan templates apply machine .#raspberry-pi-4 pi      # the same command, aliased
+  #
+  # The `.#` is load-bearing: a bare name selects clan's builtin templates
+  # (`clanInternals.templates.machine`), which is a different set, and the failure reads
+  # as a missing template rather than a missing prefix.
   #
   # A machine template is a plain directory copy -- clan substitutes nothing in one
   # (only disk templates take `{{placeholders}}`) -- so the skeletons derive what they
