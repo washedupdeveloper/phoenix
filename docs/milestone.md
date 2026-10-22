@@ -248,3 +248,11 @@ All three machines are declared, `nix flake check --all-systems` builds all thre
 runner for the push to `main` that carries the last of them, and a `clan deploy` has changed
 something on `pi` and on `thinkpad` over SSH without a local switch. Until the last of those
 is true, the fleet is declared and not deployed.
+
+The gate is not the only verdict. A **council round on the commit in question must be
+`satisfied`** — its exit code, never a reading of its prose — because the gate builds what
+the repository asserts and the council reads what the repository does not assert. The round
+that verified the readiness state was `.review-council/20261022-215435`: 84.78 against a
+minimum of 80, no blocking findings, β 1.0 on all five dimensions. Two rounds before it had
+falsified a workflow guard that four of four samples agreed could not hold (section 3), which
+is the argument for running it before claiming anything.
