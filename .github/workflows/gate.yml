@@ -10,16 +10,19 @@
 # *current* system only, so the Pi's `aarch64-linux` leg would never be built by CI --
 # which is the one leg this job exists to prove.
 #
-# What this job must NOT do is run untrusted code. A self-hosted runner executes the
-# workflow file AND the flake of whatever ref asks for it, on a host that is a WSL
-# guest with `/mnt/c` and LAN reach. Three things below are therefore load-bearing
-# rather than stylistic: the `if:` that narrows `pull_request` to branches of this
-# repository, the read-only `permissions:` block, and the absence of
-# `--accept-flake-config`.
+# What this job must NOT do is run untrusted code, and the trigger set is the control
+# rather than any guard written inside this file. `pull_request` is deliberately ABSENT:
+# GitHub runs a `pull_request` workflow from the PR's merge commit, so a fork that edits
+# this file deletes its own guard (github/docs, "Securely using pull_request_target"),
+# and this repository is public -- a fork PR would therefore execute attacker-authored
+# YAML and attacker-authored nix builders on this WSL guest. The two tree-side controls
+# that remain (the read-only `permissions:` block, and no `--accept-flake-config`)
+# constrain honest runs only. Restoring fork-safe PR CI needs the repository's
+# fork-approval policy set to require approval for ALL external contributors first --
+# a repository setting no file can assert.
 name: gate
 
 on:
-  pull_request:
   push:
     branches: [ main ]
   workflow_dispatch:
@@ -36,13 +39,6 @@ permissions:
 jobs:
   gate:
     runs-on: [ self-hosted, linux, kvm ]
-    # A fork's `pull_request` would run attacker-authored YAML and attacker-authored
-    # nix builders on this host. The only GitHub-side control is a repository setting,
-    # which a tree cannot assert -- so the trigger is narrowed here instead.
-    # Same-repository branches (the owner's own pull requests) still run.
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
     # A cold aarch64 leg is minutes; a dependency bump that rebuilds the closure is
     # longer. This is a backstop against a hung runner, not a build budget.
     timeout-minutes: 120

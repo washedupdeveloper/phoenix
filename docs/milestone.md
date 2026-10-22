@@ -130,15 +130,22 @@ Verified against the CLI (`clan machines --help`, `install --help`,
   would skip that tier while reporting green over a smaller gate.
 - **The trust boundary, which is what a self-hosted runner makes urgent.** The runner
   executes the workflow file *and* the flake of whatever ref asks for it, on a WSL guest
-  with `/mnt/c` and LAN reach. So: `pull_request` is narrowed by an `if:` to branches of
-  this repository (a fork's PR is skipped, because the only GitHub-side control is a
-  repository setting a tree cannot assert); `permissions: contents: read` because the
-  default token is read/write; `actions/checkout` pinned to a commit and
-  `persist-credentials: false` so the job token is not left in the workspace; and **no
-  `--accept-flake-config`**, because that flag trusts the `nixConfig` of the tree under
-  test — a PR could add its own substituters and signing keys and land arbitrary paths in
-  this runner's persistent store. The caches the job needs are ambient in `base-system`;
-  `cache.clan.lol` buys nothing here, since clan-core is consumed for its modules only.
+  with `/mnt/c` and LAN reach. **The trigger set is the control: `pull_request` is
+  deliberately absent**, and a council round is why. The first version narrowed
+  `pull_request` with an `if:` that skipped fork PRs — and four of four reviewer samples
+  falsified it, correctly: GitHub runs a `pull_request` workflow **from the PR's merge
+  commit**, so a fork that edits `gate.yml` deletes its own guard, and this repository is
+  public (`"private": false`). What remains in the tree — `permissions: contents: read`,
+  `actions/checkout` pinned to a commit with `persist-credentials: false`, and
+  **no `--accept-flake-config`** (that flag trusts the `nixConfig` of the tree under test,
+  so a PR could add substituters and signing keys and land arbitrary paths in this runner's
+  persistent store) — constrains honest runs, not an attacker-authored file. Fork-safe PR
+  CI needs the repository's fork-approval policy set to require approval for **all**
+  external contributors before the trigger can return; that is a repository setting no file
+  can assert, so until then the gate runs on push to `main` and on demand, and the
+  pre-merge duty for a same-repository branch is the local `nix flake check --all-systems`.
+  The caches the job needs are ambient in `base-system`; `cache.clan.lol` buys nothing
+  here, since clan-core is consumed for its modules only.
 - **Done:** the runner itself — `services.github-runners.gate` in the workstation's
   configuration, with `replace = true`: a PAT outlives a single registration, so a restart
   must replace the stale one, and a runner holds no state between jobs. `ephemeral = true`
@@ -237,7 +244,7 @@ left belongs to the board.
 
 ## What "reached" means
 
-All three machines are declared, `nix flake check` builds all three on the runner for the
-merge that carries the last of them, and a `clan deploy` has changed something on `pi` and
-on `thinkpad` over SSH without a local switch. Until the last of those is true, the fleet
-is declared and not deployed.
+All three machines are declared, `nix flake check --all-systems` builds all three on the
+runner for the push to `main` that carries the last of them, and a `clan deploy` has changed
+something on `pi` and on `thinkpad` over SSH without a local switch. Until the last of those
+is true, the fleet is declared and not deployed.
