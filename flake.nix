@@ -56,6 +56,13 @@
     # Supplies the overlay and `packages.harness-audit`.
     hermes-skills.url = "github:washedupdeveloper/hermes-skills";
 
+    # luninet: a WireGuard mesh run by the computer-club. Only its DATA is read --
+    # `peers.nix` and the generated `inventory.json` -- so its nixpkgs input stays
+    # unfetched and nothing from it is built. Pinned by the lock like every other input;
+    # `nix flake update luninet` is how a newly-registered peer reaches this machine.
+    # Join procedure and blast radius: docs/luninet.md.
+    luninet.url = "github:the-computer-club/luninet";
+
     # Board support for the Pi: kernel, firmware and the `/boot/firmware` plumbing.
     # `main` is the branch its README tells you to track, so `nix flake update
     # nixos-raspberrypi` is the whole upgrade, and the lock still pins a commit.
@@ -105,6 +112,9 @@
           # the `nixpkgs.lib.nixosSystem` call, so this is the only seam that reaches
           # that flake's modules.
           inherit (inputs) nixos-raspberrypi;
+          # A mesh peer list is data rather than a module: the machine reads
+          # `peers.nix` and `inventory.json` through `luninet.nix` (docs/luninet.md).
+          inherit (inputs) luninet;
         };
       };
 

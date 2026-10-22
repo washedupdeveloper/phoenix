@@ -311,6 +311,24 @@
         "type": "github"
       }
     },
+    "luninet": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1780448585,
+        "narHash": "sha256-ADzEr6g6u6A6u5farL12G953HbhZUXV6pS8OxJ7iqTc=",
+        "owner": "the-computer-club",
+        "repo": "luninet",
+        "rev": "eb112adcc31159168daefbe108e614d97d5a8bfd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "the-computer-club",
+        "repo": "luninet",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -400,7 +418,7 @@
         "argononed": "argononed",
         "flake-compat": "flake-compat_2",
         "nixos-images": "nixos-images",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "lastModified": 1785596452,
@@ -469,6 +487,22 @@
       }
     },
     "nixpkgs_3": {
+      "locked": {
+        "lastModified": 1765934234,
+        "narHash": "sha256-pJjWUzNnjbIAMIc5gRFUuKCDQ9S1cuh3b2hKgA7Mc4A=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "af84f9d270d404c17699522fab95bbf928a2d92f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_4": {
       "locked": {
         "lastModified": 1784856561,
         "narHash": "sha256-J+Bx1Z6Oeoj2FgnBhRMKyUhhtDoOpTgXYaVLZpDjW4A=",
@@ -564,6 +598,7 @@
         "hermes-agent": "hermes-agent",
         "hermes-skills": "hermes-skills",
         "home-manager": "home-manager_2",
+        "luninet": "luninet",
         "nix-topology": "nix-topology",
         "nixos-raspberrypi": "nixos-raspberrypi",
         "nixos-wsl": "nixos-wsl",

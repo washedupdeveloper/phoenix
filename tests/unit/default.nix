@@ -325,7 +325,12 @@ in
             if self == null then
               [ ]
             else
-              lib.concatMap (i: lib.optional (i ? network) i.network) (lib.attrValues (self.interfaces or { }))
+              # `i ? network` is too strict a test: nix-topology derives an interface for every
+              # interface a machine has, and a tunnel (`asluni`) attaches to no LAN, so a
+              # present-but-null `network` describes the tunnel rather than dangling. What
+              # this catches is an interface naming a network that `topology.nix` never
+              # defines.
+              lib.filter (n: n != null) (lib.map (i: i.network or null) (lib.attrValues (self.interfaces or { })))
           ) named
         )
       );

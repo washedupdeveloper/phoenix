@@ -3,8 +3,18 @@
   lib,
   pkgs,
   username,
+  luninet,
   ...
 }:
+let
+  # This machine's view of the mesh: its own registered addresses and every other peer,
+  # read from the pinned input (luninet.nix). `peerName` must be the name the PR
+  # registered in luninet's `peers.nix`; it is also the `.luni` hostname.
+  mesh = import ../../luninet.nix {
+    inherit lib luninet;
+    peerName = "workstation";
+  };
+in
 {
   networking = {
     hostName = "workstation";
@@ -44,32 +54,76 @@
     flake = "/home/${username}/projects/phoenix";
   };
 
-  # The broker credential lives in the clan vars store: this generator mints it and
-  # only the hash is deployed. Plaintext for the device:
-  #   clan vars get workstation mosquitto-plant-monitor/plant-monitor-password
-  clan.core.vars.generators.mosquitto-plant-monitor = {
-    files.plant-monitor-password.deploy = false;
-    files.plant-monitor-password-hash.neededFor = "services";
+  # --- secrets ---------------------------------------------------------------
+  #
+  # One assignment per option, because clan nests every generator under
+  # `clan.core.vars.generators` and three separate spellings of that key are three
+  # homes for one fact (statix W20). Each generator keeps its own reasoning.
+  clan.core.vars.generators = {
+    # The WireGuard keypair for the mesh (docs/luninet.md). The PUBLIC half is what the
+    # registration PR puts in luninet's `peers.nix`; the private half never leaves the
+    # vars store -- age-encrypted at rest, deployed to `/run/secrets`, never into the
+    # store. Mint them with
+    #   clan vars generate workstation --generator luninet
+    # and read the public key back with
+    #   clan vars get workstation luninet/pubkey
+    # Regenerating would break the registration, so it is a rotation, not a fix.
+    luninet = {
+      files.key = {
+        # The interface must pick up a rotated key rather than keep running on the old one.
+        restartUnits = [ "wireguard-asluni.service" ];
+      };
+      files.pubkey.secret = false;
+      runtimeInputs = [ pkgs.wireguard-tools ];
+      script = ''
+        wg genkey > "$out"/key
+        wg pubkey < "$out"/key > "$out"/pubkey
+      '';
+    };
 
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.mosquitto
-      pkgs.xkcdpass
-    ];
+    # The broker credential lives in the clan vars store: this generator mints it and
+    # only the hash is deployed. Plaintext for the device:
+    #   clan vars get workstation mosquitto-plant-monitor/plant-monitor-password
+    mosquitto-plant-monitor = {
+      files.plant-monitor-password.deploy = false;
+      files.plant-monitor-password-hash.neededFor = "services";
 
-    script = ''
-      # `-U` hashes a plaintext `user:password` file in place. The `-b` form
-      # would put the secret in argv instead, where /proc/<pid>/cmdline stays
-      # world-readable for the life of the process. The plaintext file is built
-      # by redirection, so it never becomes an argument either. `umask` comes
-      # first so that file is 0600 for the moment it exists.
-      umask 077
-      xkcdpass --numwords 6 --delimiter - --count 1 | tr -d "\n" > "$out"/plant-monitor-password
-      { printf 'plant_monitor:'; cat "$out"/plant-monitor-password; printf '\n'; } > "$out"/plant-monitor-passwd
-      mosquitto_passwd -U "$out"/plant-monitor-passwd
-      cut -d: -f2 "$out"/plant-monitor-passwd > "$out"/plant-monitor-password-hash
-      rm "$out"/plant-monitor-passwd
-    '';
+      runtimeInputs = [
+        pkgs.coreutils
+        pkgs.mosquitto
+        pkgs.xkcdpass
+      ];
+
+      script = ''
+        # `-U` hashes a plaintext `user:password` file in place. The `-b` form
+        # would put the secret in argv instead, where /proc/<pid>/cmdline stays
+        # world-readable for the life of the process. The plaintext file is built
+        # by redirection, so it never becomes an argument either. `umask` comes
+        # first so that file is 0600 for the moment it exists.
+        umask 077
+        xkcdpass --numwords 6 --delimiter - --count 1 | tr -d "\n" > "$out"/plant-monitor-password
+        { printf 'plant_monitor:'; cat "$out"/plant-monitor-password; printf '\n'; } > "$out"/plant-monitor-passwd
+        mosquitto_passwd -U "$out"/plant-monitor-passwd
+        cut -d: -f2 "$out"/plant-monitor-passwd > "$out"/plant-monitor-password-hash
+        rm "$out"/plant-monitor-passwd
+      '';
+    };
+
+    # The CI runner's token: asked for rather than written down, because a
+    # registration token is minted by GitHub. `persist` keeps the answer as the secret
+    # var `token`, which is what makes `--regenerate` a usable recovery path for a
+    # revoked PAT -- the reasoning and the commands are in the CI section below.
+    github-runner-token = {
+      prompts.token = {
+        description = "GitHub fine-grained PAT (Administration: read and write) for the runner";
+        type = "hidden";
+        persist = true;
+      };
+
+      # Regenerating the token must reach the service, or the documented recovery path
+      # ("--regenerate" after a revoked PAT) leaves a runner running on the old one.
+      files.token.restartUnits = [ "github-runner-gate.service" ];
+    };
   };
 
   # Inert on WSL: nixos-wsl sets `systemd.services.firewall.enable = false`, so
@@ -113,11 +167,40 @@
     };
   };
 
+  # --- luninet (docs/luninet.md) ------------------------------------------------
+  #
+  # The bare minimum that joins the mesh, and nothing else: one interface, the peer list
+  # from the pinned input, this machine's addresses once its registration is merged.
+  # What is absent is deliberate --
+  #
+  #   * no `listenPort`, so no inbound UDP is opened and no peer can initiate a session
+  #     with this machine; WireGuard already learns a path from outbound traffic, which
+  #     is enough to talk to the gateway (it has a `selfEndpoint`);
+  #   * no DNS, so `.luni` names do not resolve and the system resolver is untouched;
+  #   * no `persistentKeepalive`, so an idle interface sends nothing.
+  #
+  # `ips` stays empty until `workstation` appears in the merged peer list, which is what
+  # makes the pre-registration state inert rather than broken.
+  networking.wireguard.interfaces.asluni = {
+    privateKeyFile = config.clan.core.vars.generators.luninet.files.key.path;
+    mtu = 1420;
+    inherit (mesh) peers;
+    ips = if mesh.self == null then [ ] else (mesh.self.ipv4 or [ ]) ++ (mesh.self.ipv6 or [ ]);
+  };
+
   # A WSL guest: the CPU/GPU in the diagram belong to the Windows host (../../topology.nix).
   topology.self = {
     parent = "windows-host";
     guestType = "wsl";
     hardware.info = "NixOS-WSL (WSL2)";
+
+    # The club's mesh terminates here (docs/luninet.md). No `network`: a tunnel carries
+    # the peer list's prefixes and attaches to no LAN, which the network assertion now
+    # allows explicitly instead of by accident.
+    interfaces.asluni = {
+      virtual = true;
+      type = "wireguard";
+    };
 
     # Mirrored networking: the guest's eth0 presents the host's address, so there is
     # no guest-specific address to record and the host's is a 3-hour DHCP lease
@@ -164,18 +247,6 @@
   # The second form replaces a revoked token. Until a real one is generated the
   # runner starts and fails to register, which is visible in
   # `journalctl -u github-runner-gate` and is the only symptom.
-  clan.core.vars.generators.github-runner-token = {
-    prompts.token = {
-      description = "GitHub fine-grained PAT (Administration: read and write) for the runner";
-      type = "hidden";
-      persist = true;
-    };
-
-    # Regenerating the token must reach the service, or the documented recovery path
-    # ("--regenerate" after a revoked PAT) leaves a runner running on the old one.
-    files.token.restartUnits = [ "github-runner-gate.service" ];
-  };
-
   services.github-runners.gate = {
     enable = true;
     url = "https://github.com/washedupdeveloper/phoenix";
