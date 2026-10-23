@@ -7,12 +7,13 @@
   ...
 }:
 let
-  # This machine's view of the mesh: its own registered addresses and every other peer,
-  # read from the pinned input (luninet.nix). `peerName` must be the name the PR
-  # registered in luninet's `peers.nix`; it is also the `.luni` hostname.
+  # This machine's view of the mesh: every other peer, read from the pinned input
+  # (luninet.nix). `peerName` is the identity the mesh knows this machine by -- the
+  # owner's own configuration calls this peer `gandalf` (`wg.gandalf.luninet`), and it
+  # is the name to submit in luninet's `peers.nix`.
   mesh = import ../../luninet.nix {
     inherit lib luninet;
-    peerName = "workstation";
+    peerName = "gandalf";
   };
 in
 {
@@ -169,23 +170,48 @@ in
 
   # --- luninet (docs/luninet.md) ------------------------------------------------
   #
-  # The bare minimum that joins the mesh, and nothing else: one interface, the peer list
-  # from the pinned input, this machine's addresses once its registration is merged.
-  # What is absent is deliberate --
+  # The owner's own parameters for this peer, which is what makes it work: their
+  # WireGuard interface `wg.gandalf.luninet` at `198.12.96.43:1735`, the address they
+  # routed to this machine (`172.29.83.15/32`), and AllowedIPs covering the whole
+  # routable range so the hub carries what the direct peers cannot.
   #
-  #   * no `listenPort`, so no inbound UDP is opened and no peer can initiate a session
-  #     with this machine; WireGuard already learns a path from outbound traffic, which
-  #     is enough to talk to the gateway (it has a `selfEndpoint`);
-  #   * no DNS, so `.luni` names do not resolve and the system resolver is untouched;
-  #   * no `persistentKeepalive`, so an idle interface sends nothing.
+  # Two layers, and the more specific route wins:
   #
-  # `ips` stays empty until `workstation` appears in the merged peer list, which is what
-  # makes the pre-registration state inert rather than broken.
+  #   * `mesh.peers` -- every peer from the pinned peer list, each with its own `/32`
+  #     or `/64`, so a session that can be direct is direct;
+  #   * the hub below -- `172.29.64.0/18` through the owner's endpoint, which is what
+  #     reaches a peer that has no `selfEndpoint` at all.
+  #
+  # `persistentKeepalive` on the hub peer is deliberate rather than idle noise: this
+  # machine has no fixed listen port, so the only way their side can open the session
+  # its route expects is a NAT mapping this side keeps alive.
+  #
+  # `postSetup` scopes DNS to the mesh instead of setting a system-wide resolver: the
+  # `.luni` domain goes to the network's own server, and nothing else does.
   networking.wireguard.interfaces.asluni = {
     privateKeyFile = config.clan.core.vars.generators.luninet.files.key.path;
     mtu = 1420;
-    inherit (mesh) peers;
-    ips = if mesh.self == null then [ ] else (mesh.self.ipv4 or [ ]) ++ (mesh.self.ipv6 or [ ]);
+    ips = [ "172.29.83.15/32" ];
+    peers = mesh.peers ++ [
+      {
+        publicKey = "oKOdqE808abkFj55UV3gvBzZtkxhIrDPfBWDSjEqPG4=";
+        endpoint = "198.12.96.43:1735";
+        allowedIPs = [ "172.29.64.0/18" ];
+        persistentKeepalive = 25;
+      }
+    ];
+  };
+
+  # DNS, the networkd way. `networking.wireguard.useNetworkd` defaults to true as soon as an
+  # interface is declared (nixpkgs: `default = cfg.interfaces != { }`), so this interface is a
+  # `systemd.network` unit and a `postSetup` script is refused by assertion. The module
+  # generates `systemd.network.networks."40-asluni"`; this merges into that same unit, which
+  # makes the resolver part of the configuration rather than a command run once at start-up.
+  # `~luni` is a routing-only domain: queries for `.luni` go to the mesh's server, and no other
+  # name does.
+  systemd.network.networks."40-asluni".networkConfig = {
+    DNS = [ "172.29.83.1" ];
+    Domains = [ "~luni" ];
   };
 
   # A WSL guest: the CPU/GPU in the diagram belong to the Windows host (../../topology.nix).
