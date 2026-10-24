@@ -44,7 +44,7 @@ hub), `ping 172.29.83.1` (the DNS server, inside the routed range), and
 
 | | |
 | --- | --- |
-| interface | `asluni`, MTU 1420, unit `wireguard-asluni.service`; `wireguard-tools` is installed by the module |
+| interface | `asluni`, MTU 1420, a `systemd-networkd` netdev (`40-asluni`; no unit of its own); `wireguard-tools` is installed by the module |
 | this machine's address | `172.29.83.15/32` — the address routed to it by the owner |
 | peers | the hub (`172.29.64.0/18` via `198.12.96.43:1735`) plus **11** from the pinned peer list, each with its own `/32` or `/64` |
 | routing | AllowedIPs decide: the whole routable range via the hub, each listed peer's `/32`/`/64` direct where a path exists. The default route is untouched — a split tunnel, and everything outside those prefixes goes out unchanged |

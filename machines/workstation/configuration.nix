@@ -71,8 +71,10 @@ in
     # Regenerating would break the registration, so it is a rotation, not a fix.
     luninet = {
       files.key = {
-        # The interface must pick up a rotated key rather than keep running on the old one.
-        restartUnits = [ "wireguard-asluni.service" ];
+        # The interface must pick up a rotated key rather than keep running on the old
+        # one. It is a `systemd-networkd` netdev (no `wg-*` service exists), so the
+        # restart that re-reads the key is networkd's own.
+        restartUnits = [ "systemd-networkd.service" ];
       };
       files.pubkey.secret = false;
       runtimeInputs = [ pkgs.wireguard-tools ];
@@ -214,6 +216,21 @@ in
     Domains = [ "~luni" ];
   };
 
+  # networkd deletes every routing policy rule, route and nexthop it did not
+  # create, on every start -- boot included. On WSL three of those are
+  # load-bearing: the kernel's local-delivery rule (`0: from all lookup local`)
+  # and the mirror's two sets (loopback delivery for `iif eth0|loopback0` and
+  # the `127`/`128` table selects that carry connections between Windows and
+  # the guest). With them gone the guest routes its own addresses out eth0, the
+  # desktop's gateway at `127.0.0.1:9119` dies, and because the purge re-runs at
+  # boot no restart or switch heals it. None of these rules are ours, so the
+  # cleanup has nothing to own here -- keep it off.
+  systemd.network.config.networkConfig = {
+    ManageForeignRoutes = false;
+    ManageForeignRoutingPolicyRules = false;
+    ManageForeignNextHops = false;
+  };
+
   # A WSL guest: the CPU/GPU in the diagram belong to the Windows host (../../topology.nix).
   topology.self = {
     parent = "windows-host";
@@ -274,7 +291,15 @@ in
   # runner starts and fails to register, which is visible in
   # `journalctl -u github-runner-gate` and is the only symptom.
   services.github-runners.gate = {
-    enable = true;
+    # The token is minted by hand (`clan vars generate workstation --generator
+    # github-runner-token`), and until it is, its path is clan's `/no-such-path`
+    # sentinel (docs/milestone.md). The runner's unconfigure hook then dies on
+    # `install: cannot stat '/no-such-path'`, which takes the whole switch to
+    # `failed (status 4)` for a reason unrelated to anything that changed. Gate
+    # on the sentinel: no service until a token exists, and the first rebuild
+    # after minting turns it on.
+    enable =
+      toString config.clan.core.vars.generators.github-runner-token.files.token.path != "/no-such-path";
     url = "https://github.com/washedupdeveloper/phoenix";
     name = "workstation-gate";
     tokenFile = config.clan.core.vars.generators.github-runner-token.files.token.path;
