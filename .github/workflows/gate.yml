@@ -60,3 +60,16 @@ jobs:
       # modules only, so `cache.clan.lol` buys nothing.
       - name: nix flake check
         run: nix flake check --all-systems --keep-going
+
+  # The specs are a gate input: a change that does not validate cannot land.
+  # Node comes from the runner image, so this job needs no toolchain setup.
+  openspec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: install the spec CLI
+        run: npm install -g @fission-ai/openspec@1
+      - name: the specs validate
+        run: openspec validate --all --strict

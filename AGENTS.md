@@ -101,3 +101,10 @@ non-obvious requirement, a workaround, or why a line is written the surprising w
 are done.** `docs/adr/` records the decision, the options rejected and why, and what
 each one costs; the action list is the one part that finishes. While it is open, work
 belongs in `recommendations.md`.
+
+## Specs (OpenSpec)
+
+A behavior change starts in `openspec/changes/<name>/` (proposal, spec delta, tasks), not in
+code. `openspec list --specs` before proposing; `openspec validate <name> --strict` before
+applying and before archive; `openspec archive <name> --yes` when the work lands.
+Procedure: the `openspec` skill. Pure refactors and dependency bumps set `skip_specs: true`.
