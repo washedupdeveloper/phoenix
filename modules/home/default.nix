@@ -3,6 +3,8 @@
   lib,
   username,
   homeManagerModule,
+  agentic-council,
+  pkgs,
   ...
 }:
 let
@@ -34,6 +36,12 @@ in
         inherit username;
         homeDirectory = "/home/${username}";
         inherit (config.system) stateVersion;
+        # The review gate comes from the flake input, not this machine's nixpkgs:
+        # the lock pins the build. This is the real composition; `tests/e2e/home`
+        # imports the three tool modules directly and deliberately does not carry it.
+        packages = [
+          agentic-council.packages.${pkgs.stdenv.hostPlatform.system}.council-acp
+        ];
       };
       programs.home-manager.enable = true;
       services.ssh-agent.enable = true;

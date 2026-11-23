@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "agentic-council": {
+      "inputs": {
+        "nix-best-practices": "nix-best-practices",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795460350,
+        "narHash": "sha256-2CdqeTrV1Js7RMS7/i8H9hIlT2C7SshgU+xAJyt2V5s=",
+        "owner": "washedupdeveloper",
+        "repo": "agentic-council",
+        "rev": "84ad62d8863e79ae757a9d71080669b985174eac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "washedupdeveloper",
+        "repo": "agentic-council",
+        "type": "github"
+      }
+    },
     "argononed": {
       "flake": false,
       "locked": {
@@ -329,6 +350,27 @@
         "type": "github"
       }
     },
+    "nix-best-practices": {
+      "inputs": {
+        "nixpkgs": [
+          "agentic-council",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793100083,
+        "narHash": "sha256-pY/VFkQNtHg1xDorFcQTowYZ7jRJWEoyfcbBQ3OACdY=",
+        "owner": "rokokol",
+        "repo": "nix-best-practices-skill",
+        "rev": "b630f92842b103c6b5f6c2fc1f7ed1ab69f1d088",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rokokol",
+        "repo": "nix-best-practices-skill",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -591,6 +633,7 @@
     },
     "root": {
       "inputs": {
+        "agentic-council": "agentic-council",
         "clan-core": "clan-core",
         "devshell": "devshell",
         "flake-parts": "flake-parts",

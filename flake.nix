@@ -56,6 +56,13 @@
     # Supplies the overlay and `packages.harness-audit`.
     hermes-skills.url = "github:washedupdeveloper/hermes-skills";
 
+    # The review gate is declared here like every other tool: the lock pins
+    # the build, and `nix flake update agentic-council` is the upgrade.
+    agentic-council = {
+      url = "github:washedupdeveloper/agentic-council";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # luninet: a WireGuard mesh run by the computer-club. Only its DATA is read --
     # `peers.nix` and the generated `inventory.json` -- so its nixpkgs input stays
     # unfetched and nothing from it is built. Pinned by the lock like every other input;
@@ -115,6 +122,8 @@
           # A mesh peer list is data rather than a module: the machine reads
           # `peers.nix` and `inventory.json` through `luninet.nix` (docs/luninet.md).
           inherit (inputs) luninet;
+          # The review gate, declared as an input so the lock pins the build.
+          inherit (inputs) agentic-council;
         };
       };
 
