@@ -119,9 +119,9 @@ output must build under `nix flake check --all-systems`; a Pi is `aarch64-linux`
 VM tier is skipped there by decision — `modules/flake/tests.nix` gates it — because a
 QEMU guest of an emulated system is nested emulation, and `docs/testing.md` says why.
 
-**7. Run the gate, both legs:** `nix flake check --all-systems --keep-going`. Without
-`--all-systems` it builds only the machine you are on, so the Pi's leg is exactly what
-it would skip. Expect a first failure; these assertions catch a half-added machine, in
+**7. Run the gate:** `nix flake check --keep-going`. It builds the machine you are on.
+`--all-systems` adds every declared platform, which is what a new architecture needs once;
+CI does not do it, so run it by hand the first time a machine introduces one. Expect a first failure; these assertions catch a half-added machine, in
 firing order:
 
 | assertion | what it caught |

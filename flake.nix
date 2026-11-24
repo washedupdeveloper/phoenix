@@ -100,6 +100,9 @@
       # `systems` before it can be declared (`test_every_machine_runs_on_a_declared_system`),
       # and `checks.nixos-<name>` is generated from this list. It is a build contract,
       # not a second devshell -- see docs/testing.md for what runs per system.
+      #
+      # Declared is not gated. `.github/workflows/gate.yml` builds this system only, so no
+      # run builds the arm leg; it is one flag (`--all-systems`) away when that changes.
       systems = [
         "x86_64-linux"
         "aarch64-linux"

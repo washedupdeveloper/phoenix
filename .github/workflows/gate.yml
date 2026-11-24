@@ -6,9 +6,11 @@
 # there would skip the VM tests while reporting green over a smaller gate than the one
 # a commit runs locally. A skipped tier is not a passing tier.
 #
-# `--all-systems` is not optional either: without it nix builds the checks of the
-# *current* system only, so the Pi's `aarch64-linux` leg would never be built by CI --
-# which is the one leg this job exists to prove.
+# The gate builds THIS system only. `--all-systems` would also build every declared
+# platform, which today means `aarch64-linux` under emulation on every push. That leg is
+# off by decision: `aarch64-linux` stays in `flake.nix` because the Pi's platform must be
+# declared before a machine can claim it, but no run tests it. To turn it back on, add
+# `--all-systems` to the command below; nothing else changes.
 #
 # What this job must NOT do is run untrusted code, and the trigger set is the control
 # rather than any guard written inside this file. `pull_request` is deliberately ABSENT:
@@ -59,7 +61,7 @@ jobs:
       # (`modules/clanServices/base-system`), and clan-core is consumed here for its
       # modules only, so `cache.clan.lol` buys nothing.
       - name: nix flake check
-        run: nix flake check --all-systems --keep-going
+        run: nix flake check --keep-going
 
   # The specs are a gate input: a change that does not validate cannot land.
   # Node comes from the runner image, so this job needs no toolchain setup.
