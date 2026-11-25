@@ -1,0 +1,41 @@
+# Does the machine behind a self-hosted runner actually qualify?
+#
+# The gate's e2e tier boots QEMU guests through `runNixOSTest`, so a host needs
+# `/dev/kvm`, a working Nix and room for a NixOS closure. A runner that registers but
+# cannot build is worse than none: the gate fails late, after a checkout, on a missing
+# device rather than on the change.
+#
+#   gh workflow run preflight.yml
+#
+# Run it once before trusting a new host, and again after changing one.
+name: preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    # The same selector as `gate.yml`. A host that cannot satisfy these labels is not
+    # a host that can run the gate, which is the point of asking.
+    runs-on: [ self-hosted, linux, kvm ]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: the host can run the gate
+        run: |
+          set -euo pipefail
+          echo "kernel: $(uname -srm)"
+          echo "runner: ${RUNNER_NAME} (${RUNNER_OS})"
+          echo "nix:    $(nix --version)"
+          test -r /dev/kvm && test -w /dev/kvm \
+            || { echo "::error::/dev/kvm is not readable and writable"; exit 1; }
+          echo "kvm:    present"
+          nix flake metadata --json > /dev/null
+          echo "flake:  evaluates"
+          df -h . | tail -1

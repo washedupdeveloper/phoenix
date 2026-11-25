@@ -17,6 +17,8 @@ let
   };
 in
 {
+  imports = [ ../../modules/ci-runner.nix ];
+
   networking = {
     hostName = "workstation";
     # Mirrored networking supplies the address from the Windows host; a default
@@ -279,38 +281,20 @@ in
   # green over a smaller gate than a commit runs locally. The workflow that asks for
   # this runner is `.github/workflows/gate.yml`, and its label is `kvm`.
   #
-  # The token is asked for rather than written down: a fine-grained PAT with
-  # `Administration: read and write` on the repository. `persist` stores the answer as
-  # the secret var `token` -- equivalent to `cp $prompts/token $out/token`, so this
-  # generator needs no script:
-  #
-  #   clan vars generate workstation --generator github-runner-token
-  #   clan vars generate workstation --generator github-runner-token --regenerate
-  #
-  # The second form replaces a revoked token. Until a real one is generated the
-  # runner starts and fails to register, which is visible in
-  # `journalctl -u github-runner-gate` and is the only symptom.
-  services.github-runners.gate = {
-    # The token is minted by hand (`clan vars generate workstation --generator
-    # github-runner-token`), and until it is, its path is clan's `/no-such-path`
-    # sentinel (docs/milestone.md). The runner's unconfigure hook then dies on
-    # `install: cannot stat '/no-such-path'`, which takes the whole switch to
-    # `failed (status 4)` for a reason unrelated to anything that changed. Gate
-    # on the sentinel: no service until a token exists, and the first rebuild
-    # after minting turns it on.
+  # `modules/ci-runner.nix` holds the mechanism and `docs/ci.md` the contract; this is
+  # only this machine's answer. The token is minted by hand
+  # (`clan vars generate workstation --generator github-runner-token`), and until it is,
+  # its path is clan's `/no-such-path` sentinel: no service starts, and the first
+  # rebuild after minting turns it on.
+  services.ci-runner = {
     enable =
       toString config.clan.core.vars.generators.github-runner-token.files.token.path != "/no-such-path";
     url = "https://github.com/washedupdeveloper/phoenix";
     name = "workstation-gate";
     tokenFile = config.clan.core.vars.generators.github-runner-token.files.token.path;
-    extraLabels = [ "kvm" ];
-    # One job per registration: the runner exits after a job and systemd starts it
-    # again (`Restart = on-success`), so no job inherits another's workspace or state.
-    # The store is still shared, which is why the workflow must not run fork code.
+    labels = [ "kvm" ];
+    # One job per registration, and a restart replaces the registration it left behind.
+    # A runner holds no state between jobs, so nothing is lost either way.
     ephemeral = true;
-    # The PAT outlives a single registration, so an existing runner of the same name
-    # is replaced on start; without it a restart fails against the stale registration
-    # it left behind. Nothing is lost: a runner holds no state between jobs.
-    replace = true;
   };
 }

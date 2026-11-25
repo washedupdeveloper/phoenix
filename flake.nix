@@ -94,6 +94,7 @@
         ./modules/flake/checks.nix
         ./modules/flake/tests.nix
         ./modules/flake/atomvm.nix
+        ./modules/flake/runner.nix
       ];
 
       # `aarch64-linux` is here for the Pi: a machine's platform must appear in

@@ -10,6 +10,7 @@
 | [`milestone.md`](./docs/milestone.md) | The fleet's target, the decisions taken with it, and the gaps in order. |
 | [`luninet.md`](./docs/luninet.md) | Joining the club's WireGuard mesh: the steps, and what the interface does to this machine. |
 | [`testing.md`](./docs/testing.md) | The three test tiers, why the tier follows the assertion, and the VM environment requirements. |
+| [`ci.md`](./docs/ci.md) | The self-hosted runner: why the gate needs one, what a host must satisfy, and the two ways to run it. |
 | [`adding-a-machine.md`](./docs/adding-a-machine.md) | The steps a second machine needs and the failure each prevents. |
 
 ## Priority order

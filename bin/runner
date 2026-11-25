@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# Run an ephemeral, self-hosted GitHub Actions runner for this repository.
+#
+# Why this exists: the gate's e2e tier boots QEMU guests through `runNixOSTest`, which
+# needs `/dev/kvm`. GitHub-hosted runners have none, so the VM tests cannot run there --
+# a gate on a hosted runner would skip them and report green over a smaller gate than a
+# commit runs locally. A self-hosted runner on a machine you already own costs nothing
+# and runs the same gate a contributor runs.
+#
+# Nothing is stored: the registration token is minted with your existing `gh` login,
+# expires within the hour, and the runner is `--ephemeral` (one job, then exit). Point
+# it at any Linux host with Nix and KVM:
+#
+#   bin/runner                       # this repository, labels from --labels
+#   bin/runner --repo owner/other    # a fork or another repository
+#   bin/runner --labels kvm,cuda     # extra labels the workflow can select
+#
+# Foreground on purpose: Ctrl-C stops it. For always-on, prefer the declarative module
+# in `modules/ci-runner.nix` (see `docs/ci.md`).
+set -euo pipefail
+
+PROG=runner
+LABELS="kvm"
+NAME=""
+REPO=""
+EPHEMERAL=1
+DRY_RUN=0
+
+die() { printf '%s: %s\n' "$PROG" "$*" >&2; exit 1; }
+note() { printf '%s: %s\n' "$PROG" "$*" >&2; }
+
+usage() {
+  cat <<'EOF'
+Usage: runner [options]
+
+  --repo <slug|url>   Repository to register against (default: this clone's origin)
+  --labels <a,b>      Custom labels (default: kvm). `self-hosted`, `Linux` and `X64`
+                      are added by the runner itself.
+  --name <name>       Runner name (default: <hostname>-gate)
+  --persistent        Stay alive for many jobs instead of exiting after one
+  --dry-run           Print what would happen and stop
+  -h, --help          This text
+
+Requires: Linux, nix, gh (authenticated with admin on the repository), and /dev/kvm
+when the label set names kvm.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo) REPO=${2:?--repo needs a value}; shift 2 ;;
+    --repo=*) REPO=${1#*=}; shift ;;
+    --labels) LABELS=${2:?--labels needs a value}; shift 2 ;;
+    --labels=*) LABELS=${1#*=}; shift ;;
+    --name) NAME=${2:?--name needs a value}; shift 2 ;;
+    --name=*) NAME=${1#*=}; shift ;;
+    --persistent) EPHEMERAL=0; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "unknown option: $1 (try --help)" ;;
+  esac
+done
+
+# --- preconditions ------------------------------------------------------------------
+[ "$(uname -s)" = "Linux" ] || die "the gate's VM tier is Linux-only; this host is $(uname -s)"
+
+command -v nix >/dev/null 2>&1 || die "nix is not on PATH; the job cannot build anything"
+
+# `gh` mints the registration token. Use the host's if it has one, otherwise take it
+# from nixpkgs: the launcher should need Nix and nothing else installed by hand.
+if command -v gh >/dev/null 2>&1; then
+  GH=(gh)
+else
+  GH=(nix run nixpkgs#gh --)
+fi
+
+"${GH[@]}" auth status >/dev/null 2>&1 \
+  || die "gh is not authenticated; run 'gh auth login' (its config is read from \$HOME either way)"
+
+case ",$LABELS," in
+  *,kvm,*)
+    [ -r /dev/kvm ] && [ -w /dev/kvm ] \
+      || die "the 'kvm' label needs /dev/kvm readable and writable on this host" ;;
+esac
+
+# --- repository ---------------------------------------------------------------------
+if [ -z "$REPO" ]; then
+  REPO=$(git remote get-url origin 2>/dev/null) \
+    || die "no --repo given and this directory has no 'origin' remote"
+fi
+
+case "$REPO" in
+  git@github.com:*) REPO=${REPO#git@github.com:} ;;
+  https://github.com/*) REPO=${REPO#https://github.com/} ;;
+  ssh://git@github.com/*) REPO=${REPO#ssh://git@github.com/} ;;
+esac
+REPO=${REPO%.git}
+case "$REPO" in
+  */*) : ;;
+  *) die "--repo must be owner/name or a GitHub URL, got: $REPO" ;;
+esac
+
+[ -n "$NAME" ] || NAME="$(hostname -s 2>/dev/null || hostname)-gate"
+
+note "repository: $REPO"
+note "runner:     $NAME"
+note "labels:     $LABELS (plus self-hosted, Linux, X64)"
+note "mode:       $([ "$EPHEMERAL" = 1 ] && echo 'ephemeral — one job, then exit' || echo persistent)"
+
+if [ "$DRY_RUN" = 1 ]; then
+  note "dry run: would mint a registration token for $REPO and start the runner"
+  exit 0
+fi
+
+# --- registration -------------------------------------------------------------------
+# A registration token is short-lived and needs admin on the repository; `gh` already
+# holds that. Minting on demand is why no secret is stored on this machine.
+TOKEN=$("${GH[@]}" api -X POST "repos/$REPO/actions/runners/registration-token" --jq .token 2>/dev/null) \
+  || die "could not mint a registration token for $REPO — do you administer it?"
+
+PKG=$(nix build --no-link --print-out-paths nixpkgs#github-runner 2>/dev/null | tail -1)
+[ -n "$PKG" ] && [ -x "$PKG/bin/config.sh" ] \
+  || die "could not build the runner from nixpkgs (nixpkgs#github-runner)"
+
+# The nixpkgs package keeps the runner's configuration under `RUNNER_ROOT`, defaulting
+# to `$HOME/.github-runner`. That holds `.credentials`, so it is a secret on disk and a
+# second invocation would collide with the first. Own a private root per run instead,
+# and delete it on exit -- including when the job ends and the runner exits by itself.
+WORK=$(mktemp -d "${TMPDIR:-/tmp}/gh-runner-XXXXXX")
+export RUNNER_ROOT="$WORK"
+trap 'rm -rf "$WORK"' EXIT INT TERM
+
+CONFIG_ARGS=(
+  --unattended
+  --url "https://github.com/$REPO"
+  --token "$TOKEN"
+  --name "$NAME"
+  --labels "$LABELS"
+  --replace
+)
+[ "$EPHEMERAL" = 1 ] && CONFIG_ARGS+=(--ephemeral)
+
+if ! "$PKG/bin/config.sh" "${CONFIG_ARGS[@]}" >"$WORK/config.log" 2>&1; then
+  sed -e 's/^/  /' "$WORK/config.log" >&2
+  die "registration failed (above); nothing was left on this host"
+fi
+
+note "registered: https://github.com/$REPO/settings/actions/runners"
+note "waiting for a job — Ctrl-C to stop"
+
+# No `exec`: it would replace this shell and discard the trap, leaving the credentials
+# behind. The runner exits by itself after an ephemeral job, and the trap then removes
+# the root.
+"$PKG/bin/run.sh"
