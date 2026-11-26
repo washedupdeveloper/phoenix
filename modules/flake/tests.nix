@@ -89,12 +89,37 @@ in
       # the Pi. Unit and build checks are per-system and run on every declared
       # platform; the tier that needs a kernel stays where a kernel is native.
       checks =
+        let
+          # One entry per directory under `tests/e2e/`. The bodies are written out here
+          # because each takes different arguments; `e2e-tier-complete` below keeps this
+          # list and that directory in agreement.
+          e2e = {
+            base-system = import ../../tests/e2e/base-system;
+            home = import ../../tests/e2e/home { inherit inputs; };
+            ports = import ../../tests/e2e/ports { inherit lib; };
+          };
+          e2eChecks = lib.mapAttrs' (name: body: lib.nameValuePair "e2e-${name}" (mkE2eCheck pkgs body)) e2e;
+          # A test directory nobody wired in is a tier that quietly got smaller -- the
+          # same failure as skipping it, only harder to see, and the reason the gate
+          # asserts the three names from outside as well. This is the inside half: if
+          # `tests/e2e/foo/` exists and `e2e-foo` does not, evaluation fails by name.
+          onDisk = builtins.attrNames (
+            lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir ../../tests/e2e)
+          );
+          unwired = lib.subtractLists (builtins.attrNames e2e) onDisk;
+          tierComplete =
+            if unwired == [ ] then
+              pkgs.runCommand "e2e-tier-complete" { } "touch $out"
+            else
+              throw "tests/e2e/${lib.head unwired} has no e2e check: the tier would shrink silently";
+        in
         (mkUnitChecks pkgs system config)
         // (import ../../tests/build { inherit pkgs lib machines; })
-        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isx86_64 {
-          e2e-base-system = mkE2eCheck pkgs (import ../../tests/e2e/base-system);
-          e2e-home = mkE2eCheck pkgs (import ../../tests/e2e/home { inherit inputs; });
-          e2e-ports = mkE2eCheck pkgs (import ../../tests/e2e/ports { inherit lib; });
-        };
+        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isx86_64 (
+          e2eChecks
+          // {
+            e2e-tier-complete = tierComplete;
+          }
+        );
     };
 }
