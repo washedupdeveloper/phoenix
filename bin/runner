@@ -137,6 +137,12 @@ CONFIG_ARGS=(
   --name "$NAME"
   --labels "$LABELS"
   --replace
+  # The version is pinned by the flake. A self-update downloads a newer release into
+  # the runner root and swaps the binary, which defeats that pin and, measured, leaves
+  # the package's helper scripts behind: `run-helper.sh: safe_sleep.sh: No such file or
+  # directory`, then a restart loop until the registration is gone. Upgrading is a
+  # nixpkgs bump, not something the runner does to itself.
+  --disableupdate
 )
 [ "$EPHEMERAL" = 1 ] && CONFIG_ARGS+=(--ephemeral)
 
