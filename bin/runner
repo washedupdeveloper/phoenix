@@ -118,6 +118,22 @@ fi
 TOKEN=$("${GH[@]}" api -X POST "repos/$REPO/actions/runners/registration-token" --jq .token 2>/dev/null) \
   || die "could not mint a registration token for $REPO — do you administer it?"
 
+# Two launchers can hold the same name. The second `--replace`s the first's server
+# registration and the first keeps listening for a job that can no longer arrive --
+# measured: both processes alive, two listener processes, one registration. Nothing
+# fails, which is the problem: the push then queues with a runner nobody is watching.
+# This is a warning, not a refusal: replacing a dead registration is a legitimate start.
+ONLINE=$("${GH[@]}" api "repos/$REPO/actions/runners" \
+  --jq "[.runners[] | select(.name == \"$NAME\" and .status == \"online\")] | length" 2>/dev/null || true)
+case "$ONLINE" in
+  ''|0) : ;;
+  *[!0-9]*) : ;;
+  *)
+    note "warning:    a runner named $NAME is online; this start replaces its registration"
+    note "            and that process will keep waiting for work it cannot receive"
+    ;;
+esac
+
 PKG=$(nix build --no-link --print-out-paths nixpkgs#github-runner 2>/dev/null | tail -1)
 [ -n "$PKG" ] && [ -x "$PKG/bin/config.sh" ] \
   || die "could not build the runner from nixpkgs (nixpkgs#github-runner)"

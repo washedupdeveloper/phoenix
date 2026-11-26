@@ -90,3 +90,23 @@ is a repository setting no file can assert.
   `./config.sh remove --token <registration-token>` from its work directory.
 - Module: set `services.ci-runner.enable = false` and rebuild, or stop
   `github-runner-<name>.service`.
+
+## Known behaviours
+
+Measured on this host, 2026-11-26, against `washedupdeveloper/phoenix`:
+
+- **`INT` and `TERM` both clean up.** A signal to the launcher leaves 0 listener
+  processes, 0 temp roots and no `~/.github-runner`; the exit code is 130 or 143. The
+  trap only works because the listener is `setsid`'d and killed by process group — a
+  plain child kill left a grandchild that recreated its root.
+- **A killed run leaves one registration behind.** The runner exits without
+  deregistering, so the repository shows an offline entry until GitHub prunes it. It
+  costs nothing: the next start `--replace`s the same name rather than adding a second.
+- **A second start replaces the first.** Both processes stay alive, one registration
+  exists, and the first one waits for work that can no longer arrive. The launcher warns
+  when a runner of the same name is already online; stop the old process rather than
+  starting a second.
+
+Not measured: a **cold** gate — a full `nix flake check` with the e2e derivations absent
+from the store. Every run so far found them cached, so the number that decides whether
+the VM tier fits `timeout-minutes` on someone else's machine is still unknown.
