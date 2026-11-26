@@ -63,15 +63,34 @@ jobs:
       - name: nix flake check
         run: nix flake check --keep-going
 
-  # The specs are a gate input: a change that does not validate cannot land.
-  # Node comes from the runner image, so this job needs no toolchain setup.
+  # The specs are a gate input: a change that does not validate cannot land, and a
+  # change whose work is finished but which is still open cannot land either.
+  #
+  # The CLI comes from the flake, not from `npm install -g`: the version in
+  # `flake.lock` is the one that validates, and nothing lands on PATH that the lock
+  # does not describe.
   openspec:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - name: install the spec CLI
-        run: npm install -g @fission-ai/openspec@1
+      - uses: cachix/install-nix-action@v31
       - name: the specs validate
-        run: openspec validate --all --strict
+        run: nix run .#openspec -- validate --all --strict
+      - name: no finished change is left open
+        run: |
+          set -euo pipefail
+          status=0
+          for dir in openspec/changes/*/; do
+            [ -d "$dir" ] || continue
+            case "$dir" in */archive/) continue ;; esac
+            tasks="$dir/tasks.md"
+            [ -f "$tasks" ] || continue
+            grep -qE '^[[:space:]]*- \[[ xX]\]' "$tasks" || continue
+            if ! grep -qE '^[[:space:]]*- \[ \]' "$tasks"; then
+              echo "::error file=$tasks::every task is ticked but the change is not archived"
+              status=1
+            fi
+          done
+          exit $status

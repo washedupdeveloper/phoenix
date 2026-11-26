@@ -108,3 +108,19 @@ A behavior change starts in `openspec/changes/<name>/` (proposal, spec delta, ta
 code. `openspec list --specs` before proposing; `openspec validate <name> --strict` before
 applying and before archive; `openspec archive <name> --yes` when the work lands.
 Procedure: the `openspec` skill. Pure refactors and dependency bumps set `skip_specs: true`.
+
+The CLI comes from the flake — `nix run .#openspec -- <command>` — so the version is the one
+in `flake.lock` and nothing is installed into a profile.
+
+**Done means archived.** A change with every task ticked is finished; archive it in the same
+commit as the last task. The `openspec` CI job fails on a finished change that is still open,
+so an unarchived change is a red gate rather than a loose end.
+
+The same rule governs how work is reported:
+
+- A **decision** is a row in the change's `design.md`: the option taken, the options
+  rejected, and what would falsify the choice.
+- A **verdict** on the work is a row in `tasks.md`: the claim, the command that settles it,
+  and the result. "Done" without an evidence command is unproven.
+- A **presentation** to the owner is rendered from the change, not restated in chat. Chat
+  carries the decision table and a pointer to the artifact.
