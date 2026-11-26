@@ -47,7 +47,8 @@ jobs:
     steps:
       # Pinned to a commit, not a tag: a mutable tag is a moving target that would run
       # as the runner user on this host.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Keeps the job token out of `.git/config`, where the builders the next step
           # runs could read it from the workspace.
@@ -60,6 +61,34 @@ jobs:
       # The caches this job needs are already ambient on the machine
       # (`modules/clanServices/base-system`), and clan-core is consumed here for its
       # modules only, so `cache.clan.lol` buys nothing.
+      # `runs-on` selects a host that CLAIMS the `kvm` label, and a label is
+      # self-declared. Without /dev/kvm the VM tier fails deep inside qemu at best, and
+      # at worst boots under TCG and runs for hours against a 120-minute timeout.
+      # `preflight.yml` qualifies a new host properly, but it only runs when someone
+      # dispatches it; this is the one prerequisite the gate cannot proceed without,
+      # checked in the first second rather than the sixtieth minute.
+      - name: the host can boot a guest
+        run: |
+          set -euo pipefail
+          test -r /dev/kvm && test -w /dev/kvm \
+            || { echo "::error::/dev/kvm is not readable and writable; this runner cannot run the e2e tier"; exit 1; }
+
+      # The e2e tier is three checks behind an `optionalAttrs` on x86_64. A refactor
+      # that drops one leaves `nix flake check` green over a smaller gate than the file
+      # header promises -- the same failure as skipping the tier, only quieter. Outside
+      # in, because a check cannot see its siblings without recursing.
+      - name: the e2e tier exists
+        run: |
+          set -euo pipefail
+          names=$(nix eval --raw .#checks.x86_64-linux \
+            --apply 'cs: builtins.concatStringsSep " " (builtins.attrNames cs)')
+          for check in e2e-base-system e2e-home e2e-ports; do
+            case " $names " in
+              *" $check "*) ;;
+              *) echo "::error::the e2e tier lost $check; the gate would pass over less than it claims"; exit 1 ;;
+            esac
+          done
+
       - name: nix flake check
         run: nix flake check --keep-going
 

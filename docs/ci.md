@@ -110,3 +110,18 @@ Measured on this host, 2026-11-26, against `washedupdeveloper/phoenix`:
 Not measured: a **cold** gate — a full `nix flake check` with the e2e derivations absent
 from the store. Every run so far found them cached, so the number that decides whether
 the VM tier fits `timeout-minutes` on someone else's machine is still unknown.
+
+## What the gate asserts about its host and its tier
+
+`runs-on: [self-hosted, linux, kvm]` selects a machine that *claims* the label, and labels
+are self-declared. So the gate's first actions are assertions, not builds:
+
+- `/dev/kvm` is readable and writable. Without it the VM tier fails deep inside qemu, or
+  boots under TCG and runs for hours against the 120-minute backstop.
+- `e2e-base-system`, `e2e-home` and `e2e-ports` are present in `checks.x86_64-linux`. A
+  refactor that drops one leaves a green gate over a smaller tier than the header claims.
+
+`preflight.yml` is the fuller qualification — kernel, nix, flake evaluation, disk — and is
+dispatched by hand when a host is added or changed. The gate deliberately does not call it:
+a reusable workflow would spend a second job on every push re-asserting what takes a second
+inline, and the gate only needs the prerequisites it cannot proceed without.
