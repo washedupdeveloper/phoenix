@@ -128,7 +128,27 @@ PKG=$(nix build --no-link --print-out-paths nixpkgs#github-runner 2>/dev/null | 
 # and delete it on exit -- including when the job ends and the runner exits by itself.
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/gh-runner-XXXXXX")
 export RUNNER_ROOT="$WORK"
-trap 'rm -rf "$WORK"' EXIT INT TERM
+
+# The listener has to be owned as a child, not exec'd and not left to a foreground
+# call: a signal sent to this shell does not reach it, so a killed run left an orphan
+# listener that recreated its root after cleanup had removed it -- measured, both
+# TERM and INT left one temp root and one live listener behind. Kill the child, wait
+# for it to go, then remove the root; `.credentials` must not outlive the run.
+child=""
+cleanup() {
+  if [ -n "$child" ]; then
+    # `run.sh` execs a wrapper that spawns `Runner.Listener` as a grandchild, so
+    # killing the child's PID leaves the listener alive -- measured, it survived TERM
+    # and kept the runner registered. The child is a session leader (setsid below), so
+    # the negative PID signals the whole tree.
+    kill -TERM -- "-$child" 2>/dev/null || kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+  fi
+  rm -rf "${WORK:-}"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 CONFIG_ARGS=(
   --unattended
@@ -154,7 +174,8 @@ fi
 note "registered: https://github.com/$REPO/settings/actions/runners"
 note "waiting for a job — Ctrl-C to stop"
 
-# No `exec`: it would replace this shell and discard the trap, leaving the credentials
-# behind. The runner exits by itself after an ephemeral job, and the trap then removes
-# the root.
-"$PKG/bin/run.sh"
+# `setsid` gives the runner its own process group, which is what makes the group kill
+# above possible; without it the listener is an orphan that outlives the launcher.
+setsid "$PKG/bin/run.sh" &
+child=$!
+wait "$child"
