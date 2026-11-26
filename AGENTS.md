@@ -112,6 +112,12 @@ Procedure: the `openspec` skill. Pure refactors and dependency bumps set `skip_s
 The CLI comes from the flake — `nix run .#openspec -- <command>` — so the version is the one
 in `flake.lock` and nothing is installed into a profile.
 
+**Spec first, test second, both before the code.** A change states what the system must
+do as requirements with scenarios; each scenario becomes a test whose name states it; each
+task names the command that proves it. A requirement without a test is a wish, and a task
+without an evidence command is unproven. The loop is written out in the council
+repository's `docs/sdd.md` and applies here unchanged.
+
 **Done means archived.** A change with every task ticked is finished; archive it in the same
 commit as the last task. The `openspec` CI job fails on a finished change that is still open,
 so an unarchived change is a red gate rather than a loose end.
