@@ -17,7 +17,10 @@ let
   };
 in
 {
-  imports = [ ../../modules/ci-runner.nix ];
+  imports = [
+    ../../modules/binary-cache.nix
+    ../../modules/ci-runner.nix
+  ];
 
   networking = {
     hostName = "workstation";
@@ -286,6 +289,13 @@ in
   # (`clan vars generate workstation --generator github-runner-token`), and until it is,
   # its path is clan's `/no-such-path` sentinel: no service starts, and the first
   # rebuild after minting turns it on.
+  # This machine's own builds, served to itself over loopback. `bindAddress` is the
+  # single site fact; changing it to the mesh address is all a shared cache needs.
+  services.binary-cache = {
+    enable = true;
+    publicKey = "phoenix-cache-1:0xwQWgmY/VCJ84BoDnjdet31MnOAlEdAsUpRzRdxi2U==";
+  };
+
   services.ci-runner = {
     enable =
       toString config.clan.core.vars.generators.github-runner-token.files.token.path != "/no-such-path";
